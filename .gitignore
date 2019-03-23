@@ -1,0 +1,5 @@
+.vscode/
+.history/
+build/
+site/site/
+compile_commands.json

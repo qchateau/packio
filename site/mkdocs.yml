@@ -1,0 +1,8 @@
+site_name: rpcpack
+repo_url: https://github.com/qchateau/rpcpack
+repo_name: qchateau/rpcpack
+theme:
+  name: material
+nav:
+  - Home: index.md
+  - Quick Start: quick-start.md

@@ -1,0 +1,11 @@
+language: python
+python: "3.7"
+dist: bionic
+install:
+  - pip3 install conan
+  - conan user
+  - gcc --version
+  - clang --version
+script:
+  - CONAN_DEFAULT_PROFILE_PATH=$(realpath profiles/gcc7) conan create . --build=missing
+  - CONAN_DEFAULT_PROFILE_PATH=$(realpath profiles/clang7) conan create . --build=missing
