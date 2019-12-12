@@ -1,11 +1,76 @@
 language: python
 python: "3.7"
-dist: bionic
+dist: xenial
 install:
   - pip3 install conan
-  - conan user
-  - gcc --version
-  - clang --version
+  - which $CC
+  - which $CXX
+  - $CC --version
+  - $CXX --version
 script:
-  - CONAN_DEFAULT_PROFILE_PATH=$(realpath profiles/gcc7) conan create . --build=missing
-  - CONAN_DEFAULT_PROFILE_PATH=$(realpath profiles/clang7) conan create . --build=missing
+  - CONAN_DEFAULT_PROFILE_PATH=$(realpath profiles/$CXX) conan create . --build=missing
+
+matrix:
+  include:
+    - compiler: gcc
+      addons:
+        apt:
+          sources: ["ubuntu-toolchain-r-test"]
+          packages: ["g++-7"]
+      env:
+        - CXX=/usr/bin/g++-7
+        - CC=/usr/bin/gcc-7
+
+    - compiler: gcc
+      addons:
+        apt:
+          sources: ["ubuntu-toolchain-r-test"]
+          packages: ["g++-8"]
+      env:
+        - CXX=/usr/bin/g++-8
+        - CC=/usr/bin/gcc-8
+
+    - compiler: gcc
+      addons:
+        apt:
+          sources: ["ubuntu-toolchain-r-test"]
+          packages: ["g++-9"]
+      env:
+        - CXX=/usr/bin/g++-9
+        - CC=/usr/bin/gcc-9
+
+    - compiler: clang
+      addons:
+        apt:
+          sources: ["ubuntu-toolchain-r-test"]
+          packages: ["clang-5.0", "g++-7"]
+      env:
+        - CXX=/usr/bin/clang++-5.0
+        - CC=/usr/bin/clang-5.0
+
+    - compiler: clang
+      addons:
+        apt:
+          sources: ["ubuntu-toolchain-r-test", "llvm-toolchain-xenial-6.0"]
+          packages: ["clang-6.0", "g++-7"]
+      env:
+        - CXX=/usr/bin/clang++-6.0
+        - CC=/usr/bin/clang-6.0
+
+    - compiler: clang
+      addons:
+        apt:
+          sources: ["ubuntu-toolchain-r-test", "llvm-toolchain-xenial-7"]
+          packages: ["clang-7", "g++-7"]
+      env:
+        - CXX=/usr/bin/clang++-7
+        - CC=/usr/bin/clang-7
+
+    - compiler: clang
+      addons:
+        apt:
+          sources: ["ubuntu-toolchain-r-test", "llvm-toolchain-xenial-8"]
+          packages: ["clang-8", "g++-8"]
+      env:
+        - CXX=/usr/bin/clang++-8
+        - CC=/usr/bin/clang-8

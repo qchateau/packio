@@ -7,8 +7,10 @@ include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
 
 add_definitions(-DBOOST_ASIO_NO_DEPRECATED=1)
-add_definitions(-DRPCPACK_LOGGING=1)
-add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_TRACE)
+if (WITH_LOGS)
+    add_definitions(-DRPCPACK_LOGGING=1)
+    add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_TRACE)
+endif ()
 set(CMAKE_CXX_STANDARD 17)
 
 add_executable(basic basic.cpp)
