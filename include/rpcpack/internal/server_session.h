@@ -26,17 +26,17 @@ public:
     server_session(socket_type sock, std::shared_ptr<Dispatcher> dispatcher_ptr)
         : socket_{std::move(sock)}, dispatcher_ptr_{std::move(dispatcher_ptr)}
     {
-        DEBUG("starting session {:x}", reinterpret_cast<long>(this));
+        DEBUG("starting session {:p}", fmt::ptr(this));
     }
 
     ~server_session()
     {
         boost::system::error_code ec;
-        socket_.close(ec);
+        socket_.cancel(ec);
         if (ec) {
-            INFO("close failed: {}", ec.message());
+            INFO("cancel failed: {}", ec.message());
         }
-        DEBUG("stopped session {:x}", reinterpret_cast<long>(this));
+        DEBUG("stopped session {:p}", fmt::ptr(this));
     }
 
     void start() { async_read(std::make_shared<msgpack::unpacker>()); }

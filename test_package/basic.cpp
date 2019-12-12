@@ -5,8 +5,8 @@
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 
-#include <rpcpack/basic_client.h>
-#include <rpcpack/basic_server.h>
+#include <rpcpack/client.h>
+#include <rpcpack/server.h>
 
 #include "misc.h"
 
@@ -15,10 +15,7 @@ using namespace boost::asio;
 using namespace rpcpack;
 using std::this_thread::sleep_for;
 
-typedef ::testing::Types<
-    basic_client<ip::tcp, std::chrono::steady_clock>,
-    basic_client<local::stream_protocol, std::chrono::steady_clock>>
-    ClientImplementations;
+typedef ::testing::Types<ip_client, local_client> ClientImplementations;
 
 template <class T>
 class Client : public ::testing::Test {
@@ -27,20 +24,30 @@ protected:
     using protocol_type = typename T::protocol_type;
     using endpoint_type = typename T::endpoint_type;
     using socket_type = typename T::socket_type;
-    using server_type = basic_server<protocol_type, default_dispatcher>;
+    using server_type = server<protocol_type, default_dispatcher>;
     using acceptor_type = typename server_type::acceptor_type;
 
     Client()
         : server_{acceptor_type(io_, get_endpoint<endpoint_type>())},
-          client_{socket_type{io_}},
-          runner_{[this] { io_.run(); }}
+          client_{socket_type{io_}}
     {
     }
 
     ~Client()
     {
         io_.stop();
-        runner_.join();
+        if (runner_.joinable()) {
+            runner_.join();
+        }
+    }
+
+    void async_run()
+    {
+        runner_ = std::thread{[this] {
+            DEBUG("running");
+            io_.run();
+            DEBUG("work done");
+        }};
     }
 
     void connect()
@@ -93,16 +100,17 @@ TYPED_TEST(Client, test_connect)
 TYPED_TEST(Client, test_typical_usage)
 {
     {
-        latch connect_latch{1};
+        latch connected{1};
         this->server_.async_serve([&](auto ec, auto session) {
             ASSERT_FALSE(ec);
             session->start();
-            connect_latch.count_down();
+            connected.count_down();
         });
         this->connect();
+        this->async_run();
 
         ASSERT_TRUE(this->client_.socket().is_open());
-        ASSERT_TRUE(connect_latch.wait_for(std::chrono::seconds{1}));
+        ASSERT_TRUE(connected.wait_for(std::chrono::seconds{1}));
     }
 
     std::atomic<int> call_arg_received{0};
@@ -140,8 +148,9 @@ TYPED_TEST(Client, test_typical_usage)
 
 TYPED_TEST(Client, test_timeout)
 {
-    this->connect();
     this->server_.async_serve_forever();
+    this->connect();
+    this->async_run();
 
     std::mutex mtx;
     bool blocked{true};
@@ -221,8 +230,9 @@ TYPED_TEST(Client, test_server_functions)
 
 TYPED_TEST(Client, test_dispatcher)
 {
-    this->connect();
     this->server_.async_serve_forever();
+    this->connect();
+    this->async_run();
 
     ASSERT_TRUE(this->server_.dispatcher()->add_async(
         "f001", [](rpcpack::completion_handler<> handler) { handler(); }));
@@ -280,8 +290,9 @@ TYPED_TEST(Client, test_shared_dispatcher)
     using endpoint_type = typename std::decay_t<decltype(*this)>::endpoint_type;
     using acceptor_type = typename std::decay_t<decltype(*this)>::acceptor_type;
 
-    this->connect();
     this->server_.async_serve_forever();
+    this->connect();
+    this->async_run();
 
     // server2 is a different server but shares the same dispatcher as server_
     server_type server2{acceptor_type(this->io_, get_endpoint<endpoint_type>()),
@@ -314,8 +325,9 @@ TYPED_TEST(Client, test_errors_async)
 {
     constexpr auto kExceptionMessage{"exception message"};
 
-    this->connect();
     this->server_.async_serve_forever();
+    this->connect();
+    this->async_run();
 
     ASSERT_TRUE(this->server_.dispatcher()->add_async(
         "throw", [](rpcpack::completion_handler<>) {
@@ -357,8 +369,9 @@ TYPED_TEST(Client, test_errors_sync)
 {
     constexpr auto kExceptionMessage{"exception message"};
 
-    this->connect();
     this->server_.async_serve_forever();
+    this->connect();
+    this->async_run();
 
     ASSERT_TRUE(this->server_.dispatcher()->add(
         "throw", [] { throw std::runtime_error{kExceptionMessage}; }));

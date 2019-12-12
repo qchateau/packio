@@ -1,5 +1,5 @@
-#ifndef RPCPACK_BASIC_CLIENT_H
-#define RPCPACK_BASIC_CLIENT_H
+#ifndef RPCPACK_CLIENT_H
+#define RPCPACK_CLIENT_H
 
 #include <atomic>
 #include <chrono>
@@ -16,7 +16,7 @@
 namespace rpcpack {
 
 template <typename Protocol, typename Clock>
-class basic_client {
+class client {
 public:
     using protocol_type = Protocol;
     using clock_type = Clock;
@@ -32,19 +32,19 @@ public:
 
     static constexpr size_t kBufferReserveSize = 4096;
 
-    explicit basic_client(socket_type socket) : socket_{std::move(socket)}
+    explicit client(socket_type socket) : socket_{std::move(socket)}
     {
-        async_read();
+        reading_.clear();
     }
 
-    ~basic_client()
+    ~client()
     {
         boost::system::error_code ec;
-        socket_.close(ec);
+        socket_.cancel(ec);
         if (ec) {
-            INFO("close failed: {}", ec.message());
+            INFO("cancel failed: {}", ec.message());
         }
-        DEBUG("stopped client {:x}", reinterpret_cast<long>(this));
+        DEBUG("stopped client");
     }
 
     socket_type& socket() { return socket_; }
@@ -71,6 +71,7 @@ public:
                 name,
                 std::forward_as_tuple(args...)));
 
+        maybe_start_reading();
         boost::asio::async_write(
             socket_,
             internal::buffer_to_asio(*packer_buf),
@@ -95,7 +96,7 @@ public:
     {
         TRACE("async_call: {}", name);
 
-        auto id = id_.fetch_add(1);
+        auto id = id_.fetch_add(1, std::memory_order_acq_rel);
         auto packer_buf = std::make_shared<Buffer>();
         msgpack::pack(
             *packer_buf,
@@ -105,20 +106,27 @@ public:
                 name,
                 std::forward_as_tuple(args...)));
 
-        std::unique_lock lock{pending_mutex_};
-        timer_type& timer = std::get<timer_type>(
-            pending_
-                .emplace(
-                    id,
-                    std::make_tuple(
-                        std::move(handler), timer_type{socket_.get_executor()}))
-                .first->second);
+        {
+            std::unique_lock lock{pending_mutex_};
+            timer_type& timer = std::get<timer_type>(
+                pending_
+                    .emplace(
+                        id,
+                        std::make_tuple(
+                            std::move(handler),
+                            timer_type{socket_.get_executor()}))
+                    .first->second);
 
-        if (timeout_ > duration_type{0}) {
-            async_timeout(timer, id);
+            if (timeout_ > duration_type{0}) {
+                TRACE(
+                    "timeout in {}us",
+                    std::chrono::duration_cast<std::chrono::microseconds>(timeout_)
+                        .count());
+                async_timeout(timer, id);
+            }
         }
-        lock.unlock();
 
+        maybe_start_reading();
         boost::asio::async_write(
             socket_,
             internal::buffer_to_asio(*packer_buf),
@@ -137,6 +145,13 @@ public:
     }
 
 private:
+    void maybe_start_reading()
+    {
+        if (!reading_.test_and_set(std::memory_order_acq_rel)) {
+            async_read();
+        }
+    }
+
     void async_read()
     {
         unpacker_.reserve_buffer(kBufferReserveSize);
@@ -156,9 +171,9 @@ private:
                         TRACE("dispatching");
                         async_dispatch(std::move(response), ec);
                     }
-                }
 
-                async_read();
+                    async_read();
+                }
             });
     }
 
@@ -275,6 +290,10 @@ private:
     void close_connection()
     {
         boost::system::error_code ec;
+        socket_.cancel(ec);
+        if (ec) {
+            INFO("cancel failed: {}", ec.message());
+        }
         socket_.shutdown(socket_type::shutdown_type::shutdown_both, ec);
         if (ec) {
             INFO("shutdown failed: {}", ec.message());
@@ -287,19 +306,20 @@ private:
 
     socket_type socket_;
     msgpack::unpacker unpacker_;
-    std::map<uint32_t, std::tuple<async_call_handler_type, timer_type>> pending_;
     std::mutex pending_mutex_;
+    std::map<uint32_t, std::tuple<async_call_handler_type, timer_type>> pending_;
     duration_type timeout_{0};
     std::atomic<uint32_t> id_{0};
+    std::atomic_flag reading_;
 };
 
-using ip_client = basic_client<boost::asio::ip::tcp, std::chrono::steady_clock>;
+using ip_client = client<boost::asio::ip::tcp, std::chrono::steady_clock>;
 
 #if defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
 using local_client =
-    basic_client<boost::asio::local::stream_protocol, std::chrono::steady_clock>;
+    client<boost::asio::local::stream_protocol, std::chrono::steady_clock>;
 #endif // defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
 
 } // rpcpack
 
-#endif // RPCPACK_BASIC_CLIENT_H
+#endif // RPCPACK_CLIENT_H

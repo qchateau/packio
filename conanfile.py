@@ -3,7 +3,7 @@ from conans import ConanFile
 
 class RpcpackConan(ConanFile):
     name = "rpcpack"
-    version = "0.1.0"
+    version = "0.2.0"
     license = "GPLv3"
     author = "Quentin Chateau <quentin.chateau@gmail.com>"
     url = "https://github.com/qchateau/rpcpack"

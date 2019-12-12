@@ -17,3 +17,4 @@ class RpcpackConan(ConanFile):
         if not tools.cross_building(self.settings):
             os.chdir("bin")
             self.run(".%sbasic" % os.sep)
+            self.run(".%smt" % os.sep)

@@ -1,5 +1,5 @@
-#ifndef RPCPACK_BASIC_SERVER_H
-#define RPCPACK_BASIC_SERVER_H
+#ifndef RPCPACK_SERVER_H
+#define RPCPACK_SERVER_H
 
 #include <memory>
 #include <boost/asio.hpp>
@@ -13,7 +13,7 @@
 namespace rpcpack {
 
 template <typename Protocol, typename Dispatcher>
-class basic_server {
+class server {
 public:
     using protocol_type = Protocol;
     using dispatcher_type = Dispatcher;
@@ -24,14 +24,24 @@ public:
     using async_serve_handler_type =
         std::function<void(boost::system::error_code, std::shared_ptr<session_type>)>;
 
-    explicit basic_server(acceptor_type acceptor)
-        : basic_server{std::move(acceptor), std::make_shared<dispatcher_type>()}
+    explicit server(acceptor_type acceptor)
+        : server{std::move(acceptor), std::make_shared<dispatcher_type>()}
     {
     }
 
-    basic_server(acceptor_type acceptor, std::shared_ptr<dispatcher_type> dispatcher)
+    server(acceptor_type acceptor, std::shared_ptr<dispatcher_type> dispatcher)
         : acceptor_{std::move(acceptor)}, dispatcher_ptr_{std::move(dispatcher)}
     {
+    }
+
+    ~server()
+    {
+        boost::system::error_code ec;
+        acceptor_.cancel(ec);
+        if (ec) {
+            INFO("cancel failed: {}", ec.message());
+        }
+        DEBUG("stopped server");
     }
 
     acceptor_type& acceptor() { return acceptor_; }
@@ -65,11 +75,14 @@ public:
 
     void async_serve_forever()
     {
-        async_serve([this](auto, auto session) {
-            if (session) {
-                session->start();
+        async_serve([this](auto ec, auto session) {
+            if (ec) {
+                INFO("error: {}", ec.message());
             }
-            async_serve_forever();
+            else {
+                session->start();
+                async_serve_forever();
+            }
         });
     }
 
@@ -78,13 +91,13 @@ private:
     std::shared_ptr<dispatcher_type> dispatcher_ptr_;
 };
 
-using ip_server = basic_server<boost::asio::ip::tcp, default_dispatcher>;
+using ip_server = server<boost::asio::ip::tcp, default_dispatcher>;
 
 #if defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
 using local_server =
-    basic_server<boost::asio::local::stream_protocol, default_dispatcher>;
+    server<boost::asio::local::stream_protocol, default_dispatcher>;
 #endif // defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
 
 } // rpcpack
 
-#endif // RPCPACK_BASIC_SERVER_H
+#endif // RPCPACK_SERVER_H

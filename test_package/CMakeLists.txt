@@ -13,5 +13,5 @@ set(CMAKE_CXX_STANDARD 17)
 
 add_executable(basic basic.cpp)
 target_link_libraries(basic ${CONAN_LIBS})
-add_executable(simple simple.cpp)
-target_link_libraries(simple ${CONAN_LIBS})
+add_executable(mt mt.cpp)
+target_link_libraries(mt ${CONAN_LIBS})
