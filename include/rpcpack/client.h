@@ -75,7 +75,7 @@ public:
         boost::asio::async_write(
             socket_,
             internal::buffer_to_asio(*packer_buf),
-            [this, packer_buf, handler = std::move(handler)](
+            [packer_buf, handler = std::move(handler)](
                 boost::system::error_code ec, size_t length) {
                 if (ec) {
                     DEBUG("write error: {}", ec.message());
@@ -222,7 +222,6 @@ private:
             return;
         }
 
-        int type = response.via.array.ptr[0].as<int>();
         int id = response.via.array.ptr[1].as<int>();
         const msgpack::object& err = response.via.array.ptr[2];
         const msgpack::object& result = response.via.array.ptr[3];

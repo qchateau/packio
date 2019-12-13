@@ -7,10 +7,8 @@ namespace rpcpack {
 
 enum class error {
     success = 0,
-    exception_during_call,
     error_during_call,
     unknown_function,
-    incompatible_arguments,
     communication_failure,
     timeout,
     call_error
@@ -25,12 +23,8 @@ struct rpcpack_error_category : boost::system::error_category {
             return "Success";
         case error::error_during_call:
             return "Error during call";
-        case error::exception_during_call:
-            return "Exception during call";
         case error::unknown_function:
             return "Unknown function";
-        case error::incompatible_arguments:
-            return "Incompatible arguments";
         case error::communication_failure:
             return "Communication failure";
         case error::timeout:
@@ -47,7 +41,7 @@ inline const boost::system::error_category& rpcpack_category()
 {
     static rpcpack_error_category cat;
     return cat;
-};
+}
 
 inline boost::system::error_code make_error_code(error e)
 {

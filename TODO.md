@@ -1,2 +1,0 @@
-- verify data copy during calls
-- reduce allocations

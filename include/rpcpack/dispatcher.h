@@ -39,8 +39,8 @@ decltype(auto) apply_msgpack_result(F&& fct, Tuple&& args_tuple)
 template <typename mutex>
 class dispatcher {
 public:
-    using function_type =
-        std::function<void(completion_handler::raw, const msgpack::object&)>;
+    using function_type = std::function<
+        void(completion_handler::raw::function_type, const msgpack::object&)>;
     using function_ptr_type = std::shared_ptr<function_type>;
 
     template <typename F>
@@ -113,38 +113,34 @@ private:
 
         return std::make_shared<function_type>(
             [fct = std::forward<F>(fct)](
-                completion_handler::raw handler, const msgpack::object& args) {
+                completion_handler::raw::function_type handler_function,
+                const msgpack::object& args) {
+                completion_handler::raw handler{std::move(handler_function)};
+
                 if (internal::args_count(args) != std::tuple_size_v<value_args>) {
                     // keep this check otherwise msgpack unpacker
                     // may silently drop arguments
                     DEBUG("incompatible argument count");
-                    auto ec = make_error_code(error::incompatible_arguments);
-                    handler(ec, internal::make_msgpack_object(ec.message()));
+                    handler.set_error("Incompatible arguments");
                     return;
                 }
 
                 try {
                     if constexpr (std::is_void_v<result_type>) {
                         std::apply(fct, args.as<value_args>());
-                        handler(make_error_code(error::success), {});
+                        handler();
                     }
                     else {
-                        auto result = std::apply(fct, args.as<value_args>());
-                        handler(
-                            make_error_code(error::success),
-                            internal::make_msgpack_object(std::move(result)));
+                        handler(std::apply(fct, args.as<value_args>()));
                     }
                 }
-                catch (std::bad_cast&) {
+                catch (std::bad_cast& exc) {
                     DEBUG("incompatible arguments");
-                    auto ec = make_error_code(error::incompatible_arguments);
-                    handler(ec, internal::make_msgpack_object(ec.message()));
+                    handler.set_error("Incompatible arguments");
                 }
                 catch (std::exception& exc) {
                     DEBUG("exception: {}", exc.what());
-                    handler(
-                        make_error_code(error::exception_during_call),
-                        internal::make_msgpack_object(exc.what()));
+                    handler.set_error(exc.what());
                 }
             });
     }
@@ -159,18 +155,20 @@ private:
             n_args >= 1,
             "Callbacks take at least a completion handler as argument");
 
-        using handler_type = std::tuple_element_t<0, args>;
         using value_args = internal::shift_tuple_t<args>;
 
         return std::make_shared<function_type>(
             [fct = std::forward<F>(fct)](
-                completion_handler::raw handler, const msgpack::object& args) {
+                completion_handler::raw::function_type handler_function,
+                const msgpack::object& args) {
+                auto handler = std::make_shared<completion_handler::raw>(
+                    std::move(handler_function));
+
                 if (internal::args_count(args) != std::tuple_size_v<value_args>) {
                     // keep this check otherwise msgpack unpacker
                     // may silently drop arguments
                     DEBUG("incompatible argument count");
-                    auto ec = make_error_code(error::incompatible_arguments);
-                    handler(ec, internal::make_msgpack_object(ec.message()));
+                    handler->set_error("Incompatible arguments");
                     return;
                 }
 
@@ -184,14 +182,11 @@ private:
                 }
                 catch (std::bad_cast&) {
                     DEBUG("incompatible arguments");
-                    auto ec = make_error_code(error::incompatible_arguments);
-                    handler(ec, internal::make_msgpack_object(ec.message()));
+                    handler->set_error("Incompatible arguments");
                 }
                 catch (std::exception& exc) {
                     DEBUG("exception: {}", exc.what());
-                    handler(
-                        make_error_code(error::exception_during_call),
-                        internal::make_msgpack_object(exc.what()));
+                    handler->set_error(exc.what());
                 }
             });
     }

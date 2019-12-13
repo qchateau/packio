@@ -97,7 +97,6 @@ private:
 
         int idx = 0;
         uint32_t id = 0;
-        boost::system::error_code ec;
         int type = call.via.array.ptr[idx++].as<int>();
 
         switch (static_cast<msgpack_rpc_type>(type)) {
@@ -147,28 +146,24 @@ private:
         auto packer_buf = std::make_shared<msgpack::vrefbuffer>();
         msgpack::packer<msgpack::vrefbuffer> packer(*packer_buf);
 
-        if (ec) {
-            if (result_handle.get().is_nil()) {
-                packer.pack(std::forward_as_tuple(
-                    static_cast<int>(msgpack_rpc_type::response),
-                    id,
-                    ec.message(),
-                    msgpack::type::nil_t{}));
-            }
-            else {
-                packer.pack(std::forward_as_tuple(
-                    static_cast<int>(msgpack_rpc_type::response),
-                    id,
-                    result_handle.get(),
-                    msgpack::type::nil_t{}));
-            }
-        }
-        else {
+        const auto pack = [&](auto&& error, auto&& result) {
             packer.pack(std::forward_as_tuple(
                 static_cast<int>(msgpack_rpc_type::response),
                 id,
-                msgpack::type::nil_t{},
-                result_handle.get()));
+                std::forward<decltype(error)>(error),
+                std::forward<decltype(result)>(result)));
+        };
+
+        if (ec) {
+            if (result_handle.get().is_nil()) {
+                pack(ec.message(), msgpack::type::nil_t{});
+            }
+            else {
+                pack(result_handle.get(), msgpack::type::nil_t{});
+            }
+        }
+        else {
+            pack(msgpack::type::nil_t{}, result_handle.get());
         }
 
         auto buffer = buffer_to_asio(*packer_buf);
@@ -185,6 +180,7 @@ private:
                 }
 
                 TRACE("write: {}", length);
+                (void)length;
             });
     }
 

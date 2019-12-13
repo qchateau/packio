@@ -153,7 +153,6 @@ TYPED_TEST(Client, test_timeout)
     this->async_run();
 
     std::mutex mtx;
-    bool blocked{true};
 
     std::list<rpcpack::completion_handler> pending;
     this->server_.dispatcher()->add_async(
@@ -272,7 +271,7 @@ TYPED_TEST(Client, test_dispatcher)
     ASSERT_TRUE(this->server_.dispatcher()->has("f002"));
     ASSERT_FALSE(this->server_.dispatcher()->has("f003"));
 
-    ASSERT_EQ(1, this->server_.dispatcher()->clear());
+    ASSERT_EQ(1u, this->server_.dispatcher()->clear());
 
     ASSERT_FALSE(this->server_.dispatcher()->has("f001"));
     ASSERT_FALSE(this->server_.dispatcher()->has("f002"));
@@ -328,16 +327,18 @@ TYPED_TEST(Client, test_errors_async)
     this->async_run();
 
     ASSERT_TRUE(this->server_.dispatcher()->add_async(
-        "throw", [](rpcpack::completion_handler) {
+        "throw", [&](rpcpack::completion_handler) {
             throw std::runtime_error{kExceptionMessage};
         }));
     ASSERT_TRUE(this->server_.dispatcher()->add_async(
-        "error", [](rpcpack::completion_handler handler) {
+        "error", [&](rpcpack::completion_handler handler) {
             handler.set_error(kErrorMessage);
         }));
     ASSERT_TRUE(this->server_.dispatcher()->add_async(
         "empty_error",
         [](rpcpack::completion_handler handler) { handler.set_error(); }));
+    ASSERT_TRUE(this->server_.dispatcher()->add_async(
+        "no_result", [&](rpcpack::completion_handler) {}));
     ASSERT_TRUE(this->server_.dispatcher()->add_async(
         "add", [](rpcpack::completion_handler handler, int a, int b) {
             handler(a + b);
@@ -357,6 +358,11 @@ TYPED_TEST(Client, test_errors_async)
         auto [ec, res] = this->future_call("empty_error").get();
         ASSERT_EQ(rpcpack::error::call_error, ec);
         ASSERT_EQ("Error during call", res.template as<std::string>());
+    }
+    {
+        auto [ec, res] = this->future_call("no_result").get();
+        ASSERT_EQ(rpcpack::error::call_error, ec);
+        ASSERT_EQ("Call finished with no result", res.template as<std::string>());
     }
     {
         auto [ec, res] = this->future_call("unexisting").get();

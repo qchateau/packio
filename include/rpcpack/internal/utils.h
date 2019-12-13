@@ -58,7 +58,7 @@ inline asio_buffer<msgpack::vrefbuffer>::type buffer_to_asio(
     typename asio_buffer<msgpack::vrefbuffer>::type vec;
     vec.reserve(buf.vector_size());
     const struct iovec* iov = buf.vector();
-    for (int i = 0; i < buf.vector_size(); ++i) {
+    for (std::size_t i = 0; i < buf.vector_size(); ++i) {
         vec.push_back(boost::asio::const_buffer(iov->iov_base, iov->iov_len));
         ++iov;
     }

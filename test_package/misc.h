@@ -35,22 +35,6 @@ endpoint get_endpoint()
     return ep;
 }
 
-template <typename Duration, typename F1, typename F2>
-void expect_blocks(Duration d, const F1& func, const F2& timeout_handler)
-{
-    std::atomic<bool> done{false};
-    auto handler = std::async(std::launch::async, [&] {
-        std::this_thread::sleep_for(d);
-        EXPECT_FALSE(done.load()) << "function did not block as expected";
-        if (!done.load()) {
-            timeout_handler();
-        }
-    });
-    func();
-    done.store(true);
-    handler.wait();
-}
-
 class latch {
 public:
     latch(int expected) : remaining_{expected} {}
