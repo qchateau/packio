@@ -17,38 +17,31 @@ enum class error {
 };
 
 struct rpcpack_error_category : boost::system::error_category {
-    const char* name() const noexcept override;
-    std::string message(int ev) const override;
-};
-
-const char* rpcpack_error_category::name() const noexcept
-{
-    return "rpcpack";
-}
-
-std::string rpcpack_error_category::message(int e) const
-{
-    switch (static_cast<error>(e)) {
-    case error::success:
-        return "Success";
-    case error::error_during_call:
-        return "Error during call";
-    case error::exception_during_call:
-        return "Exception during call";
-    case error::unknown_function:
-        return "Unknown function";
-    case error::incompatible_arguments:
-        return "Incompatible arguments";
-    case error::communication_failure:
-        return "Communication failure";
-    case error::timeout:
-        return "Timeout";
-    case error::call_error:
-        return "Call error";
-    default:
-        return "Unrecognized error";
+    const char* name() const noexcept override { return "rpcpack"; }
+    std::string message(int ev) const override
+    {
+        switch (static_cast<error>(ev)) {
+        case error::success:
+            return "Success";
+        case error::error_during_call:
+            return "Error during call";
+        case error::exception_during_call:
+            return "Exception during call";
+        case error::unknown_function:
+            return "Unknown function";
+        case error::incompatible_arguments:
+            return "Incompatible arguments";
+        case error::communication_failure:
+            return "Communication failure";
+        case error::timeout:
+            return "Timeout";
+        case error::call_error:
+            return "Call error";
+        default:
+            return "Unrecognized error";
+        }
     }
-}
+};
 
 inline const boost::system::error_category& rpcpack_category()
 {

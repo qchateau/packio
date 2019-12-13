@@ -12,7 +12,6 @@
 
 #include "error_code.h"
 #include "handler.h"
-#include "internal/noop_mutex.h"
 #include "internal/traits.h"
 #include "internal/utils.h"
 
@@ -202,7 +201,6 @@ private:
 };
 
 using default_dispatcher = dispatcher<std::mutex>;
-using unsafe_dispatcher = dispatcher<internal::noop_mutex>;
 
 } // rpcpack
 
