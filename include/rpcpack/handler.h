@@ -3,22 +3,39 @@
 
 #include <functional>
 
+#include <boost/asio.hpp>
+#include <msgpack.hpp>
+
+#include "error_code.h"
+#include "internal/utils.h"
+
 namespace rpcpack {
-namespace internal {
 
-template <typename Ret>
-struct completion_handler {
-    using type = std::function<void(Ret)>;
+class completion_handler {
+public:
+    using raw =
+        std::function<void(boost::system::error_code, msgpack::object_handle)>;
+
+    completion_handler(raw raw_handler) : raw_handler_{std::move(raw_handler)}
+    {
+    }
+
+    template <typename R>
+    void operator()(R&& return_value) const
+    {
+        raw_handler_(
+            make_error_code(error::success),
+            internal::make_msgpack_object(std::forward<R>(return_value)));
+    }
+
+    void operator()() const
+    {
+        raw_handler_(make_error_code(error::success), {});
+    }
+
+private:
+    raw raw_handler_;
 };
-
-template <>
-struct completion_handler<void> {
-    using type = std::function<void()>;
-};
-}
-
-template <typename Ret = void>
-using completion_handler = typename internal::completion_handler<Ret>::type;
 
 } // rpcpack
 

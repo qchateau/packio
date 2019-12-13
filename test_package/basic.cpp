@@ -116,7 +116,7 @@ TYPED_TEST(Client, test_typical_usage)
     std::atomic<int> call_arg_received{0};
     latch call_latch{0};
     this->server_.dispatcher()->add_async(
-        "echo", [&](rpcpack::completion_handler<int> handler, int i) {
+        "echo", [&](rpcpack::completion_handler handler, int i) {
             call_arg_received = i;
             call_latch.count_down();
             handler(i);
@@ -155,14 +155,14 @@ TYPED_TEST(Client, test_timeout)
     std::mutex mtx;
     bool blocked{true};
 
-    std::vector<rpcpack::completion_handler<>> pending;
+    std::vector<rpcpack::completion_handler> pending;
     this->server_.dispatcher()->add_async(
-        "block", [&](rpcpack::completion_handler<> handler) {
+        "block", [&](rpcpack::completion_handler handler) {
             std::unique_lock l{mtx};
             pending.push_back(handler);
         });
     this->server_.dispatcher()->add_async(
-        "unblock", [&](rpcpack::completion_handler<> handler) {
+        "unblock", [&](rpcpack::completion_handler handler) {
             std::unique_lock l{mtx};
             for (auto& handler : pending) {
                 handler();
@@ -202,21 +202,18 @@ TYPED_TEST(Client, test_server_functions)
 {
     // this just needs to compile
     this->server_.dispatcher()->add_async(
-        "f001", [](rpcpack::completion_handler<> handler) { handler(); });
+        "f001", [](rpcpack::completion_handler handler) { handler(); });
     this->server_.dispatcher()->add_async(
-        "f002", [](rpcpack::completion_handler<int> handler) { handler(42); });
+        "f002", [](rpcpack::completion_handler handler) { handler(42); });
     this->server_.dispatcher()->add_async(
-        "f003", [](rpcpack::completion_handler<> handler, int) { handler(); });
+        "f003", [](rpcpack::completion_handler handler, int) { handler(); });
     this->server_.dispatcher()->add_async(
-        "f004",
-        [](rpcpack::completion_handler<int> handler, int i) { handler(i); });
+        "f004", [](rpcpack::completion_handler handler, int i) { handler(i); });
     this->server_.dispatcher()->add_async(
         "f005",
-        [](rpcpack::completion_handler<std::string> handler, std::string s) {
-            handler(s);
-        });
+        [](rpcpack::completion_handler handler, std::string s) { handler(s); });
     this->server_.dispatcher()->add_async(
-        "f006", [](rpcpack::completion_handler<int> handler, int i, std::string) {
+        "f006", [](rpcpack::completion_handler handler, int i, std::string) {
             handler(i);
         });
 
@@ -235,13 +232,13 @@ TYPED_TEST(Client, test_dispatcher)
     this->async_run();
 
     ASSERT_TRUE(this->server_.dispatcher()->add_async(
-        "f001", [](rpcpack::completion_handler<> handler) { handler(); }));
+        "f001", [](rpcpack::completion_handler handler) { handler(); }));
     ASSERT_TRUE(this->server_.dispatcher()->add("f002", []() {}));
 
     ASSERT_FALSE(this->server_.dispatcher()->add_async(
-        "f001", [](rpcpack::completion_handler<> handler) { handler(); }));
+        "f001", [](rpcpack::completion_handler handler) { handler(); }));
     ASSERT_FALSE(this->server_.dispatcher()->add_async(
-        "f002", [](rpcpack::completion_handler<> handler) { handler(); }));
+        "f002", [](rpcpack::completion_handler handler) { handler(); }));
     ASSERT_FALSE(this->server_.dispatcher()->add("f001", []() {}));
     ASSERT_FALSE(this->server_.dispatcher()->add("f002", []() {}));
 
@@ -310,7 +307,7 @@ TYPED_TEST(Client, test_shared_dispatcher)
 
     latch l{2};
     ASSERT_TRUE(this->server_.dispatcher()->add_async(
-        "inc", [&](rpcpack::completion_handler<> handler) {
+        "inc", [&](rpcpack::completion_handler handler) {
             l.count_down();
             handler();
         }));
@@ -330,11 +327,11 @@ TYPED_TEST(Client, test_errors_async)
     this->async_run();
 
     ASSERT_TRUE(this->server_.dispatcher()->add_async(
-        "throw", [](rpcpack::completion_handler<>) {
+        "throw", [](rpcpack::completion_handler) {
             throw std::runtime_error{kExceptionMessage};
         }));
     ASSERT_TRUE(this->server_.dispatcher()->add_async(
-        "add", [](rpcpack::completion_handler<int> handler, int a, int b) {
+        "add", [](rpcpack::completion_handler handler, int a, int b) {
             handler(a + b);
         }));
 

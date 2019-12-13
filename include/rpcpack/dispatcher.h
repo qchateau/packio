@@ -40,10 +40,8 @@ decltype(auto) apply_msgpack_result(F&& fct, Tuple&& args_tuple)
 template <typename mutex>
 class dispatcher {
 public:
-    using completion_handler_type =
-        std::function<void(boost::system::error_code, msgpack::object_handle)>;
     using function_type =
-        std::function<void(completion_handler_type, const msgpack::object&)>;
+        std::function<void(completion_handler::raw, const msgpack::object&)>;
     using function_ptr_type = std::shared_ptr<function_type>;
 
     template <typename F>
@@ -117,7 +115,7 @@ private:
 
         return std::make_shared<function_type>(
             [fct = std::forward<F>(fct)](
-                completion_handler_type handler, const msgpack::object& args) {
+                completion_handler::raw handler, const msgpack::object& args) {
                 if (internal::args_count(args) != n_value_args) {
                     DEBUG("incompatible argument count");
                     handler(make_error_code(error::incompatible_arguments), {});
@@ -160,44 +158,20 @@ private:
             "Callbacks take at least a completion handler as argument");
 
         using handler_type = std::tuple_element_t<0, args>;
-        using handler_args =
-            typename internal::func_traits<handler_type>::args_type;
-
-        static_assert(
-            std::tuple_size_v<handler_args> == 0
-                || std::tuple_size_v<handler_args> == 1,
-            "Completion handlers take 0 or 1 arguments");
-
         using value_args = internal::shift_tuple_t<args>;
         constexpr std::size_t n_value_args = std::tuple_size_v<value_args>;
 
         return std::make_shared<function_type>(
             [fct = std::forward<F>(fct)](
-                completion_handler_type handler, const msgpack::object& args) {
+                completion_handler::raw handler, const msgpack::object& args) {
                 if (internal::args_count(args) != n_value_args) {
                     DEBUG("incompatible argument count");
                     handler(make_error_code(error::incompatible_arguments), {});
                     return;
                 }
 
-                auto user_completion_handler = [&] {
-                    if constexpr (std::tuple_size_v<handler_args>) {
-                        using result_type = std::tuple_element_t<0, handler_args>;
-                        return [handler](result_type result) {
-                            handler(
-                                make_error_code(error::success),
-                                internal::make_msgpack_object(std::move(result)));
-                        };
-                    }
-                    else {
-                        return [handler]() {
-                            handler(make_error_code(error::success), {});
-                        };
-                    }
-                }();
-
                 const auto bound_fct = [&](auto&&... args) -> void {
-                    fct(std::move(user_completion_handler),
+                    fct(completion_handler{handler},
                         std::forward<decltype(args)>(args)...);
                 };
 
