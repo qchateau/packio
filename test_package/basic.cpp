@@ -155,11 +155,11 @@ TYPED_TEST(Client, test_timeout)
     std::mutex mtx;
     bool blocked{true};
 
-    std::vector<rpcpack::completion_handler> pending;
+    std::list<rpcpack::completion_handler> pending;
     this->server_.dispatcher()->add_async(
         "block", [&](rpcpack::completion_handler handler) {
             std::unique_lock l{mtx};
-            pending.push_back(handler);
+            pending.push_back(std::move(handler));
         });
     this->server_.dispatcher()->add_async(
         "unblock", [&](rpcpack::completion_handler handler) {
@@ -321,6 +321,7 @@ TYPED_TEST(Client, test_shared_dispatcher)
 TYPED_TEST(Client, test_errors_async)
 {
     constexpr auto kExceptionMessage{"exception message"};
+    constexpr auto kErrorMessage{"error message"};
 
     this->server_.async_serve_forever();
     this->connect();
@@ -331,6 +332,13 @@ TYPED_TEST(Client, test_errors_async)
             throw std::runtime_error{kExceptionMessage};
         }));
     ASSERT_TRUE(this->server_.dispatcher()->add_async(
+        "error", [](rpcpack::completion_handler handler) {
+            handler.set_error(kErrorMessage);
+        }));
+    ASSERT_TRUE(this->server_.dispatcher()->add_async(
+        "empty_error",
+        [](rpcpack::completion_handler handler) { handler.set_error(); }));
+    ASSERT_TRUE(this->server_.dispatcher()->add_async(
         "add", [](rpcpack::completion_handler handler, int a, int b) {
             handler(a + b);
         }));
@@ -338,7 +346,17 @@ TYPED_TEST(Client, test_errors_async)
     {
         auto [ec, res] = this->future_call("throw").get();
         ASSERT_EQ(rpcpack::error::call_error, ec);
-        ASSERT_EQ("Exception during call", res.template as<std::string>());
+        ASSERT_EQ(kExceptionMessage, res.template as<std::string>());
+    }
+    {
+        auto [ec, res] = this->future_call("error").get();
+        ASSERT_EQ(rpcpack::error::call_error, ec);
+        ASSERT_EQ(kErrorMessage, res.template as<std::string>());
+    }
+    {
+        auto [ec, res] = this->future_call("empty_error").get();
+        ASSERT_EQ(rpcpack::error::call_error, ec);
+        ASSERT_EQ("Error during call", res.template as<std::string>());
     }
     {
         auto [ec, res] = this->future_call("unexisting").get();
@@ -378,7 +396,7 @@ TYPED_TEST(Client, test_errors_sync)
     {
         auto [ec, res] = this->future_call("throw").get();
         ASSERT_EQ(rpcpack::error::call_error, ec);
-        ASSERT_EQ("Exception during call", res.template as<std::string>());
+        ASSERT_EQ(kExceptionMessage, res.template as<std::string>());
     }
     {
         auto [ec, res] = this->future_call("unexisting").get();

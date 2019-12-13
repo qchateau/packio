@@ -148,11 +148,20 @@ private:
         msgpack::packer<msgpack::vrefbuffer> packer(*packer_buf);
 
         if (ec) {
-            packer.pack(std::forward_as_tuple(
-                static_cast<int>(msgpack_rpc_type::response),
-                id,
-                ec.message(),
-                msgpack::type::nil_t{}));
+            if (result_handle.get().is_nil()) {
+                packer.pack(std::forward_as_tuple(
+                    static_cast<int>(msgpack_rpc_type::response),
+                    id,
+                    ec.message(),
+                    msgpack::type::nil_t{}));
+            }
+            else {
+                packer.pack(std::forward_as_tuple(
+                    static_cast<int>(msgpack_rpc_type::response),
+                    id,
+                    result_handle.get(),
+                    msgpack::type::nil_t{}));
+            }
         }
         else {
             packer.pack(std::forward_as_tuple(

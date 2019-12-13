@@ -111,14 +111,16 @@ private:
     {
         using value_args = typename internal::func_traits<F>::args_type;
         using result_type = typename internal::func_traits<F>::result_type;
-        constexpr std::size_t n_value_args = std::tuple_size_v<value_args>;
 
         return std::make_shared<function_type>(
             [fct = std::forward<F>(fct)](
                 completion_handler::raw handler, const msgpack::object& args) {
-                if (internal::args_count(args) != n_value_args) {
+                if (internal::args_count(args) != std::tuple_size_v<value_args>) {
+                    // keep this check otherwise msgpack unpacker
+                    // may silently drop arguments
                     DEBUG("incompatible argument count");
-                    handler(make_error_code(error::incompatible_arguments), {});
+                    auto ec = make_error_code(error::incompatible_arguments);
+                    handler(ec, internal::make_msgpack_object(ec.message()));
                     return;
                 }
 
@@ -136,7 +138,8 @@ private:
                 }
                 catch (std::bad_cast&) {
                     DEBUG("incompatible arguments");
-                    handler(make_error_code(error::incompatible_arguments), {});
+                    auto ec = make_error_code(error::incompatible_arguments);
+                    handler(ec, internal::make_msgpack_object(ec.message()));
                 }
                 catch (std::exception& exc) {
                     DEBUG("exception: {}", exc.what());
@@ -159,14 +162,16 @@ private:
 
         using handler_type = std::tuple_element_t<0, args>;
         using value_args = internal::shift_tuple_t<args>;
-        constexpr std::size_t n_value_args = std::tuple_size_v<value_args>;
 
         return std::make_shared<function_type>(
             [fct = std::forward<F>(fct)](
                 completion_handler::raw handler, const msgpack::object& args) {
-                if (internal::args_count(args) != n_value_args) {
+                if (internal::args_count(args) != std::tuple_size_v<value_args>) {
+                    // keep this check otherwise msgpack unpacker
+                    // may silently drop arguments
                     DEBUG("incompatible argument count");
-                    handler(make_error_code(error::incompatible_arguments), {});
+                    auto ec = make_error_code(error::incompatible_arguments);
+                    handler(ec, internal::make_msgpack_object(ec.message()));
                     return;
                 }
 
@@ -180,7 +185,8 @@ private:
                 }
                 catch (std::bad_cast&) {
                     DEBUG("incompatible arguments");
-                    handler(make_error_code(error::incompatible_arguments), {});
+                    auto ec = make_error_code(error::incompatible_arguments);
+                    handler(ec, internal::make_msgpack_object(ec.message()));
                 }
                 catch (std::exception& exc) {
                     DEBUG("exception: {}", exc.what());

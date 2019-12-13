@@ -8,6 +8,7 @@ namespace rpcpack {
 enum class error {
     success = 0,
     exception_during_call,
+    error_during_call,
     unknown_function,
     incompatible_arguments,
     communication_failure,
@@ -30,6 +31,8 @@ std::string rpcpack_error_category::message(int e) const
     switch (static_cast<error>(e)) {
     case error::success:
         return "Success";
+    case error::error_during_call:
+        return "Error during call";
     case error::exception_during_call:
         return "Exception during call";
     case error::unknown_function:

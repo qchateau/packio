@@ -20,17 +20,40 @@ public:
     {
     }
 
-    template <typename R>
-    void operator()(R&& return_value) const
+    completion_handler(const completion_handler&) = delete;
+    completion_handler& operator=(const completion_handler&) = delete;
+
+    completion_handler(completion_handler&&) = default;
+    completion_handler& operator=(completion_handler&&) = default;
+
+    template <typename T>
+    void operator()(T&& return_value)
     {
         raw_handler_(
             make_error_code(error::success),
-            internal::make_msgpack_object(std::forward<R>(return_value)));
+            internal::make_msgpack_object(std::forward<T>(return_value)));
+        raw_handler_ = raw{};
     }
 
-    void operator()() const
+    void operator()()
     {
         raw_handler_(make_error_code(error::success), {});
+        raw_handler_ = raw{};
+    }
+
+    template <typename T>
+    void set_error(T&& error_value)
+    {
+        raw_handler_(
+            make_error_code(error::error_during_call),
+            internal::make_msgpack_object(std::forward<T>(error_value)));
+        raw_handler_ = raw{};
+    }
+
+    void set_error()
+    {
+        raw_handler_(make_error_code(error::error_during_call), {});
+        raw_handler_ = raw{};
     }
 
 private:
