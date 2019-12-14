@@ -12,7 +12,7 @@
 
 namespace packio {
 
-template <typename Protocol, typename Dispatcher>
+template <typename Protocol, typename Dispatcher = dispatcher<>>
 class server {
 public:
     using protocol_type = Protocol;
@@ -60,16 +60,17 @@ public:
         TRACE("async_serve");
         acceptor_.async_accept(
             [this, handler](boost::system::error_code ec, socket_type sock) {
-                std::shared_ptr<session_type> session;
-                if (!ec) {
-                    session = std::make_shared<session_type>(
-                        std::move(sock), dispatcher_ptr_);
+                if (ec) {
+                    DEBUG("error: {}", ec.message());
+                    handler(ec, {});
                 }
                 else {
-                    DEBUG("error: {}", ec.message());
+                    internal::set_no_delay(sock);
+                    handler(
+                        ec,
+                        std::make_shared<session_type>(
+                            std::move(sock), dispatcher_ptr_));
                 }
-
-                handler(ec, std::move(session));
             });
     }
 
@@ -90,13 +91,6 @@ private:
     acceptor_type acceptor_;
     std::shared_ptr<dispatcher_type> dispatcher_ptr_;
 };
-
-using ip_server = server<boost::asio::ip::tcp, default_dispatcher>;
-
-#if defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
-using local_server =
-    server<boost::asio::local::stream_protocol, default_dispatcher>;
-#endif // defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
 
 } // packio
 

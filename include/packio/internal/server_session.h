@@ -39,6 +39,9 @@ public:
         DEBUG("stopped session {:p}", fmt::ptr(this));
     }
 
+    socket_type& socket() { return socket_; }
+    const socket_type& socket() const { return socket_; }
+
     void start() { async_read(std::make_shared<msgpack::unpacker>()); }
 
 private:

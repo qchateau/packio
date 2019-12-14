@@ -15,7 +15,7 @@
 
 namespace packio {
 
-template <typename Protocol, typename Clock>
+template <typename Protocol, typename Clock = std::chrono::steady_clock>
 class client {
 public:
     using protocol_type = Protocol;
@@ -148,6 +148,7 @@ private:
     void maybe_start_reading()
     {
         if (!reading_.test_and_set(std::memory_order_acq_rel)) {
+            internal::set_no_delay(socket_);
             async_read();
         }
     }
@@ -311,13 +312,6 @@ private:
     std::atomic<uint32_t> id_{0};
     std::atomic_flag reading_;
 };
-
-using ip_client = client<boost::asio::ip::tcp, std::chrono::steady_clock>;
-
-#if defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
-using local_client =
-    client<boost::asio::local::stream_protocol, std::chrono::steady_clock>;
-#endif // defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
 
 } // packio
 

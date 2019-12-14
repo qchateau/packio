@@ -21,6 +21,13 @@ public:
     {
     }
 
+    ~completion_handler_raw()
+    {
+        if (handler_) {
+            set_error("Call finished with no result");
+        }
+    }
+
     completion_handler_raw(const completion_handler_raw&) = delete;
     completion_handler_raw& operator=(const completion_handler_raw&) = delete;
     completion_handler_raw(completion_handler_raw&&) = delete;
@@ -54,13 +61,6 @@ public:
     {
         handler_(make_error_code(error::error_during_call), {});
         handler_ = function_type{};
-    }
-
-    ~completion_handler_raw()
-    {
-        if (handler_) {
-            set_error("Call finished with no result");
-        }
     }
 
 private:

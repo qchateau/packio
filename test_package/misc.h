@@ -10,29 +10,18 @@
 #include <gtest/gtest.h>
 
 template <typename endpoint>
-void init_endpoint(endpoint& ep);
+endpoint get_endpoint();
 
 template <>
-void init_endpoint(boost::asio::ip::tcp::endpoint& ep)
+inline boost::asio::ip::tcp::endpoint get_endpoint()
 {
-    ep = boost::asio::ip::tcp::endpoint(
-        boost::asio::ip::make_address("127.0.0.1"), 0);
+    return {boost::asio::ip::make_address("127.0.0.1"), 0};
 }
 
 template <>
-void init_endpoint(boost::asio::local::stream_protocol::endpoint& ep)
+inline boost::asio::local::stream_protocol::endpoint get_endpoint()
 {
-    boost::filesystem::path temp = boost::filesystem::unique_path();
-    std::string sock('\0' + temp.string());
-    ep = boost::asio::local::stream_protocol::endpoint(sock);
-}
-
-template <typename endpoint>
-endpoint get_endpoint()
-{
-    endpoint ep;
-    init_endpoint(ep);
-    return ep;
+    return {boost::filesystem::unique_path().string()};
 }
 
 class latch {

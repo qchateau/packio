@@ -36,7 +36,7 @@ decltype(auto) apply_msgpack_result(F&& fct, Tuple&& args_tuple)
 
 } // internal
 
-template <typename mutex>
+template <typename mutex = std::mutex>
 class dispatcher {
 public:
     using function_type = std::function<
@@ -194,8 +194,6 @@ private:
     mutable mutex map_mutex_;
     std::unordered_map<std::string, function_ptr_type> function_map_;
 };
-
-using default_dispatcher = dispatcher<std::mutex>;
 
 } // packio
 

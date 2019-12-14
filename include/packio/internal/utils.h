@@ -81,6 +81,14 @@ msgpack::object_handle make_msgpack_object(T&& value)
     return oh;
 }
 
+template <typename T>
+void set_no_delay(T& socket)
+{
+    if constexpr (std::is_same_v<typename T::protocol_type, boost::asio::ip::tcp>) {
+        socket.set_option(boost::asio::ip::tcp::no_delay{true});
+    }
+}
+
 } // internal
 } // packio
 

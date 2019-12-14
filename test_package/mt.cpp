@@ -15,17 +15,17 @@ using namespace boost::asio;
 using namespace packio;
 using std::this_thread::sleep_for;
 
-typedef ::testing::Types<ip_server, local_server> ClientImplementations;
+typedef ::testing::Types<boost::asio::ip::tcp, boost::asio::local::stream_protocol>
+    ClientImplementations;
 
 template <class T>
 class Server : public ::testing::Test {
 protected:
-    using server_type = T;
-    using protocol_type = typename T::protocol_type;
-    using client_type = client<protocol_type, std::chrono::steady_clock>;
-    using endpoint_type = typename protocol_type::endpoint;
-    using socket_type = typename protocol_type::socket;
-    using acceptor_type = typename server_type::acceptor_type;
+    using server_type = server<T>;
+    using client_type = client<T>;
+    using endpoint_type = typename T::endpoint;
+    using socket_type = typename T::socket;
+    using acceptor_type = typename T::acceptor;
 
     Server() : server_{acceptor_type(io_, get_endpoint<endpoint_type>())}
     {
