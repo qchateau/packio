@@ -39,7 +39,7 @@ decltype(auto) apply_msgpack_result(F&& fct, Tuple&& args_tuple)
 template <typename mutex = std::mutex>
 class dispatcher {
 public:
-    using function_type = std::function<
+    using function_type = internal::function<
         void(completion_handler::raw::function_type, const msgpack::object&)>;
     using function_ptr_type = std::shared_ptr<function_type>;
 

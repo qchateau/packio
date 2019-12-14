@@ -26,9 +26,9 @@ public:
     using endpoint_type = typename protocol_type::endpoint;
     using executor_type = typename socket_type::executor_type;
     using async_call_handler_type =
-        std::function<void(boost::system::error_code, const msgpack::object&)>;
+        internal::function<void(boost::system::error_code, const msgpack::object&)>;
     using async_notify_handler_type =
-        std::function<void(boost::system::error_code)>;
+        internal::function<void(boost::system::error_code)>;
 
     static constexpr size_t kBufferReserveSize = 4096;
 

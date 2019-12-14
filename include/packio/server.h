@@ -21,8 +21,8 @@ public:
     using acceptor_type = typename Protocol::acceptor;
     using socket_type = typename Protocol::socket;
     using executor_type = typename boost::asio::io_context::executor_type;
-    using async_serve_handler_type =
-        std::function<void(boost::system::error_code, std::shared_ptr<session_type>)>;
+    using async_serve_handler_type = internal::function<
+        void(boost::system::error_code, std::shared_ptr<session_type>)>;
 
     explicit server(acceptor_type acceptor)
         : server{std::move(acceptor), std::make_shared<dispatcher_type>()}
@@ -58,20 +58,20 @@ public:
     void async_serve(async_serve_handler_type handler)
     {
         TRACE("async_serve");
-        acceptor_.async_accept(
-            [this, handler](boost::system::error_code ec, socket_type sock) {
-                if (ec) {
-                    DEBUG("error: {}", ec.message());
-                    handler(ec, {});
-                }
-                else {
-                    internal::set_no_delay(sock);
-                    handler(
-                        ec,
-                        std::make_shared<session_type>(
-                            std::move(sock), dispatcher_ptr_));
-                }
-            });
+        acceptor_.async_accept([this, handler = std::move(handler)](
+                                   boost::system::error_code ec, socket_type sock) {
+            if (ec) {
+                DEBUG("error: {}", ec.message());
+                handler(ec, {});
+            }
+            else {
+                internal::set_no_delay(sock);
+                handler(
+                    ec,
+                    std::make_shared<session_type>(
+                        std::move(sock), dispatcher_ptr_));
+            }
+        });
     }
 
     void async_serve_forever()

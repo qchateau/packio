@@ -278,6 +278,25 @@ TYPED_TEST(Client, test_dispatcher)
     ASSERT_FALSE(this->server_.dispatcher()->has("f003"));
 }
 
+TYPED_TEST(Client, test_move_only)
+{
+    // this test just needs to compile
+    this->connect();
+
+    this->server_.dispatcher()->add_async(
+        "f001", [ptr = std::unique_ptr<int>{}](packio::completion_handler) {});
+    this->server_.dispatcher()->add("f002", [ptr = std::unique_ptr<int>{}]() {});
+
+    this->server_.async_serve([ptr = std::unique_ptr<int>{}](auto, auto) {});
+
+    this->client_.async_notify([ptr = std::unique_ptr<int>{}](auto) {}, "f001");
+    this->client_.async_call(
+        [ptr = std::unique_ptr<int>{}](auto, auto) {}, "f001");
+
+    static_assert(std::is_move_assignable_v<packio::completion_handler>);
+    static_assert(std::is_move_constructible_v<packio::completion_handler>);
+}
+
 TYPED_TEST(Client, test_shared_dispatcher)
 {
     using server_type = typename std::decay_t<decltype(*this)>::server_type;
