@@ -8,3 +8,5 @@
     build_type=Release
 [options]
 [env]
+CXX=/usr/bin/g++-7
+CC=/usr/bin/gcc-7

@@ -1,0 +1,12 @@
+[build_requires]
+[settings]
+    os=Linux
+    arch=x86_64
+    compiler=clang
+    compiler.version=8
+    compiler.libcxx=libstdc++
+    build_type=Release
+[options]
+[env]
+CXX=/usr/bin/clang++-8
+CC=/usr/bin/clang-8

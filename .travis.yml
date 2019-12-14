@@ -3,12 +3,8 @@ python: "3.7"
 dist: xenial
 install:
   - pip3 install conan
-  - which $CC
-  - which $CXX
-  - $CC --version
-  - $CXX --version
 script:
-  - CONAN_DEFAULT_PROFILE_PATH=$(realpath profiles/$CXX) conan create . --build=missing
+  - CONAN_DEFAULT_PROFILE_PATH=$(realpath ./.ci/profiles/$PROFILE) conan create . --build=missing
 
 matrix:
   include:
@@ -18,8 +14,7 @@ matrix:
           sources: ["ubuntu-toolchain-r-test"]
           packages: ["g++-7"]
       env:
-        - CXX=/usr/bin/g++-7
-        - CC=/usr/bin/gcc-7
+        - PROFILE=g++-7
 
     - compiler: gcc
       addons:
@@ -27,8 +22,7 @@ matrix:
           sources: ["ubuntu-toolchain-r-test"]
           packages: ["g++-8"]
       env:
-        - CXX=/usr/bin/g++-8
-        - CC=/usr/bin/gcc-8
+        - PROFILE=g++-8
 
     - compiler: gcc
       addons:
@@ -36,8 +30,7 @@ matrix:
           sources: ["ubuntu-toolchain-r-test"]
           packages: ["g++-9"]
       env:
-        - CXX=/usr/bin/g++-9
-        - CC=/usr/bin/gcc-9
+        - PROFILE=g++-9
 
     - compiler: clang
       addons:
@@ -45,8 +38,7 @@ matrix:
           sources: ["ubuntu-toolchain-r-test"]
           packages: ["clang-5.0", "g++-7"]
       env:
-        - CXX=/usr/bin/clang++-5.0
-        - CC=/usr/bin/clang-5.0
+        - PROFILE=clang++-5.0
 
     - compiler: clang
       addons:
@@ -54,8 +46,7 @@ matrix:
           sources: ["ubuntu-toolchain-r-test", "llvm-toolchain-xenial-6.0"]
           packages: ["clang-6.0", "g++-7"]
       env:
-        - CXX=/usr/bin/clang++-6.0
-        - CC=/usr/bin/clang-6.0
+        - PROFILE=clang++-6.0
 
     - compiler: clang
       addons:
@@ -63,8 +54,7 @@ matrix:
           sources: ["ubuntu-toolchain-r-test", "llvm-toolchain-xenial-7"]
           packages: ["clang-7", "g++-7"]
       env:
-        - CXX=/usr/bin/clang++-7
-        - CC=/usr/bin/clang-7
+        - PROFILE=clang++-7
 
     - compiler: clang
       addons:
@@ -72,5 +62,44 @@ matrix:
           sources: ["ubuntu-toolchain-r-test", "llvm-toolchain-xenial-8"]
           packages: ["clang-8", "g++-8"]
       env:
-        - CXX=/usr/bin/clang++-8
-        - CC=/usr/bin/clang-8
+        - PROFILE=clang++-8
+
+    - compiler: gcc
+      addons:
+        apt:
+          sources: ["ubuntu-toolchain-r-test"]
+          packages: ["g++-8"]
+      env:
+        - PROFILE=boost-1.70.0
+
+    - compiler: gcc
+      addons:
+        apt:
+          sources: ["ubuntu-toolchain-r-test"]
+          packages: ["g++-8"]
+      env:
+        - PROFILE=boost-1.71.0
+
+    - compiler: gcc
+      addons:
+        apt:
+          sources: ["ubuntu-toolchain-r-test"]
+          packages: ["g++-8"]
+      env:
+        - PROFILE=msgpack-3.0.1
+
+    - compiler: gcc
+      addons:
+        apt:
+          sources: ["ubuntu-toolchain-r-test"]
+          packages: ["g++-8"]
+      env:
+        - PROFILE=msgpack-3.1.1
+
+    - compiler: gcc
+      addons:
+        apt:
+          sources: ["ubuntu-toolchain-r-test"]
+          packages: ["g++-8"]
+      env:
+        - PROFILE=msgpack-3.2.0

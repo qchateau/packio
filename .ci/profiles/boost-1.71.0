@@ -7,4 +7,7 @@
     compiler.libcxx=libstdc++
     build_type=Release
 [options]
+boost=1.71.0
 [env]
+CXX=/usr/bin/g++-8
+CC=/usr/bin/gcc-8
