@@ -1,5 +1,5 @@
-#ifndef RPCPACK_UTILS_H
-#define RPCPACK_UTILS_H
+#ifndef PACKIO_UTILS_H
+#define PACKIO_UTILS_H
 
 #include <sstream>
 #include <string_view>
@@ -10,7 +10,7 @@
 
 #include "log.h"
 
-namespace rpcpack {
+namespace packio {
 namespace internal {
 
 template <typename T>
@@ -82,6 +82,6 @@ msgpack::object_handle make_msgpack_object(T&& value)
 }
 
 } // internal
-} // rpcpack
+} // packio
 
-#endif // RPCPACK_UTILS_H
+#endif // PACKIO_UTILS_H

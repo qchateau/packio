@@ -3,7 +3,7 @@ import os
 from conans import ConanFile, CMake, tools
 
 
-class RpcpackConan(ConanFile):
+class PackioConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     generators = "cmake"
     requires = ["gtest/1.8.1@bincrafters/stable", "spdlog/1.4.2@bincrafters/stable"]

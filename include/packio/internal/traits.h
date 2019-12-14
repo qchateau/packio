@@ -1,9 +1,9 @@
-#ifndef RPCPACK_TRAITS_H
-#define RPCPACK_TRAITS_H
+#ifndef PACKIO_TRAITS_H
+#define PACKIO_TRAITS_H
 
 #include <tuple>
 
-namespace rpcpack {
+namespace packio {
 namespace internal {
 
 template <typename T>
@@ -25,6 +25,6 @@ struct func_traits<R (*)(Args...)> {
 };
 
 } // internal
-} // rpcpack
+} // packio
 
-#endif // RPCPACK_TRAITS_H
+#endif // PACKIO_TRAITS_H

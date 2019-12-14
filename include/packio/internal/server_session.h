@@ -1,5 +1,5 @@
-#ifndef RPCPACK_SERVER_SESSION_H
-#define RPCPACK_SERVER_SESSION_H
+#ifndef PACKIO_SERVER_SESSION_H
+#define PACKIO_SERVER_SESSION_H
 
 #include <memory>
 #include <boost/asio.hpp>
@@ -10,7 +10,7 @@
 #include "msgpack_rpc.h"
 #include "utils.h"
 
-namespace rpcpack {
+namespace packio {
 namespace internal {
 
 template <typename Protocol, typename Dispatcher>
@@ -190,6 +190,6 @@ private:
 };
 
 } // internal
-} // rpcpack
+} // packio
 
-#endif // RPCPACK_SERVER_SESSION_H
+#endif // PACKIO_SERVER_SESSION_H

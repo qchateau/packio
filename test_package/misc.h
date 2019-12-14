@@ -1,5 +1,5 @@
-#ifndef RPCPACK_TESTS_MISC_H
-#define RPCPACK_TESTS_MISC_H
+#ifndef PACKIO_TESTS_MISC_H
+#define PACKIO_TESTS_MISC_H
 
 #include <atomic>
 #include <chrono>
@@ -84,4 +84,4 @@ private:
     int remaining_;
 };
 
-#endif // RPCPACK_TESTS_MISC_H
+#endif // PACKIO_TESTS_MISC_H

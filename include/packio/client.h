@@ -1,5 +1,5 @@
-#ifndef RPCPACK_CLIENT_H
-#define RPCPACK_CLIENT_H
+#ifndef PACKIO_CLIENT_H
+#define PACKIO_CLIENT_H
 
 #include <atomic>
 #include <chrono>
@@ -13,7 +13,7 @@
 #include "internal/msgpack_rpc.h"
 #include "internal/utils.h"
 
-namespace rpcpack {
+namespace packio {
 
 template <typename Protocol, typename Clock>
 class client {
@@ -319,6 +319,6 @@ using local_client =
     client<boost::asio::local::stream_protocol, std::chrono::steady_clock>;
 #endif // defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
 
-} // rpcpack
+} // packio
 
-#endif // RPCPACK_CLIENT_H
+#endif // PACKIO_CLIENT_H

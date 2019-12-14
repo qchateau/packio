@@ -1,12 +1,12 @@
 from conans import ConanFile
 
 
-class RpcpackConan(ConanFile):
-    name = "rpcpack"
+class PackioConan(ConanFile):
+    name = "packio"
     version = "0.3.0"
     license = "GPLv3"
     author = "Quentin Chateau <quentin.chateau@gmail.com>"
-    url = "https://github.com/qchateau/rpcpack"
+    url = "https://github.com/qchateau/packio"
     description = "C++ implementation of msgpack-RPC"
     topics = ("rpc", "msgpack")
     exports_sources = "include/*"

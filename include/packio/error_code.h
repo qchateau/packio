@@ -1,9 +1,9 @@
-#ifndef RPCPACK_ERROR_CODE_H
-#define RPCPACK_ERROR_CODE_H
+#ifndef PACKIO_ERROR_CODE_H
+#define PACKIO_ERROR_CODE_H
 
 #include <boost/system/error_code.hpp>
 
-namespace rpcpack {
+namespace packio {
 
 enum class error {
     success = 0,
@@ -14,8 +14,8 @@ enum class error {
     call_error
 };
 
-struct rpcpack_error_category : boost::system::error_category {
-    const char* name() const noexcept override { return "rpcpack"; }
+struct packio_error_category : boost::system::error_category {
+    const char* name() const noexcept override { return "packio"; }
     std::string message(int ev) const override
     {
         switch (static_cast<error>(ev)) {
@@ -37,27 +37,27 @@ struct rpcpack_error_category : boost::system::error_category {
     }
 };
 
-inline const boost::system::error_category& rpcpack_category()
+inline const boost::system::error_category& packio_category()
 {
-    static rpcpack_error_category cat;
+    static packio_error_category cat;
     return cat;
 }
 
 inline boost::system::error_code make_error_code(error e)
 {
-    return {static_cast<int>(e), rpcpack_category()};
+    return {static_cast<int>(e), packio_category()};
 }
 
 inline bool operator==(boost::system::error_code lhs, error rhs)
 {
     return lhs.value() == static_cast<int>(rhs)
-           && dynamic_cast<const rpcpack_error_category*>(&lhs.category());
+           && dynamic_cast<const packio_error_category*>(&lhs.category());
 }
 
 inline bool operator==(error lhs, boost::system::error_code rhs)
 {
     return rhs.value() == static_cast<int>(lhs)
-           && dynamic_cast<const rpcpack_error_category*>(&rhs.category());
+           && dynamic_cast<const packio_error_category*>(&rhs.category());
 }
 
 inline bool operator!=(error lhs, boost::system::error_code rhs)
@@ -70,6 +70,6 @@ inline bool operator!=(boost::system::error_code lhs, error rhs)
     return !(lhs == rhs);
 }
 
-} // rpcpack
+} // packio
 
-#endif // RPCPACK_ERROR_CODE_H
+#endif // PACKIO_ERROR_CODE_H

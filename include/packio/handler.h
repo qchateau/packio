@@ -1,5 +1,5 @@
-#ifndef RPCPACK_HANDLER_H
-#define RPCPACK_HANDLER_H
+#ifndef PACKIO_HANDLER_H
+#define PACKIO_HANDLER_H
 
 #include <functional>
 
@@ -9,7 +9,7 @@
 #include "error_code.h"
 #include "internal/utils.h"
 
-namespace rpcpack {
+namespace packio {
 namespace internal {
 
 class completion_handler_raw {
@@ -100,6 +100,6 @@ private:
     std::shared_ptr<raw> raw_handler_;
 };
 
-} // rpcpack
+} // packio
 
-#endif // RPCPACK_HANDLER_H
+#endif // PACKIO_HANDLER_H

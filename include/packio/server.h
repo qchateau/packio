@@ -1,5 +1,5 @@
-#ifndef RPCPACK_SERVER_H
-#define RPCPACK_SERVER_H
+#ifndef PACKIO_SERVER_H
+#define PACKIO_SERVER_H
 
 #include <memory>
 #include <boost/asio.hpp>
@@ -10,7 +10,7 @@
 #include "internal/server_session.h"
 #include "internal/utils.h"
 
-namespace rpcpack {
+namespace packio {
 
 template <typename Protocol, typename Dispatcher>
 class server {
@@ -98,6 +98,6 @@ using local_server =
     server<boost::asio::local::stream_protocol, default_dispatcher>;
 #endif // defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
 
-} // rpcpack
+} // packio
 
-#endif // RPCPACK_SERVER_H
+#endif // PACKIO_SERVER_H

@@ -5,14 +5,14 @@
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 
-#include <rpcpack/client.h>
-#include <rpcpack/server.h>
+#include <packio/client.h>
+#include <packio/server.h>
 
 #include "misc.h"
 
 using namespace std::chrono;
 using namespace boost::asio;
-using namespace rpcpack;
+using namespace packio;
 using std::this_thread::sleep_for;
 
 typedef ::testing::Types<ip_client, local_client> ClientImplementations;
@@ -116,7 +116,7 @@ TYPED_TEST(Client, test_typical_usage)
     std::atomic<int> call_arg_received{0};
     latch call_latch{0};
     this->server_.dispatcher()->add_async(
-        "echo", [&](rpcpack::completion_handler handler, int i) {
+        "echo", [&](packio::completion_handler handler, int i) {
             call_arg_received = i;
             call_latch.count_down();
             handler(i);
@@ -154,14 +154,14 @@ TYPED_TEST(Client, test_timeout)
 
     std::mutex mtx;
 
-    std::list<rpcpack::completion_handler> pending;
+    std::list<packio::completion_handler> pending;
     this->server_.dispatcher()->add_async(
-        "block", [&](rpcpack::completion_handler handler) {
+        "block", [&](packio::completion_handler handler) {
             std::unique_lock l{mtx};
             pending.push_back(std::move(handler));
         });
     this->server_.dispatcher()->add_async(
-        "unblock", [&](rpcpack::completion_handler handler) {
+        "unblock", [&](packio::completion_handler handler) {
             std::unique_lock l{mtx};
             for (auto& handler : pending) {
                 handler();
@@ -174,7 +174,7 @@ TYPED_TEST(Client, test_timeout)
         this->client_.set_timeout(std::chrono::milliseconds{1});
         auto f = this->future_call("block");
         auto [ec, res] = f.get();
-        ASSERT_EQ(rpcpack::error::timeout, ec);
+        ASSERT_EQ(packio::error::timeout, ec);
         ASSERT_EQ(msgpack::type::STR, res.type);
     }
 
@@ -201,18 +201,18 @@ TYPED_TEST(Client, test_server_functions)
 {
     // this just needs to compile
     this->server_.dispatcher()->add_async(
-        "f001", [](rpcpack::completion_handler handler) { handler(); });
+        "f001", [](packio::completion_handler handler) { handler(); });
     this->server_.dispatcher()->add_async(
-        "f002", [](rpcpack::completion_handler handler) { handler(42); });
+        "f002", [](packio::completion_handler handler) { handler(42); });
     this->server_.dispatcher()->add_async(
-        "f003", [](rpcpack::completion_handler handler, int) { handler(); });
+        "f003", [](packio::completion_handler handler, int) { handler(); });
     this->server_.dispatcher()->add_async(
-        "f004", [](rpcpack::completion_handler handler, int i) { handler(i); });
+        "f004", [](packio::completion_handler handler, int i) { handler(i); });
     this->server_.dispatcher()->add_async(
         "f005",
-        [](rpcpack::completion_handler handler, std::string s) { handler(s); });
+        [](packio::completion_handler handler, std::string s) { handler(s); });
     this->server_.dispatcher()->add_async(
-        "f006", [](rpcpack::completion_handler handler, int i, std::string) {
+        "f006", [](packio::completion_handler handler, int i, std::string) {
             handler(i);
         });
 
@@ -231,13 +231,13 @@ TYPED_TEST(Client, test_dispatcher)
     this->async_run();
 
     ASSERT_TRUE(this->server_.dispatcher()->add_async(
-        "f001", [](rpcpack::completion_handler handler) { handler(); }));
+        "f001", [](packio::completion_handler handler) { handler(); }));
     ASSERT_TRUE(this->server_.dispatcher()->add("f002", []() {}));
 
     ASSERT_FALSE(this->server_.dispatcher()->add_async(
-        "f001", [](rpcpack::completion_handler handler) { handler(); }));
+        "f001", [](packio::completion_handler handler) { handler(); }));
     ASSERT_FALSE(this->server_.dispatcher()->add_async(
-        "f002", [](rpcpack::completion_handler handler) { handler(); }));
+        "f002", [](packio::completion_handler handler) { handler(); }));
     ASSERT_FALSE(this->server_.dispatcher()->add("f001", []() {}));
     ASSERT_FALSE(this->server_.dispatcher()->add("f002", []() {}));
 
@@ -264,7 +264,7 @@ TYPED_TEST(Client, test_dispatcher)
     {
         auto [ec, result] = this->future_call("f001").get();
         (void)result;
-        ASSERT_EQ(rpcpack::error::call_error, ec);
+        ASSERT_EQ(packio::error::call_error, ec);
     }
 
     ASSERT_FALSE(this->server_.dispatcher()->has("f001"));
@@ -306,7 +306,7 @@ TYPED_TEST(Client, test_shared_dispatcher)
 
     latch l{2};
     ASSERT_TRUE(this->server_.dispatcher()->add_async(
-        "inc", [&](rpcpack::completion_handler handler) {
+        "inc", [&](packio::completion_handler handler) {
             l.count_down();
             handler();
         }));
@@ -327,61 +327,61 @@ TYPED_TEST(Client, test_errors_async)
     this->async_run();
 
     ASSERT_TRUE(this->server_.dispatcher()->add_async(
-        "throw", [&](rpcpack::completion_handler) {
+        "throw", [&](packio::completion_handler) {
             throw std::runtime_error{kExceptionMessage};
         }));
     ASSERT_TRUE(this->server_.dispatcher()->add_async(
-        "error", [&](rpcpack::completion_handler handler) {
+        "error", [&](packio::completion_handler handler) {
             handler.set_error(kErrorMessage);
         }));
     ASSERT_TRUE(this->server_.dispatcher()->add_async(
         "empty_error",
-        [](rpcpack::completion_handler handler) { handler.set_error(); }));
+        [](packio::completion_handler handler) { handler.set_error(); }));
     ASSERT_TRUE(this->server_.dispatcher()->add_async(
-        "no_result", [&](rpcpack::completion_handler) {}));
+        "no_result", [&](packio::completion_handler) {}));
     ASSERT_TRUE(this->server_.dispatcher()->add_async(
-        "add", [](rpcpack::completion_handler handler, int a, int b) {
+        "add", [](packio::completion_handler handler, int a, int b) {
             handler(a + b);
         }));
 
     {
         auto [ec, res] = this->future_call("throw").get();
-        ASSERT_EQ(rpcpack::error::call_error, ec);
+        ASSERT_EQ(packio::error::call_error, ec);
         ASSERT_EQ(kExceptionMessage, res.template as<std::string>());
     }
     {
         auto [ec, res] = this->future_call("error").get();
-        ASSERT_EQ(rpcpack::error::call_error, ec);
+        ASSERT_EQ(packio::error::call_error, ec);
         ASSERT_EQ(kErrorMessage, res.template as<std::string>());
     }
     {
         auto [ec, res] = this->future_call("empty_error").get();
-        ASSERT_EQ(rpcpack::error::call_error, ec);
+        ASSERT_EQ(packio::error::call_error, ec);
         ASSERT_EQ("Error during call", res.template as<std::string>());
     }
     {
         auto [ec, res] = this->future_call("no_result").get();
-        ASSERT_EQ(rpcpack::error::call_error, ec);
+        ASSERT_EQ(packio::error::call_error, ec);
         ASSERT_EQ("Call finished with no result", res.template as<std::string>());
     }
     {
         auto [ec, res] = this->future_call("unexisting").get();
-        ASSERT_EQ(rpcpack::error::call_error, ec);
+        ASSERT_EQ(packio::error::call_error, ec);
         ASSERT_EQ("Unknown function", res.template as<std::string>());
     }
     {
         auto [ec, res] = this->future_call("add", 1, "two").get();
-        ASSERT_EQ(rpcpack::error::call_error, ec);
+        ASSERT_EQ(packio::error::call_error, ec);
         ASSERT_EQ("Incompatible arguments", res.template as<std::string>());
     }
     {
         auto [ec, res] = this->future_call("add").get();
-        ASSERT_EQ(rpcpack::error::call_error, ec);
+        ASSERT_EQ(packio::error::call_error, ec);
         ASSERT_EQ("Incompatible arguments", res.template as<std::string>());
     }
     {
         auto [ec, res] = this->future_call("add", 1, 2, 3).get();
-        ASSERT_EQ(rpcpack::error::call_error, ec);
+        ASSERT_EQ(packio::error::call_error, ec);
         ASSERT_EQ("Incompatible arguments", res.template as<std::string>());
     }
 }
@@ -401,27 +401,27 @@ TYPED_TEST(Client, test_errors_sync)
 
     {
         auto [ec, res] = this->future_call("throw").get();
-        ASSERT_EQ(rpcpack::error::call_error, ec);
+        ASSERT_EQ(packio::error::call_error, ec);
         ASSERT_EQ(kExceptionMessage, res.template as<std::string>());
     }
     {
         auto [ec, res] = this->future_call("unexisting").get();
-        ASSERT_EQ(rpcpack::error::call_error, ec);
+        ASSERT_EQ(packio::error::call_error, ec);
         ASSERT_EQ("Unknown function", res.template as<std::string>());
     }
     {
         auto [ec, res] = this->future_call("add", 1, "two").get();
-        ASSERT_EQ(rpcpack::error::call_error, ec);
+        ASSERT_EQ(packio::error::call_error, ec);
         ASSERT_EQ("Incompatible arguments", res.template as<std::string>());
     }
     {
         auto [ec, res] = this->future_call("add").get();
-        ASSERT_EQ(rpcpack::error::call_error, ec);
+        ASSERT_EQ(packio::error::call_error, ec);
         ASSERT_EQ("Incompatible arguments", res.template as<std::string>());
     }
     {
         auto [ec, res] = this->future_call("add", 1, 2, 3).get();
-        ASSERT_EQ(rpcpack::error::call_error, ec);
+        ASSERT_EQ(packio::error::call_error, ec);
         ASSERT_EQ("Incompatible arguments", res.template as<std::string>());
     }
 }

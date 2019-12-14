@@ -1,5 +1,5 @@
-#ifndef RPCPACK_DISPATCHER_H
-#define RPCPACK_DISPATCHER_H
+#ifndef PACKIO_DISPATCHER_H
+#define PACKIO_DISPATCHER_H
 
 #include <functional>
 #include <memory>
@@ -15,7 +15,7 @@
 #include "internal/traits.h"
 #include "internal/utils.h"
 
-namespace rpcpack {
+namespace packio {
 namespace internal {
 
 template <typename F, typename Tuple>
@@ -197,6 +197,6 @@ private:
 
 using default_dispatcher = dispatcher<std::mutex>;
 
-} // rpcpack
+} // packio
 
-#endif // RPCPACK_DISPATCHER_H
+#endif // PACKIO_DISPATCHER_H

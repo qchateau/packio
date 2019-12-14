@@ -5,14 +5,14 @@
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 
-#include <rpcpack/client.h>
-#include <rpcpack/server.h>
+#include <packio/client.h>
+#include <packio/server.h>
 
 #include "misc.h"
 
 using namespace std::chrono;
 using namespace boost::asio;
-using namespace rpcpack;
+using namespace packio;
 using std::this_thread::sleep_for;
 
 typedef ::testing::Types<ip_server, local_server> ClientImplementations;

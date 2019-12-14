@@ -1,7 +1,7 @@
-#ifndef RPCPACK_LOG_H
-#define RPCPACK_LOG_H
+#ifndef PACKIO_LOG_H
+#define PACKIO_LOG_H
 
-#if defined(RPCPACK_LOGGING) && RPCPACK_LOGGING
+#if defined(PACKIO_LOGGING) && PACKIO_LOGGING
 #include <spdlog/spdlog.h>
 #define TRACE(...) SPDLOG_TRACE(__VA_ARGS__)
 #define DEBUG(...) SPDLOG_DEBUG(__VA_ARGS__)
@@ -14,4 +14,4 @@
 #define WARN(...) (void)0
 #endif
 
-#endif // RPCPACK_LOG_H
+#endif // PACKIO_LOG_H
