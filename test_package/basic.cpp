@@ -337,17 +337,12 @@ TYPED_TEST(Client, test_shared_dispatcher)
 
 TYPED_TEST(Client, test_errors_async)
 {
-    constexpr auto kExceptionMessage{"exception message"};
     constexpr auto kErrorMessage{"error message"};
 
     this->server_.async_serve_forever();
     this->connect();
     this->async_run();
 
-    ASSERT_TRUE(this->server_.dispatcher()->add_async(
-        "throw", [&](packio::completion_handler) {
-            throw std::runtime_error{kExceptionMessage};
-        }));
     ASSERT_TRUE(this->server_.dispatcher()->add_async(
         "error", [&](packio::completion_handler handler) {
             handler.set_error(kErrorMessage);
@@ -362,11 +357,6 @@ TYPED_TEST(Client, test_errors_async)
             handler(a + b);
         }));
 
-    {
-        auto [ec, res] = this->future_call("throw").get();
-        ASSERT_EQ(packio::error::call_error, ec);
-        ASSERT_EQ(kExceptionMessage, res.template as<std::string>());
-    }
     {
         auto [ec, res] = this->future_call("error").get();
         ASSERT_EQ(packio::error::call_error, ec);
@@ -406,22 +396,13 @@ TYPED_TEST(Client, test_errors_async)
 
 TYPED_TEST(Client, test_errors_sync)
 {
-    constexpr auto kExceptionMessage{"exception message"};
-
     this->server_.async_serve_forever();
     this->connect();
     this->async_run();
 
     ASSERT_TRUE(this->server_.dispatcher()->add(
-        "throw", [] { throw std::runtime_error{kExceptionMessage}; }));
-    ASSERT_TRUE(this->server_.dispatcher()->add(
         "add", [](int a, int b) { return a + b; }));
 
-    {
-        auto [ec, res] = this->future_call("throw").get();
-        ASSERT_EQ(packio::error::call_error, ec);
-        ASSERT_EQ(kExceptionMessage, res.template as<std::string>());
-    }
     {
         auto [ec, res] = this->future_call("unexisting").get();
         ASSERT_EQ(packio::error::call_error, ec);

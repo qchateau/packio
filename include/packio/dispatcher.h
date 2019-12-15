@@ -20,8 +20,8 @@ namespace packio {
 template <typename mutex = std::mutex>
 class dispatcher {
 public:
-    using function_type = internal::function<
-        void(completion_handler::raw::function_type, const msgpack::object&)>;
+    using function_type =
+        internal::function<void(completion_handler, const msgpack::object&)>;
     using function_ptr_type = std::shared_ptr<function_type>;
 
     template <typename F>
@@ -92,38 +92,31 @@ private:
         using value_args = typename internal::func_traits<F>::args_type;
         using result_type = typename internal::func_traits<F>::result_type;
 
-        return std::make_shared<function_type>(
-            [fct = std::forward<F>(fct)](
-                completion_handler::raw::function_type handler_function,
-                const msgpack::object& args) {
-                completion_handler::raw handler{std::move(handler_function)};
+        return std::make_shared<function_type>([fct = std::forward<F>(fct)](
+                                                   completion_handler handler,
+                                                   const msgpack::object& args) {
+            if (internal::args_count(args) != std::tuple_size_v<value_args>) {
+                // keep this check otherwise msgpack unpacker
+                // may silently drop arguments
+                DEBUG("incompatible argument count");
+                handler.set_error("Incompatible arguments");
+                return;
+            }
 
-                if (internal::args_count(args) != std::tuple_size_v<value_args>) {
-                    // keep this check otherwise msgpack unpacker
-                    // may silently drop arguments
-                    DEBUG("incompatible argument count");
-                    handler.set_error("Incompatible arguments");
-                    return;
+            try {
+                if constexpr (std::is_void_v<result_type>) {
+                    std::apply(fct, args.as<value_args>());
+                    handler();
                 }
-
-                try {
-                    if constexpr (std::is_void_v<result_type>) {
-                        std::apply(fct, args.as<value_args>());
-                        handler();
-                    }
-                    else {
-                        handler(std::apply(fct, args.as<value_args>()));
-                    }
+                else {
+                    handler(std::apply(fct, args.as<value_args>()));
                 }
-                catch (std::bad_cast& exc) {
-                    DEBUG("incompatible arguments");
-                    handler.set_error("Incompatible arguments");
-                }
-                catch (std::exception& exc) {
-                    DEBUG("exception: {}", exc.what());
-                    handler.set_error(exc.what());
-                }
-            });
+            }
+            catch (std::bad_cast& exc) {
+                DEBUG("incompatible arguments");
+                handler.set_error("Incompatible arguments");
+            }
+        });
     }
 
     template <typename F>
@@ -138,38 +131,29 @@ private:
 
         using value_args = internal::shift_tuple_t<args>;
 
-        return std::make_shared<function_type>(
-            [fct = std::forward<F>(fct)](
-                completion_handler::raw::function_type handler_function,
-                const msgpack::object& args) {
-                auto handler = std::make_shared<completion_handler::raw>(
-                    std::move(handler_function));
+        return std::make_shared<function_type>([fct = std::forward<F>(fct)](
+                                                   completion_handler handler,
+                                                   const msgpack::object& args) {
+            if (internal::args_count(args) != std::tuple_size_v<value_args>) {
+                // keep this check otherwise msgpack unpacker
+                // may silently drop arguments
+                DEBUG("incompatible argument count");
+                handler.set_error("Incompatible arguments");
+                return;
+            }
 
-                if (internal::args_count(args) != std::tuple_size_v<value_args>) {
-                    // keep this check otherwise msgpack unpacker
-                    // may silently drop arguments
-                    DEBUG("incompatible argument count");
-                    handler->set_error("Incompatible arguments");
-                    return;
-                }
+            const auto bound_fct = [&](auto&&... args) -> void {
+                fct(std::move(handler), std::forward<decltype(args)>(args)...);
+            };
 
-                const auto bound_fct = [&](auto&&... args) -> void {
-                    fct(completion_handler{handler},
-                        std::forward<decltype(args)>(args)...);
-                };
-
-                try {
-                    std::apply(bound_fct, args.as<value_args>());
-                }
-                catch (std::bad_cast&) {
-                    DEBUG("incompatible arguments");
-                    handler->set_error("Incompatible arguments");
-                }
-                catch (std::exception& exc) {
-                    DEBUG("exception: {}", exc.what());
-                    handler->set_error(exc.what());
-                }
-            });
+            try {
+                std::apply(bound_fct, args.as<value_args>());
+            }
+            catch (std::bad_cast&) {
+                DEBUG("incompatible arguments");
+                handler.set_error("Incompatible arguments");
+            }
+        });
     }
 
     mutable mutex map_mutex_;
