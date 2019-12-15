@@ -82,11 +82,14 @@ msgpack::object_handle make_msgpack_object(T&& value)
 }
 
 template <typename T>
-void set_no_delay(T& socket)
+void set_no_delay(T&)
 {
-    if constexpr (std::is_same_v<typename T::protocol_type, boost::asio::ip::tcp>) {
-        socket.set_option(boost::asio::ip::tcp::no_delay{true});
-    }
+}
+
+template <>
+inline void set_no_delay(boost::asio::ip::tcp::socket& socket)
+{
+    socket.set_option(boost::asio::ip::tcp::no_delay{true});
 }
 
 template <typename T>
