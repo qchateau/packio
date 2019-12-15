@@ -112,7 +112,7 @@ private:
                     handler(std::apply(fct, args.as<value_args>()));
                 }
             }
-            catch (std::bad_cast& exc) {
+            catch (msgpack::type_error&) {
                 DEBUG("incompatible arguments");
                 handler.set_error("Incompatible arguments");
             }
@@ -149,7 +149,7 @@ private:
             try {
                 std::apply(bound_fct, args.as<value_args>());
             }
-            catch (std::bad_cast&) {
+            catch (msgpack::type_error&) {
                 DEBUG("incompatible arguments");
                 handler.set_error("Incompatible arguments");
             }
