@@ -18,8 +18,8 @@ packio::client<ip::tcp> client{ip::tcp::socket{io}};
 // Declare a synchronous callback
 server.dispatcher()->add("sum", [](int a, int b) { return a+b; });
 // Declare an asynchronous callback
-server.dispatcher()->add_async(
-    "multiply", [&](packio::completion_handler complete, int a, int b) {
+server.dispatcher()->add_async("multiply",
+    [&](packio::completion_handler complete, int a, int b) {
         complete(a*b);
     });
 ```
@@ -35,9 +35,10 @@ std::thread thread{[&] { io.run(); }};
 
 ```cpp
 // Make an asynchronous call
-client.async_call([&](boost::system::error_code, msgpack::object r) {
+client.async_call("add", std::make_tuple(42, 24),
+    [&](boost::system::error_code, msgpack::object r) {
         std::cout << "The result is: " << r.as<int>() << std::endl;
-    }, "add", 42, 24);
+    });
 ```
 
 # Bonus
@@ -47,7 +48,6 @@ Let's compute fibonacci's numbers recursively using PackIO on a single thread.
 ```cpp
 #include <iostream>
 #include <boost/asio.hpp>
-
 #include <packio/client.h>
 #include <packio/server.h>
 
@@ -76,22 +76,22 @@ int main(int argc, char** argv)
             }
             else {
                 client.async_call(
+                    "fibonacci",
+                    std::make_tuple(n - 1),
                     [=, &client, complete = std::move(complete)](
                         boost::system::error_code,
                         msgpack::object result1) mutable {
                         int r1 = result1.as<int>();
                         client.async_call(
+                            "fibonacci",
+                            std::make_tuple(n - 2),
                             [=, complete = std::move(complete)](
                                 boost::system::error_code,
                                 msgpack::object result2) mutable {
                                 int r2 = result2.as<int>();
                                 complete(r1 + r2);
-                            },
-                            "fibonacci",
-                            n - 2);
-                    },
-                    "fibonacci",
-                    n - 1);
+                            });
+                    });
             }
         });
 
@@ -101,11 +101,11 @@ int main(int argc, char** argv)
     std::optional<int> result;
 
     client.async_call(
+        "fibonacci",
+        std::make_tuple(n),
         [&](boost::system::error_code, msgpack::object r) {
             result = r.as<int>();
-        },
-        "fibonacci",
-        n);
+        });
 
     while (!result) {
         io.run_one();
