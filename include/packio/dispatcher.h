@@ -16,25 +16,6 @@
 #include "internal/utils.h"
 
 namespace packio {
-namespace internal {
-
-template <typename F, typename Tuple>
-decltype(auto) apply_msgpack_result(F&& fct, Tuple&& args_tuple)
-{
-    const auto bound = [&] {
-        return std::apply(std::forward<F>(fct), std::forward<Tuple>(args_tuple));
-    };
-
-    if constexpr (std::is_void_v<decltype(bound())>) {
-        bound();
-        return msgpack::type::nil_t{};
-    }
-    else {
-        return bound();
-    }
-}
-
-} // internal
 
 template <typename mutex = std::mutex>
 class dispatcher {
