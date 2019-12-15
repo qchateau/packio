@@ -26,7 +26,7 @@ public:
     using endpoint_type = typename protocol_type::endpoint;
     using executor_type = typename socket_type::executor_type;
     using async_call_handler_type =
-        internal::function<void(boost::system::error_code, const msgpack::object&)>;
+        std::function<void(boost::system::error_code, const msgpack::object&)>;
 
     static constexpr size_t kBufferReserveSize = 4096;
 
@@ -104,6 +104,8 @@ public:
         TRACE("async_call: {}", name);
 
         auto id = id_.fetch_add(1, std::memory_order_acq_rel);
+        auto handler_ptr = std::make_shared<std::decay_t<CallHandler>>(
+            std::forward<CallHandler>(handler));
         auto packer_buf = std::make_shared<Buffer>();
         msgpack::pack(
             *packer_buf,
@@ -117,7 +119,10 @@ public:
                     .try_emplace(
                         id,
                         std::forward_as_tuple(
-                            std::forward<CallHandler>(handler),
+                            [handler_ptr = std::move(handler_ptr)](auto&&... args) {
+                                (*handler_ptr)(
+                                    std::forward<decltype(args)>(args)...);
+                            },
                             socket_.get_executor()))
                     .first->second);
 

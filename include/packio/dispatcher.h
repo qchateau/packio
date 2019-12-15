@@ -21,7 +21,7 @@ template <typename mutex = std::mutex>
 class dispatcher {
 public:
     using function_type =
-        internal::function<void(completion_handler, const msgpack::object&)>;
+        std::function<void(completion_handler, const msgpack::object&)>;
     using function_ptr_type = std::shared_ptr<function_type>;
 
     template <typename F>
@@ -92,7 +92,8 @@ private:
         using value_args = typename internal::func_traits<F>::args_type;
         using result_type = typename internal::func_traits<F>::result_type;
 
-        return std::make_shared<function_type>([fct = std::forward<F>(fct)](
+        auto fct_ptr = std::make_shared<std::decay_t<F>>(std::forward<F>(fct));
+        return std::make_shared<function_type>([fct_ptr = std::move(fct_ptr)](
                                                    completion_handler handler,
                                                    const msgpack::object& args) {
             if (internal::args_count(args) != std::tuple_size_v<value_args>) {
@@ -105,11 +106,11 @@ private:
 
             try {
                 if constexpr (std::is_void_v<result_type>) {
-                    std::apply(fct, args.as<value_args>());
+                    std::apply(*fct_ptr, args.as<value_args>());
                     handler();
                 }
                 else {
-                    handler(std::apply(fct, args.as<value_args>()));
+                    handler(std::apply(*fct_ptr, args.as<value_args>()));
                 }
             }
             catch (msgpack::type_error&) {
@@ -123,15 +124,10 @@ private:
     function_ptr_type wrap_async(F&& fct)
     {
         using args = typename internal::func_traits<F>::args_type;
-        constexpr std::size_t n_args = std::tuple_size_v<args>;
-
-        static_assert(
-            n_args >= 1,
-            "Callbacks take at least a completion handler as argument");
-
         using value_args = internal::shift_tuple_t<args>;
 
-        return std::make_shared<function_type>([fct = std::forward<F>(fct)](
+        auto fct_ptr = std::make_shared<std::decay_t<F>>(std::forward<F>(fct));
+        return std::make_shared<function_type>([fct_ptr = std::move(fct_ptr)](
                                                    completion_handler handler,
                                                    const msgpack::object& args) {
             if (internal::args_count(args) != std::tuple_size_v<value_args>) {
@@ -143,7 +139,8 @@ private:
             }
 
             const auto bound_fct = [&](auto&&... args) -> void {
-                fct(std::move(handler), std::forward<decltype(args)>(args)...);
+                (*fct_ptr)(
+                    std::move(handler), std::forward<decltype(args)>(args)...);
             };
 
             try {
