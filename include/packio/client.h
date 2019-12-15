@@ -27,8 +27,6 @@ public:
     using executor_type = typename socket_type::executor_type;
     using async_call_handler_type =
         internal::function<void(boost::system::error_code, const msgpack::object&)>;
-    using async_notify_handler_type =
-        internal::function<void(boost::system::error_code)>;
 
     static constexpr size_t kBufferReserveSize = 4096;
 
@@ -55,11 +53,18 @@ public:
     void set_timeout(duration_type timeout) { timeout_ = timeout; }
     duration_type get_timeout() const { return timeout_; }
 
-    template <typename Buffer = msgpack::sbuffer, typename... Args>
+    template <typename Buffer = msgpack::sbuffer, typename NotifyHandler>
+    void async_notify(std::string_view name, NotifyHandler&& handler)
+    {
+        return async_notify<Buffer>(
+            name, std::tuple<>{}, std::forward<NotifyHandler>(handler));
+    }
+
+    template <typename Buffer = msgpack::sbuffer, typename NotifyHandler, typename... Args>
     void async_notify(
-        async_notify_handler_type handler,
         std::string_view name,
-        Args&&... args)
+        std::tuple<Args...> args,
+        NotifyHandler&& handler)
     {
         TRACE("async_notify: {}", name);
 
@@ -67,16 +72,14 @@ public:
         msgpack::pack(
             *packer_buf,
             std::forward_as_tuple(
-                static_cast<int>(msgpack_rpc_type::notification),
-                name,
-                std::forward_as_tuple(args...)));
+                static_cast<int>(msgpack_rpc_type::notification), name, args));
 
         maybe_start_reading();
         boost::asio::async_write(
             socket_,
             internal::buffer_to_asio(*packer_buf),
-            [packer_buf, handler = std::move(handler)](
-                boost::system::error_code ec, size_t length) {
+            [packer_buf, handler = std::forward<NotifyHandler>(handler)](
+                boost::system::error_code ec, size_t length) mutable {
                 if (ec) {
                     DEBUG("write error: {}", ec.message());
                 }
@@ -88,11 +91,15 @@ public:
             });
     }
 
-    template <typename Buffer = msgpack::sbuffer, typename... Args>
-    void async_call(
-        async_call_handler_type handler,
-        std::string_view name,
-        Args&&... args)
+    template <typename Buffer = msgpack::sbuffer, typename CallHandler>
+    void async_call(std::string_view name, CallHandler&& handler)
+    {
+        return async_call<Buffer>(
+            name, std::tuple<>{}, std::forward<CallHandler>(handler));
+    }
+
+    template <typename Buffer = msgpack::sbuffer, typename CallHandler, typename... Args>
+    void async_call(std::string_view name, std::tuple<Args...> args, CallHandler&& handler)
     {
         TRACE("async_call: {}", name);
 
@@ -101,20 +108,17 @@ public:
         msgpack::pack(
             *packer_buf,
             std::forward_as_tuple(
-                static_cast<int>(msgpack_rpc_type::request),
-                id,
-                name,
-                std::forward_as_tuple(args...)));
+                static_cast<int>(msgpack_rpc_type::request), id, name, args));
 
         {
             std::unique_lock lock{pending_mutex_};
             timer_type& timer = std::get<timer_type>(
                 pending_
-                    .emplace(
+                    .try_emplace(
                         id,
-                        std::make_tuple(
-                            std::move(handler),
-                            timer_type{socket_.get_executor()}))
+                        std::forward_as_tuple(
+                            std::forward<CallHandler>(handler),
+                            socket_.get_executor()))
                     .first->second);
 
             if (timeout_ > duration_type{0}) {

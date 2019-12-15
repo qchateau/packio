@@ -94,13 +94,11 @@ TYPED_TEST(Server, test_same_func)
     for (int i = 0; i < kNCalls; ++i) {
         for (auto& client : clients) {
             client.async_call(
-                [&](auto ec, const auto& result) {
+                "double", std::make_tuple(42), [&](auto ec, const auto& result) {
                     ASSERT_FALSE(ec);
                     ASSERT_EQ(84, result.template as<int>());
                     done.count_down();
-                },
-                "double",
-                42);
+                });
         }
     }
 
@@ -130,13 +128,13 @@ TYPED_TEST(Server, test_many_func)
         int j = 0;
         for (auto& client : clients) {
             client.async_call(
+                std::to_string(j++),
+                std::make_tuple(42),
                 [&](auto ec, const auto& result) {
                     ASSERT_FALSE(ec);
                     ASSERT_EQ(42, result.template as<int>());
                     done.count_down();
-                },
-                std::to_string(j++),
-                42);
+                });
         }
     }
 

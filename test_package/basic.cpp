@@ -59,27 +59,26 @@ protected:
     template <typename... Args>
     auto future_notify(std::string_view name, Args&&... args)
     {
-        auto p = std::make_shared<std::promise<boost::system::error_code>>();
-        auto f = p->get_future();
+        std::promise<boost::system::error_code> p;
+        auto f = p.get_future();
         client_.async_notify(
-            [p](auto ec) mutable { p->set_value(ec); },
             name,
-            std::forward<Args>(args)...);
+            std::forward_as_tuple(args...),
+            [p = std::move(p)](auto ec) mutable { p.set_value(ec); });
         return f;
     }
 
     template <typename... Args>
     auto future_call(std::string_view name, Args&&... args)
     {
-        auto p = std::make_shared<
-            std::promise<std::tuple<boost::system::error_code, msgpack::object>>>();
-        auto f = p->get_future();
+        std::promise<std::tuple<boost::system::error_code, msgpack::object>> p;
+        auto f = p.get_future();
         client_.async_call(
-            [p](auto ec, auto result) {
-                p->set_value({ec, std::move(result)});
-            },
             name,
-            std::forward<Args>(args)...);
+            std::forward_as_tuple(args...),
+            [p = std::move(p)](auto ec, auto result) mutable {
+                p.set_value({ec, std::move(result)});
+            });
         return f;
     }
 
@@ -289,9 +288,9 @@ TYPED_TEST(Client, test_move_only)
 
     this->server_.async_serve([ptr = std::unique_ptr<int>{}](auto, auto) {});
 
-    this->client_.async_notify([ptr = std::unique_ptr<int>{}](auto) {}, "f001");
+    this->client_.async_notify("f001", [ptr = std::unique_ptr<int>{}](auto) {});
     this->client_.async_call(
-        [ptr = std::unique_ptr<int>{}](auto, auto) {}, "f001");
+        "f001", [ptr = std::unique_ptr<int>{}](auto, auto) {});
 
     static_assert(std::is_move_assignable_v<packio::completion_handler>);
     static_assert(std::is_move_constructible_v<packio::completion_handler>);
@@ -330,8 +329,8 @@ TYPED_TEST(Client, test_shared_dispatcher)
             handler();
         }));
 
-    this->client_.async_notify([](auto ec) { ASSERT_FALSE(ec); }, "inc");
-    client2.async_notify([](auto ec) { ASSERT_FALSE(ec); }, "inc");
+    this->client_.async_notify("inc", [](auto ec) { ASSERT_FALSE(ec); });
+    client2.async_notify("inc", [](auto ec) { ASSERT_FALSE(ec); });
 
     ASSERT_TRUE(l.wait_for(std::chrono::seconds{1}));
 }
