@@ -116,9 +116,9 @@ private:
             std::string name = call.via.array.ptr[idx++].as<std::string>();
             const msgpack::object& args = call.via.array.ptr[idx++];
 
-            const auto completion_handler = [this, type, id](
-                                                boost::system::error_code ec,
-                                                msgpack::object_handle result) {
+            auto completion_handler = [this, type, id, self = shared_from_this()](
+                                          boost::system::error_code ec,
+                                          msgpack::object_handle result) mutable {
                 if (type == static_cast<int>(msgpack_rpc_type::request)) {
                     TRACE("result: {}", ec.message());
                     async_write(id, ec, std::move(result));

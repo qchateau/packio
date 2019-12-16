@@ -340,6 +340,24 @@ TYPED_TEST(Client, test_move_only)
     static_assert(std::is_move_constructible_v<packio::completion_handler>);
 }
 
+TYPED_TEST(Client, test_response_after_disconnect)
+{
+    this->server_.async_serve_forever();
+    this->connect();
+    this->async_run();
+
+    std::promise<packio::completion_handler> complete_promise;
+    auto future = complete_promise.get_future();
+    this->server_.dispatcher()->add_async(
+        "block", [&](packio::completion_handler complete) {
+            complete_promise.set_value(std::move(complete));
+        });
+
+    this->client_.async_call("block", [&](auto, auto) {});
+    this->client_.socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both);
+    future.get()();
+}
+
 TYPED_TEST(Client, test_shared_dispatcher)
 {
     using server_type = typename std::decay_t<decltype(*this)>::server_type;
