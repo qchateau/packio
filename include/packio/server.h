@@ -78,11 +78,11 @@ public:
         async_serve([this](auto ec, auto session) {
             if (ec) {
                 INFO("error: {}", ec.message());
+                return;
             }
-            else {
-                session->start();
-                async_serve_forever();
-            }
+
+            session->start();
+            async_serve_forever();
         });
     }
 

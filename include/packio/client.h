@@ -188,19 +188,18 @@ private:
             [this](boost::system::error_code ec, size_t length) {
                 if (ec) {
                     DEBUG("read error: {}", ec.message());
+                    return;
                 }
-                else {
-                    TRACE("read: {}", length);
-                    unpacker_.buffer_consumed(length);
 
-                    for (msgpack::object_handle response;
-                         unpacker_.next(response);) {
-                        TRACE("dispatching");
-                        async_dispatch(std::move(response), ec);
-                    }
+                TRACE("read: {}", length);
+                unpacker_.buffer_consumed(length);
 
-                    async_read();
+                for (msgpack::object_handle response; unpacker_.next(response);) {
+                    TRACE("dispatching");
+                    async_dispatch(std::move(response), ec);
                 }
+
+                async_read();
             });
     }
 
