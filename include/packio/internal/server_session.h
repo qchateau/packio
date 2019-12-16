@@ -78,15 +78,13 @@ private:
     void async_dispatch(msgpack::object_handle call)
     {
         auto self{shared_from_this()};
-        auto call_ptr = std::make_shared<msgpack::object_handle>(std::move(call));
-        boost::asio::post(socket_.get_executor(), [this, self, call_ptr] {
-            dispatch(std::move(*call_ptr));
-        });
+        boost::asio::post(
+            socket_.get_executor(),
+            [this, self, call = std::move(call)] { dispatch(call.get()); });
     }
 
-    void dispatch(msgpack::object_handle call_handle)
+    void dispatch(const msgpack::object& call)
     {
-        const msgpack::object& call = call_handle.get();
         if (call.type != msgpack::type::ARRAY) {
             WARN("unexpected message type: {}", call.type);
             error_.store(true);

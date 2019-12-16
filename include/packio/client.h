@@ -205,11 +205,10 @@ private:
 
     void async_dispatch(msgpack::object_handle response, boost::system::error_code ec)
     {
-        auto response_ptr = std::make_shared<msgpack::object_handle>(
-            std::move(response));
-        boost::asio::dispatch(socket_.get_executor(), [this, response_ptr, ec] {
-            dispatch(response_ptr->get(), ec);
-        });
+        boost::asio::dispatch(
+            socket_.get_executor(), [this, ec, response = std::move(response)] {
+                dispatch(response.get(), ec);
+            });
     }
 
     void dispatch(const msgpack::object& response, boost::system::error_code ec)
