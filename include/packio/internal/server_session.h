@@ -68,6 +68,10 @@ private:
                 unpacker->buffer_consumed(length);
 
                 for (msgpack::object_handle call; unpacker->next(call);) {
+                    // handle the call asynchronously (post)
+                    // to schedule the next read immediately
+                    // this will allow parallel call handling
+                    // in multi-threaded environments
                     async_dispatch(std::move(call));
                 }
 

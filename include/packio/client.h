@@ -196,6 +196,10 @@ private:
 
                 for (msgpack::object_handle response; unpacker_.next(response);) {
                     TRACE("dispatching");
+                    // handle the response asynchronously (post)
+                    // to schedule the next read immediately
+                    // this will allow parallel response handling
+                    // in multi-threaded environments
                     async_dispatch(std::move(response), ec);
                 }
 
@@ -205,7 +209,7 @@ private:
 
     void async_dispatch(msgpack::object_handle response, boost::system::error_code ec)
     {
-        boost::asio::dispatch(
+        boost::asio::post(
             socket_.get_executor(), [this, ec, response = std::move(response)] {
                 dispatch(response.get(), ec);
             });
