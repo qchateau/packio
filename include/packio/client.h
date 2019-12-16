@@ -136,8 +136,6 @@ public:
         TRACE("async_call: {}", name);
 
         auto id = id_.fetch_add(1, std::memory_order_acq_rel);
-        auto handler_ptr = std::make_shared<std::decay_t<CallHandler>>(
-            std::forward<CallHandler>(handler));
         auto packer_buf = std::make_shared<Buffer>();
         msgpack::pack(
             *packer_buf,
@@ -147,9 +145,9 @@ public:
         {
             std::unique_lock lock{pending_mutex_};
             pending_.try_emplace(
-                id, [handler_ptr = std::move(handler_ptr)](auto&&... args) {
-                    (*handler_ptr)(std::forward<decltype(args)>(args)...);
-                });
+                id,
+                internal::make_copyable_function(
+                    std::forward<CallHandler>(handler)));
         }
 
         maybe_start_reading();

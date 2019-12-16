@@ -92,6 +92,18 @@ inline void set_no_delay(boost::asio::ip::tcp::socket& socket)
     socket.set_option(boost::asio::ip::tcp::no_delay{true});
 }
 
+template <typename F>
+auto make_copyable_function(F&& movable)
+{
+    // We handle a lot of move-only lambda function and we sometimes
+    // need to wrap them into std::function, which requires the functor to
+    // be copyable. To solve the problem, wrap the lambda in a shared pointer
+    auto fct_ptr = std::make_shared<std::decay_t<F>>(std::forward<F>(movable));
+    return [fct_ptr = std::move(fct_ptr)](auto&&... args) {
+        return (*fct_ptr)(std::forward<decltype(args)>(args)...);
+    };
+}
+
 } // internal
 } // packio
 

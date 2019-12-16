@@ -87,13 +87,13 @@ public:
 
 private:
     template <typename F>
-    function_ptr_type wrap_sync(F&& fct)
+    function_ptr_type wrap_sync(F&& in_fct)
     {
         using value_args = typename internal::func_traits<F>::args_type;
         using result_type = typename internal::func_traits<F>::result_type;
 
-        auto fct_ptr = std::make_shared<std::decay_t<F>>(std::forward<F>(fct));
-        return std::make_shared<function_type>([fct_ptr = std::move(fct_ptr)](
+        auto fct = internal::make_copyable_function(std::forward<F>(in_fct));
+        return std::make_shared<function_type>([fct = std::move(fct)](
                                                    completion_handler handler,
                                                    const msgpack::object& args) {
             if (internal::args_count(args) != std::tuple_size_v<value_args>) {
@@ -106,11 +106,11 @@ private:
 
             try {
                 if constexpr (std::is_void_v<result_type>) {
-                    std::apply(*fct_ptr, args.as<value_args>());
+                    std::apply(fct, args.as<value_args>());
                     handler();
                 }
                 else {
-                    handler(std::apply(*fct_ptr, args.as<value_args>()));
+                    handler(std::apply(fct, args.as<value_args>()));
                 }
             }
             catch (msgpack::type_error&) {
@@ -121,13 +121,13 @@ private:
     }
 
     template <typename F>
-    function_ptr_type wrap_async(F&& fct)
+    function_ptr_type wrap_async(F&& in_fct)
     {
         using args = typename internal::func_traits<F>::args_type;
         using value_args = internal::shift_tuple_t<args>;
 
-        auto fct_ptr = std::make_shared<std::decay_t<F>>(std::forward<F>(fct));
-        return std::make_shared<function_type>([fct_ptr = std::move(fct_ptr)](
+        auto fct = internal::make_copyable_function(std::forward<F>(in_fct));
+        return std::make_shared<function_type>([fct = std::move(fct)](
                                                    completion_handler handler,
                                                    const msgpack::object& args) {
             if (internal::args_count(args) != std::tuple_size_v<value_args>) {
@@ -139,8 +139,7 @@ private:
             }
 
             const auto bound_fct = [&](auto&&... args) -> void {
-                (*fct_ptr)(
-                    std::move(handler), std::forward<decltype(args)>(args)...);
+                fct(std::move(handler), std::forward<decltype(args)>(args)...);
             };
 
             try {
