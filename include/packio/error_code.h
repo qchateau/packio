@@ -10,7 +10,7 @@ enum class error {
     error_during_call,
     unknown_function,
     communication_failure,
-    timeout,
+    cancelled,
     call_error
 };
 
@@ -27,8 +27,8 @@ struct packio_error_category : boost::system::error_category {
             return "Unknown function";
         case error::communication_failure:
             return "Communication failure";
-        case error::timeout:
-            return "Timeout";
+        case error::cancelled:
+            return "Cancelled";
         case error::call_error:
             return "Call error";
         default:

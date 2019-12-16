@@ -71,9 +71,16 @@ protected:
     template <typename... Args>
     auto future_call(std::string_view name, Args&&... args)
     {
+        uint32_t id;
+        return future_call(id, name, std::forward<Args>(args)...);
+    }
+
+    template <typename... Args>
+    auto future_call(uint32_t& id, std::string_view name, Args&&... args)
+    {
         std::promise<std::tuple<boost::system::error_code, msgpack::object>> p;
         auto f = p.get_future();
-        client_.async_call(
+        id = client_.async_call(
             name,
             std::forward_as_tuple(args...),
             [p = std::move(p)](auto ec, auto result) mutable {
@@ -169,12 +176,28 @@ TYPED_TEST(Client, test_timeout)
             handler();
         });
 
-    {
-        this->client_.set_timeout(std::chrono::milliseconds{1});
-        auto f = this->future_call("block");
-        auto [ec, res] = f.get();
-        ASSERT_EQ(packio::error::timeout, ec);
+    const auto assert_blocks = [](auto& future) {
+        ASSERT_EQ(
+            std::future_status::timeout,
+            future.wait_for(std::chrono::milliseconds{1}));
+    };
+    const auto assert_cancelled = [](auto& future) {
+        ASSERT_EQ(
+            std::future_status::ready,
+            future.wait_for(std::chrono::milliseconds{1}));
+        auto [ec, res] = future.get();
+        ASSERT_EQ(packio::error::cancelled, ec);
         ASSERT_EQ(msgpack::type::STR, res.type);
+    };
+
+    {
+        auto f1 = this->future_call("block");
+        auto f2 = this->future_call("block");
+        assert_blocks(f1);
+        assert_blocks(f2);
+        ASSERT_EQ(2ul, this->client_.cancel());
+        assert_cancelled(f1);
+        assert_cancelled(f2);
     }
 
     {
@@ -183,8 +206,29 @@ TYPED_TEST(Client, test_timeout)
     }
 
     {
-        this->client_.set_timeout(std::chrono::milliseconds{0});
+        uint32_t id1, id2;
+        auto f1 = this->future_call(id1, "block");
+        auto f2 = this->future_call(id2, "block");
+        assert_blocks(f1);
+        assert_blocks(f2);
+        ASSERT_EQ(1ul, this->client_.cancel(id2));
+        assert_blocks(f1);
+        assert_cancelled(f2);
+        ASSERT_EQ(1ul, this->client_.cancel(id1));
+        assert_cancelled(f1);
+        ASSERT_EQ(0ul, this->client_.cancel(id2));
+        ASSERT_EQ(0ul, this->client_.cancel(id1));
+        ASSERT_EQ(0ul, this->client_.cancel(424242));
+    }
+
+    {
+        std::unique_lock l{mtx};
+        pending.clear();
+    }
+
+    {
         auto f = this->future_call("block");
+        assert_blocks(f);
         auto [ec, res] = this->future_call("unblock").get();
         auto [ec2, res2] = f.get();
         (void)res;
