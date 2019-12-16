@@ -30,7 +30,7 @@ public:
 
     explicit client(socket_type socket) : socket_{std::move(socket)}
     {
-        reading_.clear();
+        reading_.clear(std::memory_order_release);
     }
 
     ~client()
