@@ -103,7 +103,7 @@ public:
             std::forward_as_tuple(
                 static_cast<int>(msgpack_rpc_type::notification), name, args));
 
-        maybe_start_reading();
+        start_reading();
         boost::asio::async_write(
             socket_,
             internal::buffer_to_asio(*packer_buf),
@@ -150,7 +150,7 @@ public:
                     std::forward<CallHandler>(handler)));
         }
 
-        maybe_start_reading();
+        start_reading();
         boost::asio::async_write(
             socket_,
             internal::buffer_to_asio(*packer_buf),
@@ -158,8 +158,7 @@ public:
                 if (ec) {
                     DEBUG("write error: {}", ec.message());
                     msgpack::zone zone;
-                    maybe_call_handler(
-                        id, msgpack::object(ec.message(), zone), ec);
+                    call_handler(id, msgpack::object(ec.message(), zone), ec);
                 }
                 else {
                     TRACE("write: {}", length);
@@ -171,7 +170,7 @@ public:
     }
 
 private:
-    void maybe_start_reading()
+    void start_reading()
     {
         if (!reading_.test_and_set(std::memory_order_acq_rel)) {
             internal::set_no_delay(socket_);
@@ -229,16 +228,16 @@ private:
 
         if (err.type != msgpack::type::NIL) {
             ec = make_error_code(error::call_error);
-            maybe_call_handler(id, err, ec);
+            call_handler(id, err, ec);
         }
         else {
             ec = make_error_code(error::success);
-            maybe_call_handler(id, result, ec);
+            call_handler(id, result, ec);
         }
     }
 
-    void maybe_call_handler(
-        int id,
+    void call_handler(
+        id_type id,
         const msgpack::object& result,
         boost::system::error_code& ec)
     {
