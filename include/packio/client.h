@@ -110,17 +110,19 @@ public:
     {
         TRACE("async_notify: {}", name);
 
-        auto packer_buf = std::make_shared<Buffer>();
+        auto packer_buf = std::make_unique<Buffer>();
         msgpack::pack(
             *packer_buf,
             std::forward_as_tuple(
                 static_cast<int>(msgpack_rpc_type::notification), name, args));
 
         start_reading();
+        auto buffer = internal::buffer_to_asio(*packer_buf);
         boost::asio::async_write(
             socket_,
-            internal::buffer_to_asio(*packer_buf),
-            [packer_buf, handler = std::forward<NotifyHandler>(handler)](
+            buffer,
+            [packer_buf = std::move(packer_buf),
+             handler = std::forward<NotifyHandler>(handler)](
                 boost::system::error_code ec, size_t length) mutable {
                 if (ec) {
                     DEBUG("write error: {}", ec.message());
@@ -149,7 +151,7 @@ public:
         TRACE("async_call: {}", name);
 
         auto id = id_.fetch_add(1, std::memory_order_acq_rel);
-        auto packer_buf = std::make_shared<Buffer>();
+        auto packer_buf = std::make_unique<Buffer>();
         msgpack::pack(
             *packer_buf,
             std::forward_as_tuple(
@@ -164,10 +166,12 @@ public:
         }
 
         start_reading();
+        auto buffer = internal::buffer_to_asio(*packer_buf);
         boost::asio::async_write(
             socket_,
-            internal::buffer_to_asio(*packer_buf),
-            [this, id, packer_buf](boost::system::error_code ec, size_t length) {
+            buffer,
+            [this, id, packer_buf = std::move(packer_buf)](
+                boost::system::error_code ec, size_t length) {
                 if (ec) {
                     DEBUG("write error: {}", ec.message());
                     msgpack::zone zone;

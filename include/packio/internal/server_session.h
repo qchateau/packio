@@ -42,10 +42,10 @@ public:
     socket_type& socket() { return socket_; }
     const socket_type& socket() const { return socket_; }
 
-    void start() { async_read(std::make_shared<msgpack::unpacker>()); }
+    void start() { async_read(std::make_unique<msgpack::unpacker>()); }
 
 private:
-    void async_read(std::shared_ptr<msgpack::unpacker> unpacker)
+    void async_read(std::unique_ptr<msgpack::unpacker> unpacker)
     {
         // abort R/W on error
         if (error_.load()) {
@@ -55,9 +55,12 @@ private:
         auto self{shared_from_this()};
         unpacker->reserve_buffer(kBufferReserveSize);
 
+        auto buffer = boost::asio::buffer(
+            unpacker->buffer(), unpacker->buffer_capacity());
         socket_.async_read_some(
-            boost::asio::buffer(unpacker->buffer(), unpacker->buffer_capacity()),
-            [this, self, unpacker](boost::system::error_code ec, size_t length) {
+            buffer,
+            [this, self, unpacker = std::move(unpacker)](
+                boost::system::error_code ec, size_t length) mutable {
                 if (ec) {
                     DEBUG("error: {}", ec.message());
                     error_.store(true);
@@ -148,7 +151,7 @@ private:
         }
 
         auto self(shared_from_this());
-        auto packer_buf = std::make_shared<msgpack::vrefbuffer>();
+        auto packer_buf = std::make_unique<msgpack::vrefbuffer>();
         msgpack::packer<msgpack::vrefbuffer> packer(*packer_buf);
 
         const auto pack = [&](auto&& error, auto&& result) {
@@ -172,11 +175,13 @@ private:
         }
 
         auto buffer = buffer_to_asio(*packer_buf);
-
         boost::asio::async_write(
             socket_,
             buffer,
-            [this, self, packer_buf, result_handle = std::move(result_handle)](
+            [this,
+             self,
+             packer_buf = std::move(packer_buf),
+             result_handle = std::move(result_handle)](
                 boost::system::error_code ec, size_t length) {
                 if (ec) {
                     DEBUG("error: {}", ec.message());
