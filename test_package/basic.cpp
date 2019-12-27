@@ -1,6 +1,7 @@
 #include <atomic>
 #include <chrono>
 #include <future>
+#include <unordered_map>
 
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
@@ -15,25 +16,44 @@ using namespace boost::asio;
 using namespace packio;
 using std::this_thread::sleep_for;
 
-typedef ::testing::Types<boost::asio::ip::tcp, boost::asio::local::stream_protocol>
-    ClientImplementations;
+template <typename T>
+struct my_allocator : public std::allocator<T> {
+};
 
-template <class T>
-class Client : public ::testing::Test {
+template <typename Key, typename T>
+using my_unordered_map = std::unordered_map<
+    Key,
+    T,
+    std::hash<Key>,
+    std::equal_to<Key>,
+    my_allocator<std::pair<const Key, T>>>;
+
+typedef ::testing::Types<
+    std::pair<client<boost::asio::ip::tcp>, server<boost::asio::ip::tcp>>,
+    std::pair<client<boost::asio::local::stream_protocol>, server<boost::asio::local::stream_protocol>>,
+    std::pair<client<boost::asio::ip::tcp, my_unordered_map>, server<boost::asio::ip::tcp>>,
+    std::pair<
+        client<boost::asio::ip::tcp, std::map, std::recursive_mutex>,
+        server<boost::asio::ip::tcp>>>
+    Implementations;
+
+template <class Impl>
+class Test : public ::testing::Test {
 protected:
-    using client_type = client<T>;
-    using server_type = server<T>;
-    using endpoint_type = typename T::endpoint;
-    using socket_type = typename T::socket;
-    using acceptor_type = typename T::acceptor;
+    using client_type = typename Impl::first_type;
+    using server_type = typename Impl::second_type;
+    using protocol_type = typename client_type::protocol_type;
+    using endpoint_type = typename protocol_type::endpoint;
+    using socket_type = typename protocol_type::socket;
+    using acceptor_type = typename protocol_type::acceptor;
 
-    Client()
+    Test()
         : server_{acceptor_type(io_, get_endpoint<endpoint_type>())},
           client_{socket_type{io_}}
     {
     }
 
-    ~Client()
+    ~Test()
     {
         io_.stop();
         if (runner_.joinable()) {
@@ -43,11 +63,7 @@ protected:
 
     void async_run()
     {
-        runner_ = std::thread{[this] {
-            DEBUG("running");
-            io_.run();
-            DEBUG("work done");
-        }};
+        runner_ = std::thread{[this] { io_.run(); }};
     }
 
     void connect()
@@ -95,15 +111,15 @@ protected:
     std::thread runner_;
 };
 
-TYPED_TEST_CASE(Client, ClientImplementations);
+TYPED_TEST_CASE(Test, Implementations);
 
-TYPED_TEST(Client, test_connect)
+TYPED_TEST(Test, test_connect)
 {
     this->connect();
     ASSERT_TRUE(this->client_.socket().is_open());
 }
 
-TYPED_TEST(Client, test_typical_usage)
+TYPED_TEST(Test, test_typical_usage)
 {
     {
         latch connected{1};
@@ -152,7 +168,7 @@ TYPED_TEST(Client, test_typical_usage)
     }
 }
 
-TYPED_TEST(Client, test_timeout)
+TYPED_TEST(Test, test_timeout)
 {
     this->server_.async_serve_forever();
     this->connect();
@@ -240,7 +256,7 @@ TYPED_TEST(Client, test_timeout)
     this->io_.stop();
 }
 
-TYPED_TEST(Client, test_server_functions)
+TYPED_TEST(Test, test_server_functions)
 {
     // this just needs to compile
     this->server_.dispatcher()->add_async(
@@ -267,7 +283,7 @@ TYPED_TEST(Client, test_server_functions)
     this->server_.dispatcher()->add("f016", [](int i, std::string) { return i; });
 }
 
-TYPED_TEST(Client, test_dispatcher)
+TYPED_TEST(Test, test_dispatcher)
 {
     this->server_.async_serve_forever();
     this->connect();
@@ -321,7 +337,7 @@ TYPED_TEST(Client, test_dispatcher)
     ASSERT_FALSE(this->server_.dispatcher()->has("f003"));
 }
 
-TYPED_TEST(Client, test_move_only)
+TYPED_TEST(Test, test_move_only)
 {
     // this test just needs to compile
     this->connect();
@@ -340,7 +356,7 @@ TYPED_TEST(Client, test_move_only)
     static_assert(std::is_move_constructible_v<packio::completion_handler>);
 }
 
-TYPED_TEST(Client, test_response_after_disconnect)
+TYPED_TEST(Test, test_response_after_disconnect)
 {
     this->server_.async_serve_forever();
     this->connect();
@@ -358,7 +374,7 @@ TYPED_TEST(Client, test_response_after_disconnect)
     future.get()();
 }
 
-TYPED_TEST(Client, test_shared_dispatcher)
+TYPED_TEST(Test, test_shared_dispatcher)
 {
     using server_type = typename std::decay_t<decltype(*this)>::server_type;
     using client_type = typename std::decay_t<decltype(*this)>::client_type;
@@ -397,7 +413,7 @@ TYPED_TEST(Client, test_shared_dispatcher)
     ASSERT_TRUE(l.wait_for(std::chrono::seconds{1}));
 }
 
-TYPED_TEST(Client, test_errors_async)
+TYPED_TEST(Test, test_errors_async)
 {
     constexpr auto kErrorMessage{"error message"};
 
@@ -456,7 +472,7 @@ TYPED_TEST(Client, test_errors_async)
     }
 }
 
-TYPED_TEST(Client, test_errors_sync)
+TYPED_TEST(Test, test_errors_sync)
 {
     this->server_.async_serve_forever();
     this->connect();
