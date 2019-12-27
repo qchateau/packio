@@ -20,10 +20,7 @@
 
 namespace packio {
 
-template <
-    typename Protocol,
-    template <class, class> class Map = std::map,
-    typename Mutex = std::mutex>
+template <typename Protocol, template <class...> class Map = std::map, typename Mutex = std::mutex>
 class client {
 public:
     using protocol_type = Protocol;
