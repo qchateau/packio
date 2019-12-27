@@ -64,6 +64,17 @@ matrix:
       env:
         - PROFILE=clang++-8
 
+    - compiler: clang
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - sourceline: "deb https://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main"
+              key_url: "https://apt.llvm.org/llvm-snapshot.gpg.key"
+          packages: ["clang-9", "g++-9"]
+      env:
+        - PROFILE=clang++-9
+
     - compiler: gcc
       addons:
         apt:
