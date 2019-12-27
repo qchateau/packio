@@ -30,7 +30,9 @@ using my_unordered_map = std::unordered_map<
 
 typedef ::testing::Types<
     std::pair<client<boost::asio::ip::tcp>, server<boost::asio::ip::tcp>>,
+#if defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
     std::pair<client<boost::asio::local::stream_protocol>, server<boost::asio::local::stream_protocol>>,
+#endif // defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
     std::pair<client<boost::asio::ip::tcp, my_unordered_map>, server<boost::asio::ip::tcp>>,
     std::pair<
         client<boost::asio::ip::tcp, std::map, std::recursive_mutex>,
@@ -185,8 +187,8 @@ TYPED_TEST(Test, test_timeout)
     this->server_.dispatcher()->add_async(
         "unblock", [&](packio::completion_handler handler) {
             std::unique_lock l{mtx};
-            for (auto& handler : pending) {
-                handler();
+            for (auto& pending_handler : pending) {
+                pending_handler();
             }
             pending.clear();
             handler();
@@ -377,16 +379,19 @@ TYPED_TEST(Test, test_response_after_disconnect)
     this->connect();
     this->async_run();
 
-    std::promise<packio::completion_handler> complete_promise;
+    // Use a unique_ptr here because MSVC's promise is bugged and required
+    // default-constructible type
+    std::promise<std::unique_ptr<packio::completion_handler>> complete_promise;
     auto future = complete_promise.get_future();
     this->server_.dispatcher()->add_async(
         "block", [&](packio::completion_handler complete) {
-            complete_promise.set_value(std::move(complete));
+            complete_promise.set_value(
+                std::make_unique<packio::completion_handler>(std::move(complete)));
         });
 
     this->client_.async_call("block", [&](auto, auto) {});
     this->client_.socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both);
-    future.get()();
+    future.get()->operator()();
 }
 
 TYPED_TEST(Test, test_shared_dispatcher)

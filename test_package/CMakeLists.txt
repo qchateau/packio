@@ -6,7 +6,12 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
 
-add_compile_options(-Wall -Wextra -Werror)
+if (UNIX)
+    add_compile_options(-Wall -Wextra -Werror)
+else ()
+    add_compile_options(/W4 /WX /Zc:__cplusplus /bigobj)
+    add_definitions(/D_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING=1)
+endif ()
 
 add_definitions(-DBOOST_ASIO_NO_DEPRECATED=1)
 if (WITH_LOGS)

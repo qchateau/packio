@@ -122,6 +122,11 @@ private:
         case msgpack_rpc_type::notification:
             std::string name = call.via.array.ptr[idx++].as<std::string>();
             const msgpack::object& args = call.via.array.ptr[idx++];
+            if (args.type != msgpack::type::ARRAY) {
+                WARN("unexpected arguments type: {}", type);
+                error_.store(true);
+                return;
+            }
 
             auto completion_handler = [this, type, id, self = shared_from_this()](
                                           boost::system::error_code ec,

@@ -15,7 +15,11 @@ using namespace boost::asio;
 using namespace packio;
 using std::this_thread::sleep_for;
 
-typedef ::testing::Types<boost::asio::ip::tcp, boost::asio::local::stream_protocol>
+typedef ::testing::Types<
+#if defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
+    boost::asio::local::stream_protocol,
+#endif // defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
+    boost::asio::ip::tcp>
     Protocols;
 
 template <class Protocol>

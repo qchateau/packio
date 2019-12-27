@@ -1,116 +1,59 @@
-language: python
-python: "3.7"
-dist: xenial
-install:
-  - pip3 install conan
-script:
-  - CONAN_DEFAULT_PROFILE_PATH=$(realpath ./.ci/profiles/$PROFILE) conan create . --build=missing
+linux: &linux
+  os: linux
+  sudo: required
+  language: python
+  python: "3.6"
+  services:
+    - docker
+
+osx: &osx
+  os: osx
+  language: generic
 
 matrix:
   include:
-    - compiler: gcc
-      addons:
-        apt:
-          sources: ["ubuntu-toolchain-r-test"]
-          packages: ["g++-7"]
-      env:
-        - PROFILE=g++-7
+    # Test supported OSX compilers
+    - <<: *osx
+      osx_image: xcode10.3
+      env: CONAN_APPLE_CLANG_VERSIONS=10.0
+    - <<: *osx
+      osx_image: xcode11.3
+      env: CONAN_APPLE_CLANG_VERSIONS=11.0
 
-    - compiler: gcc
-      addons:
-        apt:
-          sources: ["ubuntu-toolchain-r-test"]
-          packages: ["g++-8"]
-      env:
-        - PROFILE=g++-8
+    # Test supported dependency versions
+    - <<: *linux
+      env: CONAN_GCC_VERSIONS=7 CONAN_DOCKER_IMAGE=conanio/gcc7 CONAN_OPTIONS=boost=1.70.0
+    - <<: *linux
+      env: CONAN_GCC_VERSIONS=7 CONAN_DOCKER_IMAGE=conanio/gcc7 CONAN_OPTIONS=boost=1.71.0
+    - <<: *linux
+      env: CONAN_GCC_VERSIONS=7 CONAN_DOCKER_IMAGE=conanio/gcc7 CONAN_OPTIONS=msgpack=3.0.1
+    - <<: *linux
+      env: CONAN_GCC_VERSIONS=7 CONAN_DOCKER_IMAGE=conanio/gcc7 CONAN_OPTIONS=msgpack=3.1.1
+    - <<: *linux
+      env: CONAN_GCC_VERSIONS=7 CONAN_DOCKER_IMAGE=conanio/gcc7 CONAN_OPTIONS=msgpack=3.2.0
 
-    - compiler: gcc
-      addons:
-        apt:
-          sources: ["ubuntu-toolchain-r-test"]
-          packages: ["g++-9"]
-      env:
-        - PROFILE=g++-9
+    # Test supported linux compilers
+    - <<: *linux
+      env: CONAN_GCC_VERSIONS=7 CONAN_DOCKER_IMAGE=conanio/gcc7
+    - <<: *linux
+      env: CONAN_GCC_VERSIONS=8 CONAN_DOCKER_IMAGE=conanio/gcc8
+    - <<: *linux
+      env: CONAN_GCC_VERSIONS=9 CONAN_DOCKER_IMAGE=conanio/gcc9
+    - <<: *linux
+      env: CONAN_CLANG_VERSIONS=5.0 CONAN_DOCKER_IMAGE=conanio/clang50
+    - <<: *linux
+      env: CONAN_CLANG_VERSIONS=6.0 CONAN_DOCKER_IMAGE=conanio/clang60
+    - <<: *linux
+      env: CONAN_CLANG_VERSIONS=7.0 CONAN_DOCKER_IMAGE=conanio/clang70
+    - <<: *linux
+      env: CONAN_CLANG_VERSIONS=8 CONAN_DOCKER_IMAGE=conanio/clang8
+    - <<: *linux
+      env: CONAN_CLANG_VERSIONS=9 CONAN_DOCKER_IMAGE=conanio/clang9
 
-    - compiler: clang
-      addons:
-        apt:
-          sources: ["ubuntu-toolchain-r-test"]
-          packages: ["clang-5.0", "g++-7"]
-      env:
-        - PROFILE=clang++-5.0
+install:
+  - chmod +x .ci/install.sh
+  - ./.ci/install.sh
 
-    - compiler: clang
-      addons:
-        apt:
-          sources: ["ubuntu-toolchain-r-test", "llvm-toolchain-xenial-6.0"]
-          packages: ["clang-6.0", "g++-7"]
-      env:
-        - PROFILE=clang++-6.0
-
-    - compiler: clang
-      addons:
-        apt:
-          sources: ["ubuntu-toolchain-r-test", "llvm-toolchain-xenial-7"]
-          packages: ["clang-7", "g++-7"]
-      env:
-        - PROFILE=clang++-7
-
-    - compiler: clang
-      addons:
-        apt:
-          sources: ["ubuntu-toolchain-r-test", "llvm-toolchain-xenial-8"]
-          packages: ["clang-8", "g++-8"]
-      env:
-        - PROFILE=clang++-8
-
-    - compiler: clang
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - sourceline: "deb https://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main"
-              key_url: "https://apt.llvm.org/llvm-snapshot.gpg.key"
-          packages: ["clang-9", "g++-9"]
-      env:
-        - PROFILE=clang++-9
-
-    - compiler: gcc
-      addons:
-        apt:
-          sources: ["ubuntu-toolchain-r-test"]
-          packages: ["g++-8"]
-      env:
-        - PROFILE=boost-1.70.0
-
-    - compiler: gcc
-      addons:
-        apt:
-          sources: ["ubuntu-toolchain-r-test"]
-          packages: ["g++-8"]
-      env:
-        - PROFILE=boost-1.71.0
-
-    - compiler: gcc
-      addons:
-        apt:
-          sources: ["ubuntu-toolchain-r-test"]
-          packages: ["g++-8"]
-      env:
-        - PROFILE=msgpack-3.0.1
-
-    - compiler: gcc
-      addons:
-        apt:
-          sources: ["ubuntu-toolchain-r-test"]
-          packages: ["g++-8"]
-      env:
-        - PROFILE=msgpack-3.1.1
-
-    - compiler: gcc
-      addons:
-        apt:
-          sources: ["ubuntu-toolchain-r-test"]
-          packages: ["g++-8"]
-      env:
-        - PROFILE=msgpack-3.2.0
+script:
+  - chmod +x .ci/run.sh
+  - ./.ci/run.sh

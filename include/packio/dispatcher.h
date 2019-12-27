@@ -98,31 +98,31 @@ private:
         using result_type = typename internal::func_traits<F>::result_type;
 
         auto fct = internal::make_copyable_function(std::forward<F>(in_fct));
-        return std::make_shared<function_type>([fct = std::move(fct)](
-                                                   completion_handler handler,
-                                                   const msgpack::object& args) {
-            if (internal::args_count(args) != std::tuple_size_v<value_args>) {
-                // keep this check otherwise msgpack unpacker
-                // may silently drop arguments
-                DEBUG("incompatible argument count");
-                handler.set_error("Incompatible arguments");
-                return;
-            }
+        return std::make_shared<function_type>(
+            [fct = std::move(fct)](
+                completion_handler handler, const msgpack::object& args) {
+                if (args.via.array.size != std::tuple_size_v<value_args>) {
+                    // keep this check otherwise msgpack unpacker
+                    // may silently drop arguments
+                    DEBUG("incompatible argument count");
+                    handler.set_error("Incompatible arguments");
+                    return;
+                }
 
-            try {
-                if constexpr (std::is_void_v<result_type>) {
-                    std::apply(fct, args.as<value_args>());
-                    handler();
+                try {
+                    if constexpr (std::is_void_v<result_type>) {
+                        std::apply(fct, args.as<value_args>());
+                        handler();
+                    }
+                    else {
+                        handler(std::apply(fct, args.as<value_args>()));
+                    }
                 }
-                else {
-                    handler(std::apply(fct, args.as<value_args>()));
+                catch (msgpack::type_error&) {
+                    DEBUG("incompatible arguments");
+                    handler.set_error("Incompatible arguments");
                 }
-            }
-            catch (msgpack::type_error&) {
-                DEBUG("incompatible arguments");
-                handler.set_error("Incompatible arguments");
-            }
-        });
+            });
     }
 
     template <typename F>
@@ -132,30 +132,30 @@ private:
         using value_args = internal::decay_tuple_t<internal::shift_tuple_t<args>>;
 
         auto fct = internal::make_copyable_function(std::forward<F>(in_fct));
-        return std::make_shared<function_type>([fct = std::move(fct)](
-                                                   completion_handler handler,
-                                                   const msgpack::object& args) {
-            if (internal::args_count(args) != std::tuple_size_v<value_args>) {
-                // keep this check otherwise msgpack unpacker
-                // may silently drop arguments
-                DEBUG("incompatible argument count");
-                handler.set_error("Incompatible arguments");
-                return;
-            }
+        return std::make_shared<function_type>(
+            [fct = std::move(fct)](
+                completion_handler handler, const msgpack::object& args) {
+                if (args.via.array.size != std::tuple_size_v<value_args>) {
+                    // keep this check otherwise msgpack unpacker
+                    // may silently drop arguments
+                    DEBUG("incompatible argument count");
+                    handler.set_error("Incompatible arguments");
+                    return;
+                }
 
-            try {
-                std::apply(
-                    [&](auto&&... args) {
-                        fct(std::move(handler),
-                            std::forward<decltype(args)>(args)...);
-                    },
-                    args.as<value_args>());
-            }
-            catch (msgpack::type_error&) {
-                DEBUG("incompatible arguments");
-                handler.set_error("Incompatible arguments");
-            }
-        });
+                try {
+                    std::apply(
+                        [&](auto&&... args) {
+                            fct(std::move(handler),
+                                std::forward<decltype(args)>(args)...);
+                        },
+                        args.as<value_args>());
+                }
+                catch (msgpack::type_error&) {
+                    DEBUG("incompatible arguments");
+                    handler.set_error("Incompatible arguments");
+                }
+            });
     }
 
     mutable mutex map_mutex_;

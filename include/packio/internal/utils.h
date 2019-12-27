@@ -80,14 +80,6 @@ inline asio_buffer<msgpack::vrefbuffer>::type buffer_to_asio(
     return vec;
 }
 
-inline ssize_t args_count(const msgpack::object& args)
-{
-    if (args.type != msgpack::type::ARRAY) {
-        return -1;
-    }
-    return args.via.array.size;
-}
-
 template <typename T>
 msgpack::object_handle make_msgpack_object(T&& value)
 {

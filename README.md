@@ -1,10 +1,12 @@
-# PackIO, the header-only msgpack-RPC library built for Boost.Asio
+# PackIO [![License: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-blue.svg)](https://opensource.org/licenses/MPL-2.0) [![Build Status](https://travis-ci.com/qchateau/packio.svg?branch=master)](https://travis-ci.com/qchateau/packio) [![Build status](https://ci.appveyor.com/api/projects/status/b48fxx9p5emirg6w/branch/master?svg=true)](https://ci.appveyor.com/project/Tytan/packio/branch/master)
 
-This library requires C++17 and is designed as an extension Boost.Asio. It will let you built asynchronous servers or client for msgpack-RPC.
+## Header-only | msgpack-RPC | Boost.Asio
+
+This library requires C++17 and is designed as an extension to Boost.Asio. It will let you built asynchronous servers or client for msgpack-RPC.
 
 The library is still under development and is therefore subject heavy API changes.
 
-# Primer
+## Primer
 
 ```cpp
 // Declare a server and a client, sharing the same io_context
@@ -41,7 +43,7 @@ client.async_call("add", std::make_tuple(42, 24),
     });
 ```
 
-# Bonus
+## Bonus
 
 Let's compute fibonacci's numbers recursively using PackIO on a single thread.
 

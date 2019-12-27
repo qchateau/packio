@@ -9,6 +9,8 @@
 #include <boost/filesystem.hpp>
 #include <gtest/gtest.h>
 
+namespace packio {
+
 template <typename endpoint>
 endpoint get_endpoint();
 
@@ -18,11 +20,13 @@ inline boost::asio::ip::tcp::endpoint get_endpoint()
     return {boost::asio::ip::make_address("127.0.0.1"), 0};
 }
 
+#if defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
 template <>
 inline boost::asio::local::stream_protocol::endpoint get_endpoint()
 {
     return {boost::filesystem::unique_path().string()};
 }
+#endif // defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
 
 class latch {
 public:
@@ -72,5 +76,7 @@ private:
     mutable std::condition_variable cv_;
     int remaining_;
 };
+
+} // packio
 
 #endif // PACKIO_TESTS_MISC_H
