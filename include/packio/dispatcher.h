@@ -138,12 +138,13 @@ private:
                 return;
             }
 
-            const auto bound_fct = [&](auto&&... args) -> void {
-                fct(std::move(handler), std::forward<decltype(args)>(args)...);
-            };
-
             try {
-                std::apply(bound_fct, args.as<value_args>());
+                std::apply(
+                    [&](auto&&... args) {
+                        fct(std::move(handler),
+                            std::forward<decltype(args)>(args)...);
+                    },
+                    args.as<value_args>());
             }
             catch (msgpack::type_error&) {
                 DEBUG("incompatible arguments");
