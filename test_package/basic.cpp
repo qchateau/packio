@@ -269,18 +269,33 @@ TYPED_TEST(Test, test_server_functions)
         "f004", [](packio::completion_handler handler, int i) { handler(i); });
     this->server_.dispatcher()->add_async(
         "f005",
+        [](packio::completion_handler handler, const int& i) { handler(i); });
+    this->server_.dispatcher()->add_async(
+        "f006", [](packio::completion_handler handler, const int& i, int) {
+            handler(i);
+        });
+    this->server_.dispatcher()->add_async(
+        "f007",
         [](packio::completion_handler handler, std::string s) { handler(s); });
     this->server_.dispatcher()->add_async(
-        "f006", [](packio::completion_handler handler, int i, std::string) {
+        "f008", [](packio::completion_handler handler, const std::string& s) {
+            handler(s);
+        });
+    this->server_.dispatcher()->add_async(
+        "f009", [](packio::completion_handler handler, int i, std::string) {
             handler(i);
         });
 
-    this->server_.dispatcher()->add("f011", []() {});
-    this->server_.dispatcher()->add("f012", []() { return 42; });
-    this->server_.dispatcher()->add("f013", [](int) {});
-    this->server_.dispatcher()->add("f014", [](int i) { return i; });
-    this->server_.dispatcher()->add("f015", [](std::string s) { return s; });
-    this->server_.dispatcher()->add("f016", [](int i, std::string) { return i; });
+    this->server_.dispatcher()->add("f101", []() {});
+    this->server_.dispatcher()->add("f102", []() { return 42; });
+    this->server_.dispatcher()->add("f103", [](int) {});
+    this->server_.dispatcher()->add("f104", [](int i) { return i; });
+    this->server_.dispatcher()->add("f105", [](const int& i) { return i; });
+    this->server_.dispatcher()->add("f106", [](const int& i, int) { return i; });
+    this->server_.dispatcher()->add("f107", [](std::string s) { return s; });
+    this->server_.dispatcher()->add(
+        "f108", [](const std::string& s) { return s; });
+    this->server_.dispatcher()->add("f109", [](int i, std::string) { return i; });
 }
 
 TYPED_TEST(Test, test_dispatcher)

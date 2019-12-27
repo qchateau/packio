@@ -93,7 +93,8 @@ private:
     template <typename F>
     function_ptr_type wrap_sync(F&& in_fct)
     {
-        using value_args = typename internal::func_traits<F>::args_type;
+        using value_args =
+            internal::decay_tuple_t<typename internal::func_traits<F>::args_type>;
         using result_type = typename internal::func_traits<F>::result_type;
 
         auto fct = internal::make_copyable_function(std::forward<F>(in_fct));
@@ -128,7 +129,7 @@ private:
     function_ptr_type wrap_async(F&& in_fct)
     {
         using args = typename internal::func_traits<F>::args_type;
-        using value_args = internal::shift_tuple_t<args>;
+        using value_args = internal::decay_tuple_t<internal::shift_tuple_t<args>>;
 
         auto fct = internal::make_copyable_function(std::forward<F>(in_fct));
         return std::make_shared<function_type>([fct = std::move(fct)](

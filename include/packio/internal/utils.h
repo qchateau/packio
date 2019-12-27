@@ -29,6 +29,17 @@ template <typename T>
 using shift_tuple_t = typename shift_tuple<T>::type;
 
 template <typename T>
+struct decay_tuple;
+
+template <typename... Args>
+struct decay_tuple<std::tuple<Args...>> {
+    using type = std::tuple<std::decay_t<Args>...>;
+};
+
+template <typename T>
+using decay_tuple_t = typename decay_tuple<T>::type;
+
+template <typename T>
 struct asio_buffer {
     using type = const T&;
 };
