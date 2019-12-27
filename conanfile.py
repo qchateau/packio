@@ -3,8 +3,8 @@ from conans import ConanFile
 
 class PackioConan(ConanFile):
     name = "packio"
-    version = "0.4.0"
-    license = "GPLv3"
+    version = "0.5.0"
+    license = "MPL2"
     author = "Quentin Chateau <quentin.chateau@gmail.com>"
     url = "https://github.com/qchateau/packio"
     description = "C++ implementation of msgpack-RPC"
