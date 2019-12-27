@@ -3,6 +3,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <map>
 #include <mutex>
 #include <string_view>
 
@@ -15,7 +16,10 @@
 
 namespace packio {
 
-template <typename Protocol>
+template <
+    typename Protocol,
+    template <class, class> class Map = std::map,
+    typename Mutex = std::mutex>
 class client {
 public:
     using protocol_type = Protocol;
@@ -26,7 +30,7 @@ public:
     using async_call_handler_type =
         std::function<void(boost::system::error_code, const msgpack::object&)>;
 
-    static constexpr size_t kBufferReserveSize = 4096;
+    static constexpr size_t kDefaultBufferReserveSize = 4096;
 
     explicit client(socket_type socket) : socket_{std::move(socket)}
     {
@@ -45,6 +49,15 @@ public:
 
     socket_type& socket() { return socket_; }
     const socket_type& socket() const { return socket_; }
+
+    void set_buffer_reserve_size(std::size_t size) noexcept
+    {
+        buffer_reserve_size_ = size;
+    }
+    std::size_t get_buffer_reserve_size() const noexcept
+    {
+        return buffer_reserve_size_;
+    }
 
     executor_type get_executor() { return socket().get_executor(); }
 
@@ -180,7 +193,7 @@ private:
 
     void async_read()
     {
-        unpacker_.reserve_buffer(kBufferReserveSize);
+        unpacker_.reserve_buffer(buffer_reserve_size_);
 
         socket_.async_read_some(
             boost::asio::buffer(unpacker_.buffer(), unpacker_.buffer_capacity()),
@@ -304,8 +317,9 @@ private:
 
     socket_type socket_;
     msgpack::unpacker unpacker_;
-    std::mutex pending_mutex_;
-    std::map<id_type, async_call_handler_type> pending_;
+    std::size_t buffer_reserve_size_{kDefaultBufferReserveSize};
+    Mutex pending_mutex_;
+    Map<id_type, async_call_handler_type> pending_;
     std::atomic<id_type> id_{0};
     std::atomic_flag reading_;
 };
