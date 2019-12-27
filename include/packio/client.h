@@ -252,7 +252,7 @@ private:
     void call_handler(
         id_type id,
         const msgpack::object& result,
-        boost::system::error_code& ec)
+        boost::system::error_code ec)
     {
         TRACE("processing response to id: {}", id);
 
