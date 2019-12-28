@@ -1,73 +1,3 @@
-# PackIO [![License: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-blue.svg)](https://opensource.org/licenses/MPL-2.0) [![Build Status](https://travis-ci.com/qchateau/packio.svg?branch=master)](https://travis-ci.com/qchateau/packio) [![Build status](https://ci.appveyor.com/api/projects/status/b48fxx9p5emirg6w/branch/master?svg=true)](https://ci.appveyor.com/project/Tytan/packio/branch/master)
-
-## Header-only | msgpack-RPC | Boost.Asio
-
-This library requires C++17 and is designed as an extension to Boost.Asio. It will let you built asynchronous servers or client for msgpack-RPC.
-
-The library is still under development and is therefore subject heavy API changes.
-
-## Primer
-
-```cpp
-// Declare a server and a client, sharing the same io_context
-boost::asio::io_context io;
-ip::tcp::endpoint bind_ep{ip::make_address("127.0.0.1"), 0};
-packio::server<ip::tcp> server{ip::tcp::acceptor{io, bind_ep}};
-packio::client<ip::tcp> client{ip::tcp::socket{io}};
-```
-
-```cpp
-// Declare a synchronous callback
-server.dispatcher()->add("add", [](int a, int b) { return a+b; });
-// Declare an asynchronous callback
-server.dispatcher()->add_async("multiply",
-    [&](packio::completion_handler complete, int a, int b) {
-        complete(a*b);
-    });
-```
-
-```cpp
-// Connect the client
-client.socket().connect(server.acceptor().local_endpoint());
-// Accept connections
-server.async_serve_forever();
-// Run the io_context
-std::thread thread{[&] { io.run(); }};
-```
-
-```cpp
-// Make an asynchronous call
-client.async_call("add", std::make_tuple(42, 24),
-    [&](boost::system::error_code, msgpack::object r) {
-        std::cout << "The result is: " << r.as<int>() << std::endl;
-    });
-```
-
-## Requirements
-
-- C++17
-- Boost.Asio >= 1.70.0
-- msgpack >= 3.0.1
-
-## Tested compilers
-
-- gcc-7
-- gcc-8
-- gcc-9
-- clang-5
-- clang-6
-- clang-7
-- clang-8
-- clang-9
-- Apple clang-10
-- Apple clang-11
-- Visual Studio 2019 Version 16
-
-## Bonus
-
-Let's compute fibonacci's numbers recursively using PackIO on a single thread.
-
-```cpp
 #include <iostream>
 #include <boost/asio.hpp>
 #include <packio/client.h>
@@ -137,4 +67,3 @@ int main(int argc, char** argv)
 
     return 0;
 }
-```

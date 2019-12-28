@@ -15,7 +15,6 @@ class PackioConan(ConanFile):
         "msgpack/[>=3.0]@bincrafters/stable",
         "boost/[>=1.70]@conan/stable",
     ]
-    build_policy = "missing"
 
     def package(self):
         self.copy("*.h")
