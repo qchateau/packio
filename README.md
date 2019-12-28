@@ -1,4 +1,4 @@
-# PackIO [![License: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-blue.svg)](https://opensource.org/licenses/MPL-2.0) [![Build Status](https://travis-ci.com/qchateau/packio.svg?branch=master)](https://travis-ci.com/qchateau/packio) [![Build status](https://ci.appveyor.com/api/projects/status/b48fxx9p5emirg6w/branch/master?svg=true)](https://ci.appveyor.com/project/Tytan/packio/branch/master)
+# packio [![License: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-blue.svg)](https://opensource.org/licenses/MPL-2.0) [![Build Status](https://travis-ci.com/qchateau/packio.svg?branch=master)](https://travis-ci.com/qchateau/packio) [![Build status](https://ci.appveyor.com/api/projects/status/b48fxx9p5emirg6w/branch/master?svg=true)](https://ci.appveyor.com/project/Tytan/packio/branch/master)
 
 ## Header-only | msgpack-RPC | Boost.Asio
 
@@ -65,7 +65,7 @@ client.async_call("add", std::make_tuple(42, 24),
 
 ## Bonus
 
-Let's compute fibonacci's numbers recursively using PackIO on a single thread.
+Let's compute fibonacci's numbers recursively using packio on a single thread.
 
 ```cpp
 #include <iostream>
