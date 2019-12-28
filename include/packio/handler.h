@@ -39,36 +39,39 @@ public:
     completion_handler& operator=(completion_handler&&) = default;
 
     template <typename T>
-    void operator()(T&& return_value)
+    void set_value(T&& return_value)
     {
-        handler_(
-            make_error_code(error::success),
+        complete(
+            error::success,
             internal::make_msgpack_object(std::forward<T>(return_value)));
-        handler_ = function_type{};
     }
 
-    void operator()()
-    {
-        handler_(make_error_code(error::success), {});
-        handler_ = function_type{};
-    }
+    void set_value() { complete(error::success, {}); }
 
     template <typename T>
     void set_error(T&& error_value)
     {
-        handler_(
-            make_error_code(error::error_during_call),
+        complete(
+            error::error_during_call,
             internal::make_msgpack_object(std::forward<T>(error_value)));
-        handler_ = function_type{};
     }
 
-    void set_error()
+    void set_error() { complete(error::error_during_call, {}); }
+
+    template <typename T>
+    void operator()(T&& return_value)
     {
-        handler_(make_error_code(error::error_during_call), {});
-        handler_ = function_type{};
+        set_value(std::forward<T>(return_value));
     }
+
+    void operator()() { set_value(); }
 
 private:
+    void complete(error err, msgpack::object_handle result)
+    {
+        handler_(make_error_code(err), std::move(result));
+        handler_ = function_type{};
+    }
     function_type handler_;
 };
 } // packio

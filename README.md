@@ -43,6 +43,26 @@ client.async_call("add", std::make_tuple(42, 24),
     });
 ```
 
+## Requirements
+
+- C++17
+- Boost.Asio >= 1.70.0
+- msgpack >= 3.0.1
+
+## Tested compilers
+
+- gcc-7
+- gcc-8
+- gcc-9
+- clang-5
+- clang-6
+- clang-7
+- clang-8
+- clang-9
+- Apple clang-10
+- Apple clang-11
+- Visual Studio 2019 Version 16
+
 ## Bonus
 
 Let's compute fibonacci's numbers recursively using PackIO on a single thread.
