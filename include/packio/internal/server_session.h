@@ -130,7 +130,7 @@ private:
 
             auto completion_handler = [this, type, id, self = shared_from_this()](
                                           boost::system::error_code ec,
-                                          msgpack::object_handle result) mutable {
+                                          msgpack::object_handle result) {
                 if (type == static_cast<int>(msgpack_rpc_type::request)) {
                     TRACE("result: {}", ec.message());
                     async_write(id, ec, std::move(result));
