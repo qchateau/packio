@@ -11,8 +11,8 @@
 
 #include "dispatcher.h"
 #include "internal/log.h"
-#include "internal/server_session.h"
 #include "internal/utils.h"
+#include "server_session.h"
 
 namespace packio {
 
@@ -21,7 +21,7 @@ class server {
 public:
     using protocol_type = Protocol;
     using dispatcher_type = Dispatcher;
-    using session_type = internal::server_session<protocol_type, dispatcher_type>;
+    using session_type = server_session<protocol_type, dispatcher_type>;
     using acceptor_type = typename Protocol::acceptor;
     using socket_type = typename Protocol::socket;
     using executor_type = typename boost::asio::io_context::executor_type;

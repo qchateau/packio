@@ -9,13 +9,12 @@
 #include <boost/asio.hpp>
 #include <msgpack.hpp>
 
-#include "../error_code.h"
-#include "log.h"
-#include "msgpack_rpc.h"
-#include "utils.h"
+#include "error_code.h"
+#include "internal/log.h"
+#include "internal/msgpack_rpc.h"
+#include "internal/utils.h"
 
 namespace packio {
-namespace internal {
 
 template <typename Protocol, typename Dispatcher>
 class server_session
@@ -183,7 +182,7 @@ private:
             pack(msgpack::type::nil_t{}, result_handle.get());
         }
 
-        auto buffer = buffer_to_asio(*packer_buf);
+        auto buffer = internal::buffer_to_asio(*packer_buf);
         boost::asio::async_write(
             socket_,
             buffer,
@@ -208,7 +207,6 @@ private:
     std::atomic<bool> error_{false};
 };
 
-} // internal
 } // packio
 
 #endif // PACKIO_SERVER_SESSION_H
