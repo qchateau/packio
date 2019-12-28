@@ -39,6 +39,25 @@ typedef ::testing::Types<
         server<boost::asio::ip::tcp>>>
     Implementations;
 
+class packio_exception : public std::system_error {
+public:
+    packio_exception(std::error_code ec, msgpack::object result)
+        : system_error(ec)
+    {
+        if (result.type == msgpack::type::STR) {
+            result_message_ = result.as<std::string>();
+        }
+        else {
+            result_message_ = "not a string";
+        }
+    }
+
+    std::string result_message() const { return result_message_; }
+
+private:
+    std::string result_message_;
+};
+
 template <class Impl>
 class Test : public ::testing::Test {
 protected:
@@ -77,32 +96,57 @@ protected:
     template <typename... Args>
     auto future_notify(std::string_view name, Args&&... args)
     {
-        std::promise<boost::system::error_code> p;
+        std::promise<void> p;
         auto f = p.get_future();
         client_.async_notify(
             name,
             std::forward_as_tuple(args...),
-            [p = std::move(p)](auto ec) mutable { p.set_value(ec); });
+            [p = std::move(p)](auto ec) mutable {
+                if (ec) {
+                    p.set_exception(
+                        std::make_exception_ptr(std::system_error(ec)));
+                }
+                else {
+                    p.set_value();
+                }
+            });
         return f;
     }
 
-    template <typename... Args>
+    template <typename R, typename... Args>
     auto future_call(std::string_view name, Args&&... args)
     {
         uint32_t id;
-        return future_call(id, name, std::forward<Args>(args)...);
+        return future_call<R>(id, name, std::forward<Args>(args)...);
     }
 
-    template <typename... Args>
+    template <typename R, typename... Args>
     auto future_call(uint32_t& id, std::string_view name, Args&&... args)
     {
-        std::promise<std::tuple<boost::system::error_code, msgpack::object>> p;
+        std::promise<R> p;
         auto f = p.get_future();
         id = client_.async_call(
             name,
             std::forward_as_tuple(args...),
             [p = std::move(p)](auto ec, auto result) mutable {
-                p.set_value({ec, std::move(result)});
+                if (ec) {
+                    p.set_exception(
+                        std::make_exception_ptr(packio_exception(ec, result)));
+                }
+                else {
+                    if constexpr (std::is_void_v<R>) {
+                        if (result.type != msgpack::type::NIL) {
+                            p.set_exception(std::make_exception_ptr(
+                                std::runtime_error("bad result type")));
+                        }
+                        else {
+                            p.set_value();
+                        }
+                    }
+                    else {
+                        p.set_value(result.template as<R>());
+                    }
+                }
             });
         return f;
     }
@@ -151,8 +195,7 @@ TYPED_TEST(Test, test_typical_usage)
 
         auto f = this->future_notify("echo", 42);
         ASSERT_EQ(std::future_status::ready, f.wait_for(std::chrono::seconds{1}));
-        auto ec = f.get();
-        ASSERT_FALSE(ec);
+        ASSERT_NO_THROW(f.get());
         ASSERT_TRUE(call_latch.wait_for(std::chrono::seconds{1}));
         ASSERT_EQ(42, call_arg_received.load());
     }
@@ -161,11 +204,9 @@ TYPED_TEST(Test, test_typical_usage)
         call_latch.reset(1);
         call_arg_received = 0;
 
-        auto f = this->future_call("echo", 42);
+        auto f = this->template future_call<int>("echo", 42);
         ASSERT_EQ(std::future_status::ready, f.wait_for(std::chrono::seconds{1}));
-        auto [ec, result] = f.get();
-        ASSERT_FALSE(ec);
-        ASSERT_EQ(42, result.template as<int>());
+        ASSERT_EQ(42, f.get());
         ASSERT_EQ(42, call_arg_received.load());
     }
 }
@@ -203,14 +244,18 @@ TYPED_TEST(Test, test_timeout)
         ASSERT_EQ(
             std::future_status::ready,
             future.wait_for(std::chrono::milliseconds{1}));
-        auto [ec, res] = future.get();
-        ASSERT_EQ(packio::error::cancelled, ec);
-        ASSERT_EQ(msgpack::type::STR, res.type);
+        try {
+            future.get();
+            ASSERT_FALSE(true); // never reached
+        }
+        catch (std::system_error& err) {
+            ASSERT_EQ(make_error_code(packio::error::cancelled), err.code());
+        }
     };
 
     {
-        auto f1 = this->future_call("block");
-        auto f2 = this->future_call("block");
+        auto f1 = this->template future_call<void>("block");
+        auto f2 = this->template future_call<void>("block");
         assert_blocks(f1);
         assert_blocks(f2);
         ASSERT_EQ(2ul, this->client_.cancel());
@@ -225,8 +270,8 @@ TYPED_TEST(Test, test_timeout)
 
     {
         uint32_t id1, id2;
-        auto f1 = this->future_call(id1, "block");
-        auto f2 = this->future_call(id2, "block");
+        auto f1 = this->template future_call<void>(id1, "block");
+        auto f2 = this->template future_call<void>(id2, "block");
         assert_blocks(f1);
         assert_blocks(f2);
         ASSERT_EQ(1ul, this->client_.cancel(id2));
@@ -245,54 +290,102 @@ TYPED_TEST(Test, test_timeout)
     }
 
     {
-        auto f = this->future_call("block");
+        auto f = this->template future_call<void>("block");
         assert_blocks(f);
-        auto [ec, res] = this->future_call("unblock").get();
-        auto [ec2, res2] = f.get();
-        (void)res;
-        (void)res2;
-        ASSERT_FALSE(ec);
-        ASSERT_FALSE(ec2);
+        this->template future_call<void>("unblock").get();
+        f.get();
     }
 
     this->io_.stop();
 }
 
-TYPED_TEST(Test, test_server_functions)
+TYPED_TEST(Test, test_functions)
 {
-    // this just needs to compile
+    using tuple_int_str = std::tuple<int, std::string>;
+    this->server_.async_serve_forever();
+    this->connect();
+    this->async_run();
+
     this->server_.dispatcher()->add_async(
-        "f001", [](completion_handler handler) { handler(); });
+        "async_void_void", [](completion_handler handler) { handler(); });
     this->server_.dispatcher()->add_async(
-        "f002", [](completion_handler handler) { handler(42); });
+        "async_int_void", [](completion_handler handler) { handler(42); });
     this->server_.dispatcher()->add_async(
-        "f003", [](completion_handler handler, int) { handler(); });
+        "async_void_int", [](completion_handler handler, int) { handler(); });
     this->server_.dispatcher()->add_async(
-        "f004", [](completion_handler handler, int i) { handler(i); });
+        "async_int_int", [](completion_handler handler, int i) { handler(i); });
     this->server_.dispatcher()->add_async(
-        "f005", [](completion_handler handler, const int& i) { handler(i); });
+        "async_int_intref",
+        [](completion_handler handler, const int& i) { handler(i); });
     this->server_.dispatcher()->add_async(
-        "f006",
+        "async_int_intref_int",
         [](completion_handler handler, const int& i, int) { handler(i); });
     this->server_.dispatcher()->add_async(
-        "f007", [](completion_handler handler, std::string s) { handler(s); });
+        "async_str_str",
+        [](completion_handler handler, std::string s) { handler(s); });
     this->server_.dispatcher()->add_async(
-        "f008",
+        "async_str_strref",
         [](completion_handler handler, const std::string& s) { handler(s); });
     this->server_.dispatcher()->add_async(
-        "f009",
-        [](completion_handler handler, int i, std::string) { handler(i); });
+        "async_tuple_int_str",
+        [](completion_handler handler, int i, std::string s) {
+            handler(std::tuple(i, s));
+        });
 
-    this->server_.dispatcher()->add("f101", []() {});
-    this->server_.dispatcher()->add("f102", []() { return 42; });
-    this->server_.dispatcher()->add("f103", [](int) {});
-    this->server_.dispatcher()->add("f104", [](int i) { return i; });
-    this->server_.dispatcher()->add("f105", [](const int& i) { return i; });
-    this->server_.dispatcher()->add("f106", [](const int& i, int) { return i; });
-    this->server_.dispatcher()->add("f107", [](std::string s) { return s; });
+    this->server_.dispatcher()->add("sync_void_void", []() {});
+    this->server_.dispatcher()->add("sync_int_void", []() { return 42; });
+    this->server_.dispatcher()->add("sync_void_int", [](int) {});
+    this->server_.dispatcher()->add("sync_int_int", [](int i) { return i; });
     this->server_.dispatcher()->add(
-        "f108", [](const std::string& s) { return s; });
-    this->server_.dispatcher()->add("f109", [](int i, std::string) { return i; });
+        "sync_int_intref", [](const int& i) { return i; });
+    this->server_.dispatcher()->add(
+        "sync_int_intref_int", [](const int& i, int) { return i; });
+    this->server_.dispatcher()->add(
+        "sync_str_str", [](std::string s) { return s; });
+    this->server_.dispatcher()->add(
+        "sync_str_strref", [](const std::string& s) { return s; });
+    this->server_.dispatcher()->add(
+        "sync_tuple_int_str",
+        [](int i, std::string s) { return std::tuple(i, s); });
+
+    ASSERT_NO_THROW(this->template future_call<void>("async_void_void").get());
+    ASSERT_EQ(42, this->template future_call<int>("async_int_void").get());
+    ASSERT_NO_THROW(this->template future_call<void>("async_void_int", 42).get());
+    ASSERT_EQ(42, this->template future_call<int>("async_int_int", 42).get());
+    ASSERT_EQ(42, this->template future_call<int>("async_int_intref", 42).get());
+    ASSERT_EQ(
+        42,
+        this->template future_call<int>("async_int_intref_int", 42, 24).get());
+    ASSERT_EQ(
+        "foobar",
+        this->template future_call<std::string>("async_str_str", "foobar").get());
+    ASSERT_EQ(
+        "foobar",
+        this->template future_call<std::string>("async_str_strref", "foobar").get());
+    ASSERT_EQ(
+        tuple_int_str(42, "foobar"),
+        this->template future_call<tuple_int_str>(
+                "async_tuple_int_str", 42, "foobar")
+            .get());
+
+    ASSERT_NO_THROW(this->template future_call<void>("sync_void_void").get());
+    ASSERT_EQ(42, this->template future_call<int>("sync_int_void").get());
+    ASSERT_NO_THROW(this->template future_call<void>("sync_void_int", 42).get());
+    ASSERT_EQ(42, this->template future_call<int>("sync_int_int", 42).get());
+    ASSERT_EQ(42, this->template future_call<int>("sync_int_intref", 42).get());
+    ASSERT_EQ(
+        42, this->template future_call<int>("sync_int_intref_int", 42, 24).get());
+    ASSERT_EQ(
+        "foobar",
+        this->template future_call<std::string>("sync_str_str", "foobar").get());
+    ASSERT_EQ(
+        "foobar",
+        this->template future_call<std::string>("sync_str_strref", "foobar").get());
+    ASSERT_EQ(
+        tuple_int_str(42, "foobar"),
+        this->template future_call<tuple_int_str>(
+                "sync_tuple_int_str", 42, "foobar")
+            .get());
 }
 
 TYPED_TEST(Test, test_dispatcher)
@@ -312,16 +405,8 @@ TYPED_TEST(Test, test_dispatcher)
     ASSERT_FALSE(this->server_.dispatcher()->add("f001", []() {}));
     ASSERT_FALSE(this->server_.dispatcher()->add("f002", []() {}));
 
-    {
-        auto [ec, result] = this->future_call("f001").get();
-        (void)result;
-        ASSERT_FALSE(ec);
-    }
-    {
-        auto [ec, result] = this->future_call("f002").get();
-        (void)result;
-        ASSERT_FALSE(ec);
-    }
+    this->template future_call<void>("f001").get();
+    this->template future_call<void>("f002").get();
 
     ASSERT_TRUE(this->server_.dispatcher()->has("f001"));
     ASSERT_TRUE(this->server_.dispatcher()->has("f002"));
@@ -332,11 +417,8 @@ TYPED_TEST(Test, test_dispatcher)
         std::set<std::string>(begin(known), end(known)));
 
     this->server_.dispatcher()->remove("f001");
-    {
-        auto [ec, result] = this->future_call("f001").get();
-        (void)result;
-        ASSERT_EQ(packio::error::call_error, ec);
-    }
+    ASSERT_THROW(
+        this->template future_call<void>("f001").get(), packio_exception);
 
     ASSERT_FALSE(this->server_.dispatcher()->has("f001"));
     ASSERT_TRUE(this->server_.dispatcher()->has("f002"));
@@ -465,7 +547,7 @@ TYPED_TEST(Test, test_shared_dispatcher)
     ASSERT_TRUE(l.wait_for(std::chrono::seconds{1}));
 }
 
-TYPED_TEST(Test, test_errors_async)
+TYPED_TEST(Test, test_errors)
 {
     constexpr auto kErrorMessage{"error message"};
 
@@ -482,73 +564,30 @@ TYPED_TEST(Test, test_errors_async)
         "no_result", [&](completion_handler) {}));
     ASSERT_TRUE(this->server_.dispatcher()->add_async(
         "add", [](completion_handler handler, int a, int b) { handler(a + b); }));
-
-    {
-        auto [ec, res] = this->future_call("error").get();
-        ASSERT_EQ(packio::error::call_error, ec);
-        ASSERT_EQ(kErrorMessage, res.template as<std::string>());
-    }
-    {
-        auto [ec, res] = this->future_call("empty_error").get();
-        ASSERT_EQ(packio::error::call_error, ec);
-        ASSERT_EQ("Error during call", res.template as<std::string>());
-    }
-    {
-        auto [ec, res] = this->future_call("no_result").get();
-        ASSERT_EQ(packio::error::call_error, ec);
-        ASSERT_EQ("Call finished with no result", res.template as<std::string>());
-    }
-    {
-        auto [ec, res] = this->future_call("unexisting").get();
-        ASSERT_EQ(packio::error::call_error, ec);
-        ASSERT_EQ("Unknown function", res.template as<std::string>());
-    }
-    {
-        auto [ec, res] = this->future_call("add", 1, "two").get();
-        ASSERT_EQ(packio::error::call_error, ec);
-        ASSERT_EQ("Incompatible arguments", res.template as<std::string>());
-    }
-    {
-        auto [ec, res] = this->future_call("add").get();
-        ASSERT_EQ(packio::error::call_error, ec);
-        ASSERT_EQ("Incompatible arguments", res.template as<std::string>());
-    }
-    {
-        auto [ec, res] = this->future_call("add", 1, 2, 3).get();
-        ASSERT_EQ(packio::error::call_error, ec);
-        ASSERT_EQ("Incompatible arguments", res.template as<std::string>());
-    }
-}
-
-TYPED_TEST(Test, test_errors_sync)
-{
-    this->server_.async_serve_forever();
-    this->connect();
-    this->async_run();
-
     ASSERT_TRUE(this->server_.dispatcher()->add(
-        "add", [](int a, int b) { return a + b; }));
+        "add_sync", [](int a, int b) { return a + b; }));
 
-    {
-        auto [ec, res] = this->future_call("unexisting").get();
-        ASSERT_EQ(packio::error::call_error, ec);
-        ASSERT_EQ("Unknown function", res.template as<std::string>());
-    }
-    {
-        auto [ec, res] = this->future_call("add", 1, "two").get();
-        ASSERT_EQ(packio::error::call_error, ec);
-        ASSERT_EQ("Incompatible arguments", res.template as<std::string>());
-    }
-    {
-        auto [ec, res] = this->future_call("add").get();
-        ASSERT_EQ(packio::error::call_error, ec);
-        ASSERT_EQ("Incompatible arguments", res.template as<std::string>());
-    }
-    {
-        auto [ec, res] = this->future_call("add", 1, 2, 3).get();
-        ASSERT_EQ(packio::error::call_error, ec);
-        ASSERT_EQ("Incompatible arguments", res.template as<std::string>());
-    }
+    auto assert_error_message =
+        [&](std::string message, std::string procedure, auto... args) {
+            try {
+                this->template future_call<void>(procedure, args...).get();
+                ASSERT_FALSE(true); // never reached
+            }
+            catch (packio_exception& exc) {
+                ASSERT_EQ(message, exc.result_message());
+            }
+        };
+
+    assert_error_message(kErrorMessage, "error");
+    assert_error_message("Error during call", "empty_error");
+    assert_error_message("Call finished with no result", "no_result");
+    assert_error_message("Unknown function", "unexisting");
+    assert_error_message("Incompatible arguments", "add", 1, "two");
+    assert_error_message("Incompatible arguments", "add");
+    assert_error_message("Incompatible arguments", "add", 1, 2, 3);
+    assert_error_message("Incompatible arguments", "add_sync", 1, "two");
+    assert_error_message("Incompatible arguments", "add_sync");
+    assert_error_message("Incompatible arguments", "add_sync", 1, 2, 3);
 }
 
 int main(int argc, char** argv)
