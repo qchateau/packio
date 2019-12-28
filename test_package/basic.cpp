@@ -140,7 +140,7 @@ TYPED_TEST(Test, test_typical_usage)
     std::atomic<int> call_arg_received{0};
     latch call_latch{0};
     this->server_.dispatcher()->add_async(
-        "echo", [&](packio::completion_handler handler, int i) {
+        "echo", [&](completion_handler handler, int i) {
             call_arg_received = i;
             call_latch.count_down();
             handler(i);
@@ -178,14 +178,14 @@ TYPED_TEST(Test, test_timeout)
 
     std::mutex mtx;
 
-    std::list<packio::completion_handler> pending;
+    std::list<completion_handler> pending;
     this->server_.dispatcher()->add_async(
-        "block", [&](packio::completion_handler handler) {
+        "block", [&](completion_handler handler) {
             std::unique_lock l{mtx};
             pending.push_back(std::move(handler));
         });
     this->server_.dispatcher()->add_async(
-        "unblock", [&](packio::completion_handler handler) {
+        "unblock", [&](completion_handler handler) {
             std::unique_lock l{mtx};
             for (auto& pending_handler : pending) {
                 pending_handler();
@@ -262,31 +262,26 @@ TYPED_TEST(Test, test_server_functions)
 {
     // this just needs to compile
     this->server_.dispatcher()->add_async(
-        "f001", [](packio::completion_handler handler) { handler(); });
+        "f001", [](completion_handler handler) { handler(); });
     this->server_.dispatcher()->add_async(
-        "f002", [](packio::completion_handler handler) { handler(42); });
+        "f002", [](completion_handler handler) { handler(42); });
     this->server_.dispatcher()->add_async(
-        "f003", [](packio::completion_handler handler, int) { handler(); });
+        "f003", [](completion_handler handler, int) { handler(); });
     this->server_.dispatcher()->add_async(
-        "f004", [](packio::completion_handler handler, int i) { handler(i); });
+        "f004", [](completion_handler handler, int i) { handler(i); });
     this->server_.dispatcher()->add_async(
-        "f005",
-        [](packio::completion_handler handler, const int& i) { handler(i); });
+        "f005", [](completion_handler handler, const int& i) { handler(i); });
     this->server_.dispatcher()->add_async(
-        "f006", [](packio::completion_handler handler, const int& i, int) {
-            handler(i);
-        });
+        "f006",
+        [](completion_handler handler, const int& i, int) { handler(i); });
     this->server_.dispatcher()->add_async(
-        "f007",
-        [](packio::completion_handler handler, std::string s) { handler(s); });
+        "f007", [](completion_handler handler, std::string s) { handler(s); });
     this->server_.dispatcher()->add_async(
-        "f008", [](packio::completion_handler handler, const std::string& s) {
-            handler(s);
-        });
+        "f008",
+        [](completion_handler handler, const std::string& s) { handler(s); });
     this->server_.dispatcher()->add_async(
-        "f009", [](packio::completion_handler handler, int i, std::string) {
-            handler(i);
-        });
+        "f009",
+        [](completion_handler handler, int i, std::string) { handler(i); });
 
     this->server_.dispatcher()->add("f101", []() {});
     this->server_.dispatcher()->add("f102", []() { return 42; });
@@ -307,13 +302,13 @@ TYPED_TEST(Test, test_dispatcher)
     this->async_run();
 
     ASSERT_TRUE(this->server_.dispatcher()->add_async(
-        "f001", [](packio::completion_handler handler) { handler(); }));
+        "f001", [](completion_handler handler) { handler(); }));
     ASSERT_TRUE(this->server_.dispatcher()->add("f002", []() {}));
 
     ASSERT_FALSE(this->server_.dispatcher()->add_async(
-        "f001", [](packio::completion_handler handler) { handler(); }));
+        "f001", [](completion_handler handler) { handler(); }));
     ASSERT_FALSE(this->server_.dispatcher()->add_async(
-        "f002", [](packio::completion_handler handler) { handler(); }));
+        "f002", [](completion_handler handler) { handler(); }));
     ASSERT_FALSE(this->server_.dispatcher()->add("f001", []() {}));
     ASSERT_FALSE(this->server_.dispatcher()->add("f002", []() {}));
 
@@ -354,23 +349,60 @@ TYPED_TEST(Test, test_dispatcher)
     ASSERT_FALSE(this->server_.dispatcher()->has("f003"));
 }
 
-TYPED_TEST(Test, test_move_only)
+TYPED_TEST(Test, test_special_callables)
 {
+    using session_type = typename decltype(this->server_)::session_type;
+    struct move_only {
+        move_only(const move_only&) = delete;
+        move_only& operator=(const move_only&) = delete;
+
+        move_only(move_only&&) = default;
+        move_only& operator=(move_only&&) = default;
+    };
+    struct sync_procedure : public move_only {
+        void operator()(){};
+    };
+    struct async_procedure : public move_only {
+        void operator()(completion_handler complete) { complete(); };
+    };
+    struct notify_handler : public move_only {
+        void operator()(boost::system::error_code){};
+    };
+    struct call_handler : public move_only {
+        void operator()(boost::system::error_code, const msgpack::object&){};
+    };
+    struct serve_handler : public move_only {
+        void operator()(boost::system::error_code, std::shared_ptr<session_type>){};
+    };
+
     // this test just needs to compile
+    // test with move-only lambdas
+    // and with move-only callables that have non-const operator()
+
     this->connect();
 
     this->server_.dispatcher()->add_async(
-        "f001", [ptr = std::unique_ptr<int>{}](packio::completion_handler) {});
-    this->server_.dispatcher()->add("f002", [ptr = std::unique_ptr<int>{}]() {});
+        "move_only_lambda_async_001",
+        [ptr = std::unique_ptr<int>{}](completion_handler) {});
+    this->server_.dispatcher()->add(
+        "move_only_lambda_sync_001", [ptr = std::unique_ptr<int>{}]() {});
+
+    this->server_.dispatcher()->add_async(
+        "move_only_callable_async_001", async_procedure{});
+    this->server_.dispatcher()->add(
+        "move_only_callable_sync_001", sync_procedure{});
 
     this->server_.async_serve([ptr = std::unique_ptr<int>{}](auto, auto) {});
+    this->server_.async_serve(serve_handler{});
 
-    this->client_.async_notify("f001", [ptr = std::unique_ptr<int>{}](auto) {});
-    this->client_.async_call(
-        "f001", [ptr = std::unique_ptr<int>{}](auto, auto) {});
+    this->server_.dispatcher()->add("f", sync_procedure{});
+    this->client_.async_notify("f", [ptr = std::unique_ptr<int>{}](auto) {});
+    this->client_.async_notify("f", notify_handler{});
+    this->client_.async_call("f", [ptr = std::unique_ptr<int>{}](auto, auto) {});
+    this->client_.async_call("f", call_handler{});
 
-    static_assert(std::is_move_assignable_v<packio::completion_handler>);
-    static_assert(std::is_move_constructible_v<packio::completion_handler>);
+    static_assert(std::is_move_assignable_v<completion_handler>);
+    static_assert(std::is_move_constructible_v<completion_handler>);
 }
 
 TYPED_TEST(Test, test_response_after_disconnect)
@@ -381,12 +413,12 @@ TYPED_TEST(Test, test_response_after_disconnect)
 
     // Use a unique_ptr here because MSVC's promise is bugged and required
     // default-constructible type
-    std::promise<std::unique_ptr<packio::completion_handler>> complete_promise;
+    std::promise<std::unique_ptr<completion_handler>> complete_promise;
     auto future = complete_promise.get_future();
     this->server_.dispatcher()->add_async(
-        "block", [&](packio::completion_handler complete) {
+        "block", [&](completion_handler complete) {
             complete_promise.set_value(
-                std::make_unique<packio::completion_handler>(std::move(complete)));
+                std::make_unique<completion_handler>(std::move(complete)));
         });
 
     this->client_.async_call("block", [&](auto, auto) {});
@@ -422,7 +454,7 @@ TYPED_TEST(Test, test_shared_dispatcher)
 
     latch l{2};
     ASSERT_TRUE(this->server_.dispatcher()->add_async(
-        "inc", [&](packio::completion_handler handler) {
+        "inc", [&](completion_handler handler) {
             l.count_down();
             handler();
         }));
@@ -442,18 +474,14 @@ TYPED_TEST(Test, test_errors_async)
     this->async_run();
 
     ASSERT_TRUE(this->server_.dispatcher()->add_async(
-        "error", [&](packio::completion_handler handler) {
-            handler.set_error(kErrorMessage);
-        }));
+        "error",
+        [&](completion_handler handler) { handler.set_error(kErrorMessage); }));
     ASSERT_TRUE(this->server_.dispatcher()->add_async(
-        "empty_error",
-        [](packio::completion_handler handler) { handler.set_error(); }));
+        "empty_error", [](completion_handler handler) { handler.set_error(); }));
     ASSERT_TRUE(this->server_.dispatcher()->add_async(
-        "no_result", [&](packio::completion_handler) {}));
+        "no_result", [&](completion_handler) {}));
     ASSERT_TRUE(this->server_.dispatcher()->add_async(
-        "add", [](packio::completion_handler handler, int a, int b) {
-            handler(a + b);
-        }));
+        "add", [](completion_handler handler, int a, int b) { handler(a + b); }));
 
     {
         auto [ec, res] = this->future_call("error").get();
