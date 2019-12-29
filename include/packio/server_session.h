@@ -62,14 +62,12 @@ private:
             return;
         }
 
-        auto self{shared_from_this()};
         unpacker->reserve_buffer(kBufferReserveSize);
-
         auto buffer = boost::asio::buffer(
             unpacker->buffer(), unpacker->buffer_capacity());
         socket_.async_read_some(
             buffer,
-            [this, self, unpacker = std::move(unpacker)](
+            [this, self = shared_from_this(), unpacker = std::move(unpacker)](
                 boost::system::error_code ec, size_t length) mutable {
                 if (ec) {
                     DEBUG("error: {}", ec.message());
@@ -94,10 +92,11 @@ private:
 
     void async_dispatch(msgpack::object_handle call)
     {
-        auto self{shared_from_this()};
         boost::asio::post(
             socket_.get_executor(),
-            [this, self, call = std::move(call)] { dispatch(call.get()); });
+            [this, self = shared_from_this(), call = std::move(call)] {
+                dispatch(call.get());
+            });
     }
 
     void dispatch(const msgpack::object& msgpack_call)
@@ -182,7 +181,6 @@ private:
             return;
         }
 
-        auto self(shared_from_this());
         auto packer_buf = std::make_unique<msgpack::vrefbuffer>();
         msgpack::packer<msgpack::vrefbuffer> packer(*packer_buf);
 
@@ -211,7 +209,7 @@ private:
             socket_,
             buffer,
             [this,
-             self,
+             self = shared_from_this(),
              packer_buf = std::move(packer_buf),
              result_handle = std::move(result_handle)](
                 boost::system::error_code ec, size_t length) {
