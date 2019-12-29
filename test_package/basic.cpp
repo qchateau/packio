@@ -116,12 +116,12 @@ protected:
     template <typename R, typename... Args>
     auto future_call(std::string_view name, Args&&... args)
     {
-        uint32_t id;
+        id_type id;
         return future_call<R>(id, name, std::forward<Args>(args)...);
     }
 
     template <typename R, typename... Args>
-    auto future_call(uint32_t& id, std::string_view name, Args&&... args)
+    auto future_call(id_type& id, std::string_view name, Args&&... args)
     {
         std::promise<R> p;
         auto f = p.get_future();
@@ -269,7 +269,7 @@ TYPED_TEST(Test, test_timeout)
     }
 
     {
-        uint32_t id1, id2;
+        id_type id1, id2;
         auto f1 = this->template future_call<void>(id1, "block");
         auto f2 = this->template future_call<void>(id2, "block");
         assert_blocks(f1);

@@ -27,7 +27,6 @@ public:
     using socket_type = typename protocol_type::socket;
     using endpoint_type = typename protocol_type::endpoint;
     using executor_type = typename socket_type::executor_type;
-    using id_type = uint32_t;
     using async_call_handler_type =
         std::function<void(boost::system::error_code, msgpack::object_handle)>;
 

@@ -107,7 +107,7 @@ private:
         }
 
         int idx = 0;
-        uint32_t id = 0;
+        id_type id = 0;
         int type = call.via.array.ptr[idx++].as<int>();
 
         switch (static_cast<msgpack_rpc_type>(type)) {
@@ -116,7 +116,7 @@ private:
             error_.store(true, std::memory_order_release);
             return;
         case msgpack_rpc_type::request:
-            id = call.via.array.ptr[idx++].as<uint32_t>();
+            id = call.via.array.ptr[idx++].as<id_type>();
             [[fallthrough]];
         case msgpack_rpc_type::notification:
             std::string name = call.via.array.ptr[idx++].as<std::string>();
@@ -149,7 +149,7 @@ private:
     }
 
     void async_write(
-        uint32_t id,
+        id_type id,
         boost::system::error_code ec,
         msgpack::object_handle result_handle)
     {
