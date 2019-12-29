@@ -33,15 +33,15 @@ int main(int, char**)
     client.async_call(
         "add",
         std::make_tuple(42, 24),
-        [&](boost::system::error_code, msgpack::object r) {
-            add_result.set_value(r.as<int>());
+        [&](boost::system::error_code, msgpack::object_handle r) {
+            add_result.set_value(r->as<int>());
         });
 
     client.async_call(
         "multiply",
         std::make_tuple(42, 24),
-        [&](boost::system::error_code, msgpack::object r) {
-            multiply_result.set_value(r.as<int>());
+        [&](boost::system::error_code, msgpack::object_handle r) {
+            multiply_result.set_value(r->as<int>());
         });
 
     std::cout << "42 + 24 = " << add_result.get_future().get() << std::endl;

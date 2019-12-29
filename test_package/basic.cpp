@@ -130,12 +130,12 @@ protected:
             std::forward_as_tuple(args...),
             [p = std::move(p)](auto ec, auto result) mutable {
                 if (ec) {
-                    p.set_exception(
-                        std::make_exception_ptr(packio_exception(ec, result)));
+                    p.set_exception(std::make_exception_ptr(
+                        packio_exception(ec, result.get())));
                 }
                 else {
                     if constexpr (std::is_void_v<R>) {
-                        if (result.type != msgpack::type::NIL) {
+                        if (result->type != msgpack::type::NIL) {
                             p.set_exception(std::make_exception_ptr(
                                 std::runtime_error("bad result type")));
                         }
@@ -144,7 +144,7 @@ protected:
                         }
                     }
                     else {
-                        p.set_value(result.template as<R>());
+                        p.set_value(result->template as<R>());
                     }
                 }
             });
@@ -451,7 +451,7 @@ TYPED_TEST(Test, test_special_callables)
         void operator()(boost::system::error_code){};
     };
     struct call_handler : public move_only {
-        void operator()(boost::system::error_code, const msgpack::object&){};
+        void operator()(boost::system::error_code, msgpack::object_handle){};
     };
     struct serve_handler : public move_only {
         void operator()(boost::system::error_code, std::shared_ptr<session_type>){};

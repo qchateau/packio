@@ -29,7 +29,7 @@ public:
     using executor_type = typename socket_type::executor_type;
     using id_type = uint32_t;
     using async_call_handler_type =
-        std::function<void(boost::system::error_code, const msgpack::object&)>;
+        std::function<void(boost::system::error_code, msgpack::object_handle)>;
 
     static constexpr size_t kDefaultBufferReserveSize = 4096;
 
@@ -75,8 +75,7 @@ public:
         lock.unlock();
 
         auto ec = make_error_code(error::cancelled);
-        msgpack::zone zone;
-        handler(ec, msgpack::object(ec.message(), zone));
+        handler(ec, internal::make_msgpack_object(ec.message()));
         return 1;
     }
 
@@ -89,9 +88,8 @@ public:
         }
 
         auto ec = make_error_code(error::cancelled);
-        msgpack::zone zone;
         for (auto& pair : pending) {
-            pair.second(ec, msgpack::object(ec.message(), zone));
+            pair.second(ec, internal::make_msgpack_object(ec.message()));
         }
         return pending.size();
     }
@@ -175,8 +173,8 @@ public:
                 boost::system::error_code ec, size_t length) {
                 if (ec) {
                     DEBUG("write error: {}", ec.message());
-                    msgpack::zone zone;
-                    call_handler(id, msgpack::object(ec.message(), zone), ec);
+                    call_handler(
+                        id, internal::make_msgpack_object(ec.message()), ec);
                 }
                 else {
                     TRACE("write: {}", length);
@@ -227,36 +225,38 @@ private:
     void async_dispatch(msgpack::object_handle response, boost::system::error_code ec)
     {
         boost::asio::post(
-            socket_.get_executor(), [this, ec, response = std::move(response)] {
-                dispatch(response.get(), ec);
+            socket_.get_executor(),
+            [this, ec, response = std::move(response)]() mutable {
+                dispatch(std::move(response), ec);
             });
     }
 
-    void dispatch(const msgpack::object& response, boost::system::error_code ec)
+    void dispatch(msgpack::object_handle response, boost::system::error_code ec)
     {
-        if (!verify_reponse(response)) {
+        if (!verify_reponse(response.get())) {
             DEBUG("received unexpected response");
             close_connection();
             return;
         }
 
-        int id = response.via.array.ptr[1].as<int>();
-        const msgpack::object& err = response.via.array.ptr[2];
-        const msgpack::object& result = response.via.array.ptr[3];
+        const auto& call_response = response->via.array.ptr;
+        int id = call_response[1].as<int>();
+        msgpack::object err = call_response[2];
+        msgpack::object result = call_response[3];
 
         if (err.type != msgpack::type::NIL) {
             ec = make_error_code(error::call_error);
-            call_handler(id, err, ec);
+            call_handler(id, {err, std::move(response.zone())}, ec);
         }
         else {
             ec = make_error_code(error::success);
-            call_handler(id, result, ec);
+            call_handler(id, {result, std::move(response.zone())}, ec);
         }
     }
 
     void call_handler(
         id_type id,
-        const msgpack::object& result,
+        msgpack::object_handle result,
         boost::system::error_code ec)
     {
         TRACE("processing response to id: {}", id);
@@ -272,7 +272,7 @@ private:
         pending_.erase(it);
         lock.unlock();
 
-        handler(ec, result);
+        handler(ec, std::move(result));
     }
 
     bool verify_reponse(const msgpack::object& response)
