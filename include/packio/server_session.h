@@ -48,6 +48,13 @@ public:
     void start() { async_read(std::make_unique<msgpack::unpacker>()); }
 
 private:
+    struct Call {
+        msgpack_rpc_type type;
+        id_type id;
+        std::string name;
+        msgpack::object args;
+    };
+
     void async_read(std::unique_ptr<msgpack::unpacker> unpacker)
     {
         // abort R/W on error
@@ -93,58 +100,75 @@ private:
             [this, self, call = std::move(call)] { dispatch(call.get()); });
     }
 
-    void dispatch(const msgpack::object& call)
+    void dispatch(const msgpack::object& msgpack_call)
     {
-        if (call.type != msgpack::type::ARRAY) {
-            WARN("unexpected message type: {}", call.type);
-            error_.store(true, std::memory_order_release);
-            return;
-        }
-        if (call.via.array.size < 3 || call.via.array.size > 4) {
-            WARN("unexpected message size: {}", call.via.array.size);
+        std::optional<Call> call = parse_call(msgpack_call);
+        if (!call) {
             error_.store(true, std::memory_order_release);
             return;
         }
 
-        int idx = 0;
-        id_type id = 0;
-        int type = call.via.array.ptr[idx++].as<int>();
-
-        switch (static_cast<msgpack_rpc_type>(type)) {
-        default:
-            WARN("unexpected type: {}", type);
-            error_.store(true, std::memory_order_release);
-            return;
-        case msgpack_rpc_type::request:
-            id = call.via.array.ptr[idx++].as<id_type>();
-            [[fallthrough]];
-        case msgpack_rpc_type::notification:
-            std::string name = call.via.array.ptr[idx++].as<std::string>();
-            const msgpack::object& args = call.via.array.ptr[idx++];
-            if (args.type != msgpack::type::ARRAY) {
-                WARN("unexpected arguments type: {}", type);
-                error_.store(true, std::memory_order_release);
-                return;
-            }
-
-            auto completion_handler = [this, type, id, self = shared_from_this()](
-                                          boost::system::error_code ec,
-                                          msgpack::object_handle result) {
-                if (type == static_cast<int>(msgpack_rpc_type::request)) {
+        auto completion_handler =
+            [this, type = call->type, id = call->id, self = shared_from_this()](
+                boost::system::error_code ec, msgpack::object_handle result) {
+                if (type == msgpack_rpc_type::request) {
                     TRACE("result: {}", ec.message());
                     async_write(id, ec, std::move(result));
                 }
             };
 
-            const auto function = dispatcher_ptr_->get(name);
-            if (function) {
-                TRACE("call: {} (id={})", name, id);
-                (*function)(completion_handler, args);
+        const auto function = dispatcher_ptr_->get(call->name);
+        if (function) {
+            TRACE("call: {} (id={})", name, id);
+            (*function)(completion_handler, call->args);
+        }
+        else {
+            DEBUG("unknown function {}", name);
+            completion_handler(make_error_code(error::unknown_function), {});
+        }
+    }
+
+    std::optional<Call> parse_call(const msgpack::object& call)
+    {
+        if (call.type != msgpack::type::ARRAY || call.via.array.size < 3) {
+            WARN("unexpected message type: {}", call.type);
+            return std::nullopt;
+        }
+
+        try {
+            int idx = 0;
+            id_type id = 0;
+            msgpack_rpc_type type = static_cast<msgpack_rpc_type>(
+                call.via.array.ptr[idx++].as<int>());
+
+            std::size_t expected_size;
+            switch (type) {
+            case msgpack_rpc_type::request:
+                id = call.via.array.ptr[idx++].as<id_type>();
+                expected_size = 4;
+                break;
+            case msgpack_rpc_type::notification:
+                expected_size = 3;
+                break;
+            default:
+                WARN("unexpected type: {}", type);
+                return std::nullopt;
             }
-            else {
-                DEBUG("unknown function {}", name);
-                completion_handler(make_error_code(error::unknown_function), {});
+
+            if (call.via.array.size != expected_size) {
+                WARN("unexpected message size: {}", call.via.array.size);
+                return std::nullopt;
             }
+
+            std::string name = call.via.array.ptr[idx++].as<std::string>();
+            const msgpack::object& args = call.via.array.ptr[idx++];
+
+            return Call{type, id, name, args};
+        }
+        catch (msgpack::type_error& exc) {
+            WARN("unexpected message type: {} ({})", type, exc.what());
+            (void)exc;
+            return std::nullopt;
         }
     }
 
