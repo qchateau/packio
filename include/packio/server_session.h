@@ -51,7 +51,7 @@ private:
     void async_read(std::unique_ptr<msgpack::unpacker> unpacker)
     {
         // abort R/W on error
-        if (error_.load()) {
+        if (error_.load(std::memory_order_acquire)) {
             return;
         }
 
@@ -66,7 +66,7 @@ private:
                 boost::system::error_code ec, size_t length) mutable {
                 if (ec) {
                     DEBUG("error: {}", ec.message());
-                    error_.store(true);
+                    error_.store(true, std::memory_order_release);
                     return;
                 }
 
@@ -97,12 +97,12 @@ private:
     {
         if (call.type != msgpack::type::ARRAY) {
             WARN("unexpected message type: {}", call.type);
-            error_.store(true);
+            error_.store(true, std::memory_order_release);
             return;
         }
         if (call.via.array.size < 3 || call.via.array.size > 4) {
             WARN("unexpected message size: {}", call.via.array.size);
-            error_.store(true);
+            error_.store(true, std::memory_order_release);
             return;
         }
 
@@ -113,7 +113,7 @@ private:
         switch (static_cast<msgpack_rpc_type>(type)) {
         default:
             WARN("unexpected type: {}", type);
-            error_.store(true);
+            error_.store(true, std::memory_order_release);
             return;
         case msgpack_rpc_type::request:
             id = call.via.array.ptr[idx++].as<uint32_t>();
@@ -123,7 +123,7 @@ private:
             const msgpack::object& args = call.via.array.ptr[idx++];
             if (args.type != msgpack::type::ARRAY) {
                 WARN("unexpected arguments type: {}", type);
-                error_.store(true);
+                error_.store(true, std::memory_order_release);
                 return;
             }
 
@@ -154,7 +154,7 @@ private:
         msgpack::object_handle result_handle)
     {
         // abort R/W on error
-        if (error_.load()) {
+        if (error_.load(std::memory_order_acquire)) {
             return;
         }
 
@@ -193,7 +193,7 @@ private:
                 boost::system::error_code ec, size_t length) {
                 if (ec) {
                     DEBUG("error: {}", ec.message());
-                    error_.store(true);
+                    error_.store(true, std::memory_order_release);
                     return;
                 }
 
