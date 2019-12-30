@@ -110,6 +110,37 @@ TYPED_TEST(Server, test_same_func)
     ASSERT_TRUE(calls.wait_for(std::chrono::seconds{10}));
 }
 
+TYPED_TEST(Server, test_big_msg)
+{
+    constexpr int kNCalls{100};
+    const int kNThreads = 10 * std::thread::hardware_concurrency();
+    const int kNClients = 2 * std::thread::hardware_concurrency();
+
+    latch done{kNCalls * kNClients};
+    latch calls{kNCalls * kNClients};
+    this->server_.dispatcher()->add("echo", [&](std::string s) {
+        calls.count_down();
+        return s;
+    });
+    this->run(kNThreads);
+    auto clients = this->create_connected_clients(kNClients);
+
+    std::string big_msg(100'000, '0');
+    for (int i = 0; i < kNCalls; ++i) {
+        for (auto& client : clients) {
+            client.async_call(
+                "echo", std::make_tuple(big_msg), [&](auto ec, auto result) {
+                    ASSERT_FALSE(ec);
+                    ASSERT_EQ(big_msg, result->template as<std::string>());
+                    done.count_down();
+                });
+        }
+    }
+
+    ASSERT_TRUE(done.wait_for(std::chrono::seconds{10}));
+    ASSERT_TRUE(calls.wait_for(std::chrono::seconds{10}));
+}
+
 TYPED_TEST(Server, test_many_func)
 {
     constexpr int kNCalls{100};
