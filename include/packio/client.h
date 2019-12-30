@@ -70,8 +70,10 @@ public:
         pending_.erase(it);
         lock.unlock();
 
-        auto ec = make_error_code(error::cancelled);
-        handler(ec, internal::make_msgpack_object(ec.message()));
+        boost::asio::post(socket_.get_executor(), [handler = std::move(handler)] {
+            auto ec = make_error_code(error::cancelled);
+            handler(ec, internal::make_msgpack_object(ec.message()));
+        });
         return 1;
     }
 
@@ -83,10 +85,14 @@ public:
             std::swap(pending, pending_);
         }
 
-        auto ec = make_error_code(error::cancelled);
         for (auto& pair : pending) {
-            pair.second(ec, internal::make_msgpack_object(ec.message()));
+            boost::asio::post(
+                socket_.get_executor(), [handler = std::move(pair.second)] {
+                    auto ec = make_error_code(error::cancelled);
+                    handler(ec, internal::make_msgpack_object(ec.message()));
+                });
         }
+
         return pending.size();
     }
 
