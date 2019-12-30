@@ -32,10 +32,7 @@ public:
 
     static constexpr size_t kDefaultBufferReserveSize = 4096;
 
-    explicit client(socket_type socket) : socket_{std::move(socket)}
-    {
-        reading_.clear(std::memory_order_release);
-    }
+    explicit client(socket_type socket) : socket_{std::move(socket)} {}
 
     ~client()
     {
@@ -63,7 +60,7 @@ public:
 
     std::size_t cancel(id_type id)
     {
-        std::unique_lock lock{pending_mutex_};
+        std::unique_lock lock{mutex_};
         auto it = pending_.find(id);
         if (it == pending_.end()) {
             return 0;
@@ -82,7 +79,7 @@ public:
     {
         decltype(pending_) pending;
         {
-            std::unique_lock lock{pending_mutex_};
+            std::unique_lock lock{mutex_};
             std::swap(pending, pending_);
         }
 
@@ -114,7 +111,6 @@ public:
             std::forward_as_tuple(
                 static_cast<int>(msgpack_rpc_type::notification), name, args));
 
-        start_reading();
         auto buffer = internal::buffer_to_asio(*packer_buf);
         boost::asio::async_write(
             socket_,
@@ -156,14 +152,14 @@ public:
                 static_cast<int>(msgpack_rpc_type::request), id, name, args));
 
         {
-            std::unique_lock lock{pending_mutex_};
+            std::unique_lock lock{mutex_};
             pending_.try_emplace(
                 id,
                 internal::make_copyable_function(
                     std::forward<CallHandler>(handler)));
+            start_reading();
         }
 
-        start_reading();
         auto buffer = internal::buffer_to_asio(*packer_buf);
         boost::asio::async_write(
             socket_,
@@ -187,10 +183,13 @@ public:
 private:
     void start_reading()
     {
-        if (!reading_.test_and_set(std::memory_order_acq_rel)) {
-            internal::set_no_delay(socket_);
-            async_read();
+        if (reading_) {
+            return;
         }
+        reading_ = true;
+
+        internal::set_no_delay(socket_);
+        async_read();
     }
 
     void async_read()
@@ -260,7 +259,7 @@ private:
     {
         DEBUG("processing response to id: {}", id);
 
-        std::unique_lock lock{pending_mutex_};
+        std::unique_lock lock{mutex_};
         auto it = pending_.find(id);
         if (it == pending_.end()) {
             WARN("received response for unexisting id");
@@ -312,10 +311,11 @@ private:
     socket_type socket_;
     msgpack::unpacker unpacker_;
     std::size_t buffer_reserve_size_{kDefaultBufferReserveSize};
-    Mutex pending_mutex_;
-    Map<id_type, async_call_handler_type> pending_;
     std::atomic<id_type> id_{0};
-    std::atomic_flag reading_;
+
+    Mutex mutex_;
+    Map<id_type, async_call_handler_type> pending_;
+    bool reading_{false};
 };
 
 } // packio
