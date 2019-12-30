@@ -9,12 +9,14 @@
 #include <chrono>
 #include <map>
 #include <mutex>
+#include <queue>
 #include <string_view>
 
 #include <boost/asio.hpp>
 #include <msgpack.hpp>
 
 #include "error_code.h"
+#include "internal/manual_strand.h"
 #include "internal/msgpack_rpc.h"
 #include "internal/utils.h"
 
@@ -32,7 +34,10 @@ public:
 
     static constexpr size_t kDefaultBufferReserveSize = 4096;
 
-    explicit client(socket_type socket) : socket_{std::move(socket)} {}
+    explicit client(socket_type socket)
+        : socket_{std::move(socket)}, wstrand_{socket_.get_executor()}
+    {
+    }
 
     ~client()
     {
@@ -117,13 +122,10 @@ public:
             std::forward_as_tuple(
                 static_cast<int>(msgpack_rpc_type::notification), name, args));
 
-        auto buffer = internal::buffer_to_asio(*packer_buf);
-        boost::asio::async_write(
-            socket_,
-            buffer,
-            [packer_buf = std::move(packer_buf),
-             handler = std::forward<NotifyHandler>(handler)](
-                boost::system::error_code ec, size_t length) mutable {
+        async_send(
+            std::move(packer_buf),
+            [handler = std::forward<NotifyHandler>(handler)](
+                boost::system::error_code ec, std::size_t length) mutable {
                 if (ec) {
                     WARN("write error: {}", ec.message());
                 }
@@ -131,6 +133,7 @@ public:
                     TRACE("write: {}", length);
                     (void)length;
                 }
+
                 handler(ec);
             });
     }
@@ -166,12 +169,9 @@ public:
             start_reading();
         }
 
-        auto buffer = internal::buffer_to_asio(*packer_buf);
-        boost::asio::async_write(
-            socket_,
-            buffer,
-            [this, id, packer_buf = std::move(packer_buf)](
-                boost::system::error_code ec, size_t length) {
+        async_send(
+            std::move(packer_buf),
+            [this, id](boost::system::error_code ec, std::size_t length) {
                 if (ec) {
                     WARN("write error: {}", ec.message());
                     call_handler(
@@ -187,6 +187,27 @@ public:
     }
 
 private:
+    template <typename Buffer, typename WriteHandler>
+    void async_send(std::unique_ptr<Buffer> buffer_ptr, WriteHandler&& handler)
+    {
+        wstrand_.push(internal::make_copyable_function(
+            [this,
+             buffer_ptr = std::move(buffer_ptr),
+             handler = std::forward<WriteHandler>(handler)]() mutable {
+                auto buffer = internal::buffer_to_asio(*buffer_ptr);
+                boost::asio::async_write(
+                    socket_,
+                    buffer,
+                    [this,
+                     buffer_ptr = std::move(buffer_ptr),
+                     handler = std::forward<WriteHandler>(handler)](
+                        boost::system::error_code ec, size_t length) mutable {
+                        wstrand_.next();
+                        handler(ec, length);
+                    });
+            }));
+    }
+
     void start_reading()
     {
         if (reading_) {
@@ -318,6 +339,8 @@ private:
     msgpack::unpacker unpacker_;
     std::size_t buffer_reserve_size_{kDefaultBufferReserveSize};
     std::atomic<id_type> id_{0};
+
+    internal::manual_strand<executor_type> wstrand_;
 
     Mutex mutex_;
     Map<id_type, async_call_handler_type> pending_;

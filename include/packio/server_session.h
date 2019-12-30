@@ -6,11 +6,13 @@
 #define PACKIO_SERVER_SESSION_H
 
 #include <memory>
+#include <queue>
 #include <boost/asio.hpp>
 #include <msgpack.hpp>
 
 #include "error_code.h"
 #include "internal/log.h"
+#include "internal/manual_strand.h"
 #include "internal/msgpack_rpc.h"
 #include "internal/utils.h"
 
@@ -27,7 +29,9 @@ public:
     static constexpr size_t kBufferReserveSize = 4096;
 
     server_session(socket_type sock, std::shared_ptr<Dispatcher> dispatcher_ptr)
-        : socket_{std::move(sock)}, dispatcher_ptr_{std::move(dispatcher_ptr)}
+        : socket_{std::move(sock)},
+          dispatcher_ptr_{std::move(dispatcher_ptr)},
+          wstrand_{socket_.get_executor()}
     {
         INFO("starting session {:p}", fmt::ptr(this));
     }
@@ -48,6 +52,10 @@ public:
     void start() { async_read(std::make_unique<msgpack::unpacker>()); }
 
 private:
+    using buffer_type = msgpack::vrefbuffer; // non-owning buffer
+    using message_type = std::tuple<buffer_type, msgpack::object_handle>;
+    using message_queue = std::queue<std::unique_ptr<message_type>>;
+
     struct Call {
         msgpack_rpc_type type;
         id_type id;
@@ -112,7 +120,7 @@ private:
                 boost::system::error_code ec, msgpack::object_handle result) {
                 if (type == msgpack_rpc_type::request) {
                     TRACE("result: {}", ec.message());
-                    async_write(id, ec, std::move(result));
+                    async_send_result(id, ec, std::move(result));
                 }
             };
 
@@ -171,7 +179,7 @@ private:
         }
     }
 
-    void async_write(
+    void async_send_result(
         id_type id,
         boost::system::error_code ec,
         msgpack::object_handle result_handle)
@@ -181,9 +189,10 @@ private:
             return;
         }
 
-        auto packer_buf = std::make_unique<msgpack::vrefbuffer>();
-        msgpack::packer<msgpack::vrefbuffer> packer(*packer_buf);
+        auto message_ptr = std::make_unique<message_type>();
+        msgpack::packer<buffer_type> packer(std::get<buffer_type>(*message_ptr));
 
+        // serialize the result into the buffer
         const auto pack = [&](auto&& error, auto&& result) {
             packer.pack(std::forward_as_tuple(
                 static_cast<int>(msgpack_rpc_type::response),
@@ -204,29 +213,47 @@ private:
             pack(msgpack::type::nil_t{}, result_handle.get());
         }
 
-        auto buffer = internal::buffer_to_asio(*packer_buf);
-        boost::asio::async_write(
-            socket_,
-            buffer,
+        // move the result handle to the message pointer
+        // as the buffer is non-owning, we need to keep the result handle
+        // with the buffer
+        std::get<msgpack::object_handle>(*message_ptr) = std::move(result_handle);
+        async_send_message(std::move(message_ptr));
+    }
+
+    void async_send_message(std::unique_ptr<message_type> message_ptr)
+    {
+        wstrand_.push(internal::make_copyable_function(
             [this,
              self = shared_from_this(),
-             packer_buf = std::move(packer_buf),
-             result_handle = std::move(result_handle)](
-                boost::system::error_code ec, size_t length) {
-                if (ec) {
-                    WARN("write error: {}", ec.message());
-                    error_.store(true, std::memory_order_release);
-                    return;
-                }
+             message_ptr = std::move(message_ptr)]() mutable {
+                auto buffer = internal::buffer_to_asio(
+                    std::get<buffer_type>(*message_ptr));
+                boost::asio::async_write(
+                    socket_,
+                    buffer,
+                    [this,
+                     self = std::move(self),
+                     message_ptr = std::move(message_ptr)](
+                        boost::system::error_code ec, size_t length) {
+                        wstrand_.next();
 
-                TRACE("write: {}", length);
-                (void)length;
-            });
-    }
+                        if (ec) {
+                            WARN("write error: {}", ec.message());
+                            error_.store(true, std::memory_order_release);
+                            return;
+                        }
+
+                        TRACE("write: {}", length);
+                        (void)length;
+                    });
+            }));
+    };
 
     socket_type socket_;
     std::shared_ptr<Dispatcher> dispatcher_ptr_;
     std::atomic<bool> error_{false};
+
+    internal::manual_strand<typename socket_type::executor_type> wstrand_;
 };
 
 } // packio

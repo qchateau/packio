@@ -504,8 +504,9 @@ TYPED_TEST(Test, test_response_after_disconnect)
         });
 
     this->client_.async_call("block", [&](auto, auto) {});
+    auto complete_ptr = future.get();
     this->client_.socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both);
-    future.get()->operator()();
+    (*complete_ptr)();
 }
 
 TYPED_TEST(Test, test_shared_dispatcher)
