@@ -7,8 +7,12 @@ class PackioConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     generators = "cmake"
     requires = ["gtest/1.8.1@bincrafters/stable", "spdlog/1.4.2@bincrafters/stable"]
-    options = {"boost": "ANY", "msgpack": "ANY"}
-    default_options = {"boost": None, "msgpack": None}
+    options = {
+        "boost": "ANY",
+        "msgpack": "ANY",
+        "loglevel": [None, "trace", "debug", "info", "warn", "error"],
+    }
+    default_options = {"boost": None, "msgpack": None, "loglevel": None}
 
     def requirements(self):
         if self.options.boost:
@@ -18,7 +22,10 @@ class PackioConan(ConanFile):
 
     def build(self):
         cmake = CMake(self)
-        cmake.configure()
+        defs = dict()
+        if self.options.loglevel:
+            defs["PACKIO_LOGS"] = self.options.loglevel
+        cmake.configure(defs=defs)
         cmake.build()
 
     def test(self):

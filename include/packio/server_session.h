@@ -29,7 +29,7 @@ public:
     server_session(socket_type sock, std::shared_ptr<Dispatcher> dispatcher_ptr)
         : socket_{std::move(sock)}, dispatcher_ptr_{std::move(dispatcher_ptr)}
     {
-        DEBUG("starting session {:p}", fmt::ptr(this));
+        INFO("starting session {:p}", fmt::ptr(this));
     }
 
     ~server_session()
@@ -37,9 +37,9 @@ public:
         boost::system::error_code ec;
         socket_.cancel(ec);
         if (ec) {
-            INFO("cancel failed: {}", ec.message());
+            WARN("cancel failed: {}", ec.message());
         }
-        DEBUG("stopped session {:p}", fmt::ptr(this));
+        INFO("stopped session {:p}", fmt::ptr(this));
     }
 
     socket_type& socket() { return socket_; }
@@ -70,7 +70,7 @@ private:
             [this, self = shared_from_this(), unpacker = std::move(unpacker)](
                 boost::system::error_code ec, size_t length) mutable {
                 if (ec) {
-                    DEBUG("error: {}", ec.message());
+                    WARN("read error: {}", ec.message());
                     error_.store(true, std::memory_order_release);
                     return;
                 }
@@ -118,11 +118,11 @@ private:
 
         const auto function = dispatcher_ptr_->get(call->name);
         if (function) {
-            TRACE("call: {} (id={})", name, id);
+            TRACE("call: {} (id={})", call->name, call->id);
             (*function)(completion_handler, call->args);
         }
         else {
-            DEBUG("unknown function {}", name);
+            DEBUG("unknown function {}", call->name);
             completion_handler(make_error_code(error::unknown_function), {});
         }
     }
@@ -130,7 +130,7 @@ private:
     std::optional<Call> parse_call(const msgpack::object& call)
     {
         if (call.type != msgpack::type::ARRAY || call.via.array.size < 3) {
-            WARN("unexpected message type: {}", call.type);
+            ERROR("unexpected message type: {}", call.type);
             return std::nullopt;
         }
 
@@ -150,12 +150,12 @@ private:
                 expected_size = 3;
                 break;
             default:
-                WARN("unexpected type: {}", type);
+                ERROR("unexpected type: {}", type);
                 return std::nullopt;
             }
 
             if (call.via.array.size != expected_size) {
-                WARN("unexpected message size: {}", call.via.array.size);
+                ERROR("unexpected message size: {}", call.via.array.size);
                 return std::nullopt;
             }
 
@@ -165,7 +165,7 @@ private:
             return Call{type, id, name, args};
         }
         catch (msgpack::type_error& exc) {
-            WARN("unexpected message type: {} ({})", type, exc.what());
+            ERROR("unexpected message content: {}", exc.what());
             (void)exc;
             return std::nullopt;
         }
@@ -214,7 +214,7 @@ private:
              result_handle = std::move(result_handle)](
                 boost::system::error_code ec, size_t length) {
                 if (ec) {
-                    DEBUG("error: {}", ec.message());
+                    WARN("write error: {}", ec.message());
                     error_.store(true, std::memory_order_release);
                     return;
                 }

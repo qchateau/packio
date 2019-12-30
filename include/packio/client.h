@@ -42,9 +42,9 @@ public:
         boost::system::error_code ec;
         socket_.cancel(ec);
         if (ec) {
-            INFO("cancel failed: {}", ec.message());
+            WARN("cancel failed: {}", ec.message());
         }
-        DEBUG("stopped client");
+        INFO("stopped client");
     }
 
     socket_type& socket() { return socket_; }
@@ -106,7 +106,7 @@ public:
         std::tuple<Args...> args,
         NotifyHandler&& handler)
     {
-        TRACE("async_notify: {}", name);
+        DEBUG("async_notify: {}", name);
 
         auto packer_buf = std::make_unique<Buffer>();
         msgpack::pack(
@@ -123,7 +123,7 @@ public:
              handler = std::forward<NotifyHandler>(handler)](
                 boost::system::error_code ec, size_t length) mutable {
                 if (ec) {
-                    DEBUG("write error: {}", ec.message());
+                    WARN("write error: {}", ec.message());
                 }
                 else {
                     TRACE("write: {}", length);
@@ -146,7 +146,7 @@ public:
         std::tuple<Args...> args,
         CallHandler&& handler)
     {
-        TRACE("async_call: {}", name);
+        DEBUG("async_call: {}", name);
 
         auto id = id_.fetch_add(1, std::memory_order_acq_rel);
         auto packer_buf = std::make_unique<Buffer>();
@@ -171,7 +171,7 @@ public:
             [this, id, packer_buf = std::move(packer_buf)](
                 boost::system::error_code ec, size_t length) {
                 if (ec) {
-                    DEBUG("write error: {}", ec.message());
+                    WARN("write error: {}", ec.message());
                     call_handler(
                         id, internal::make_msgpack_object(ec.message()), ec);
                 }
@@ -201,7 +201,7 @@ private:
             boost::asio::buffer(unpacker_.buffer(), unpacker_.buffer_capacity()),
             [this](boost::system::error_code ec, size_t length) {
                 if (ec) {
-                    DEBUG("read error: {}", ec.message());
+                    WARN("read error: {}", ec.message());
                     return;
                 }
 
@@ -233,7 +233,7 @@ private:
     void dispatch(msgpack::object_handle response, boost::system::error_code ec)
     {
         if (!verify_reponse(response.get())) {
-            DEBUG("received unexpected response");
+            ERROR("received unexpected response");
             close_connection();
             return;
         }
@@ -258,12 +258,12 @@ private:
         msgpack::object_handle result,
         boost::system::error_code ec)
     {
-        TRACE("processing response to id: {}", id);
+        DEBUG("processing response to id: {}", id);
 
         std::unique_lock lock{pending_mutex_};
         auto it = pending_.find(id);
         if (it == pending_.end()) {
-            DEBUG("received response for unexisting id");
+            WARN("received response for unexisting id");
             return;
         }
 
@@ -277,29 +277,19 @@ private:
     bool verify_reponse(const msgpack::object& response)
     {
         if (response.type != msgpack::type::ARRAY) {
-            WARN("unexpected message type: {}", response.type);
+            ERROR("unexpected message type: {}", response.type);
             return false;
         }
         if (response.via.array.size != 4) {
-            WARN("unexpected message size: {}", response.via.array.size);
+            ERROR("unexpected message size: {}", response.via.array.size);
             return false;
         }
         int type = response.via.array.ptr[0].as<int>();
         if (type != static_cast<int>(msgpack_rpc_type::response)) {
-            WARN("unexpected type: {}", type);
+            ERROR("unexpected type: {}", type);
             return false;
         }
         return true;
-    }
-
-    void timeout_handler(const boost::system::error_code& ec)
-    {
-        if (ec == boost::asio::error::operation_aborted) {
-            return;
-        }
-
-        DEBUG("timeout");
-        close_connection();
     }
 
     void close_connection()
@@ -307,15 +297,15 @@ private:
         boost::system::error_code ec;
         socket_.cancel(ec);
         if (ec) {
-            INFO("cancel failed: {}", ec.message());
+            WARN("cancel failed: {}", ec.message());
         }
         socket_.shutdown(socket_type::shutdown_type::shutdown_both, ec);
         if (ec) {
-            INFO("shutdown failed: {}", ec.message());
+            WARN("shutdown failed: {}", ec.message());
         }
         socket_.close(ec);
         if (ec) {
-            INFO("close failed: {}", ec.message());
+            WARN("close failed: {}", ec.message());
         }
     }
 

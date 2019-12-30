@@ -41,9 +41,9 @@ public:
         boost::system::error_code ec;
         acceptor_.cancel(ec);
         if (ec) {
-            INFO("cancel failed: {}", ec.message());
+            WARN("cancel failed: {}", ec.message());
         }
-        DEBUG("stopped server");
+        INFO("stopped server");
     }
 
     acceptor_type& acceptor() { return acceptor_; }
@@ -66,7 +66,7 @@ public:
                 boost::system::error_code ec, socket_type sock) mutable {
                 std::shared_ptr<session_type> session;
                 if (ec) {
-                    DEBUG("error: {}", ec.message());
+                    WARN("accept error: {}", ec.message());
                 }
                 else {
                     internal::set_no_delay(sock);
@@ -81,7 +81,6 @@ public:
     {
         async_serve([this](auto ec, auto session) {
             if (ec) {
-                INFO("error: {}", ec.message());
                 return;
             }
 
