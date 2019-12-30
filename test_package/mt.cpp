@@ -116,8 +116,8 @@ TYPED_TEST(Server, test_many_func)
     const int kNThreads = 10 * std::thread::hardware_concurrency();
     const int kNClients = 2 * std::thread::hardware_concurrency();
 
-    latch done{kNCalls * kNClients};
-    latch calls{kNCalls * kNClients};
+    latch done{kNCalls * kNClients * 2};
+    latch calls{kNCalls * kNClients * 2};
     for (int i = 0; i < kNClients; ++i) {
         this->server_.dispatcher()->add(std::to_string(i), [&](int n) {
             calls.count_down();
@@ -131,14 +131,17 @@ TYPED_TEST(Server, test_many_func)
     for (int i = 0; i < kNCalls; ++i) {
         int j = 0;
         for (auto& client : clients) {
+            std::string name = std::to_string(j++);
             client.async_call(
-                std::to_string(j++),
-                std::make_tuple(42),
-                [&](auto ec, auto result) {
+                name, std::make_tuple(42), [&](auto ec, auto result) {
                     ASSERT_FALSE(ec);
                     ASSERT_EQ(42, result->template as<int>());
                     done.count_down();
                 });
+            client.async_notify(name, std::make_tuple(42), [&](auto ec) {
+                ASSERT_FALSE(ec);
+                done.count_down();
+            });
         }
     }
 
