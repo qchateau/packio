@@ -3,3 +3,4 @@
 build/
 site/site/
 compile_commands.json
+.clangd/
