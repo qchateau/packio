@@ -66,7 +66,7 @@ private:
     void async_read(std::unique_ptr<msgpack::unpacker> unpacker)
     {
         // abort R/W on error
-        if (error_.load(std::memory_order_acquire)) {
+        if (!socket_.is_open()) {
             return;
         }
 
@@ -79,7 +79,7 @@ private:
                 boost::system::error_code ec, size_t length) mutable {
                 if (ec) {
                     WARN("read error: {}", ec.message());
-                    error_.store(true, std::memory_order_release);
+                    close_connection();
                     return;
                 }
 
@@ -111,7 +111,7 @@ private:
     {
         std::optional<Call> call = parse_call(msgpack_call);
         if (!call) {
-            error_.store(true, std::memory_order_release);
+            close_connection();
             return;
         }
 
@@ -185,7 +185,7 @@ private:
         msgpack::object_handle result_handle)
     {
         // abort R/W on error
-        if (error_.load(std::memory_order_acquire)) {
+        if (!socket_.is_open()) {
             return;
         }
 
@@ -239,7 +239,7 @@ private:
 
                         if (ec) {
                             WARN("write error: {}", ec.message());
-                            error_.store(true, std::memory_order_release);
+                            close_connection();
                             return;
                         }
 
@@ -249,10 +249,17 @@ private:
             }));
     };
 
+    void close_connection()
+    {
+        boost::system::error_code ec;
+        socket_.close(ec);
+        if (ec) {
+            WARN("close error: {}", ec.message());
+        }
+    }
+
     socket_type socket_;
     std::shared_ptr<Dispatcher> dispatcher_ptr_;
-    std::atomic<bool> error_{false};
-
     internal::manual_strand<typename socket_type::executor_type> wstrand_;
 };
 
