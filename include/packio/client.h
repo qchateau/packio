@@ -244,7 +244,6 @@ private:
     {
         if (!verify_reponse(response.get())) {
             ERROR("received unexpected response");
-            close_connection();
             return;
         }
 
@@ -306,23 +305,6 @@ private:
             return false;
         }
         return true;
-    }
-
-    void close_connection()
-    {
-        boost::system::error_code ec;
-        socket_.cancel(ec);
-        if (ec) {
-            WARN("cancel failed: {}", ec.message());
-        }
-        socket_.shutdown(socket_type::shutdown_type::shutdown_both, ec);
-        if (ec) {
-            WARN("shutdown failed: {}", ec.message());
-        }
-        socket_.close(ec);
-        if (ec) {
-            WARN("close failed: {}", ec.message());
-        }
     }
 
     socket_type socket_;
