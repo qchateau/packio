@@ -174,7 +174,7 @@ public:
             [this, id](boost::system::error_code ec, std::size_t length) {
                 if (ec) {
                     WARN("write error: {}", ec.message());
-                    call_handler(
+                    async_call_handler(
                         id, internal::make_msgpack_object(ec.message()), ec);
                 }
                 else {
@@ -243,19 +243,10 @@ private:
                     // to schedule the next read immediately
                     // this will allow parallel response handling
                     // in multi-threaded environments
-                    async_dispatch(std::move(response), ec);
+                    dispatch(std::move(response), ec);
                 }
 
                 async_read(std::move(unpacker));
-            });
-    }
-
-    void async_dispatch(msgpack::object_handle response, boost::system::error_code ec)
-    {
-        boost::asio::post(
-            socket_.get_executor(),
-            [this, ec, response = std::move(response)]() mutable {
-                dispatch(std::move(response), ec);
             });
     }
 
@@ -274,33 +265,39 @@ private:
 
         if (err.type != msgpack::type::NIL) {
             ec = make_error_code(error::call_error);
-            call_handler(id, {err, std::move(response.zone())}, ec);
+            async_call_handler(id, {err, std::move(response.zone())}, ec);
         }
         else {
             ec = make_error_code(error::success);
-            call_handler(id, {result, std::move(response.zone())}, ec);
+            async_call_handler(id, {result, std::move(response.zone())}, ec);
         }
     }
 
-    void call_handler(
+    bool async_call_handler(
         id_type id,
         msgpack::object_handle result,
         boost::system::error_code ec)
     {
-        DEBUG("processing response to id: {}", id);
+        DEBUG("calling handler for id: {}", id);
 
         std::unique_lock lock{mutex_};
         auto it = pending_.find(id);
         if (it == pending_.end()) {
-            WARN("received response for unexisting id");
-            return;
+            WARN("unexisting id");
+            return false;
         }
 
         auto handler = std::move(it->second);
         pending_.erase(it);
         lock.unlock();
 
-        handler(ec, std::move(result));
+        boost::asio::post(
+            socket_.get_executor(),
+            [ec, handler = std::move(handler), result = std::move(result)]() mutable {
+                handler(ec, std::move(result));
+            });
+
+        return true;
     }
 
     bool verify_reponse(const msgpack::object& response)
