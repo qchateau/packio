@@ -216,25 +216,28 @@ private:
         reading_ = true;
 
         internal::set_no_delay(socket_);
-        async_read();
+        async_read(std::make_unique<msgpack::unpacker>());
     }
 
-    void async_read()
+    void async_read(std::unique_ptr<msgpack::unpacker> unpacker)
     {
-        unpacker_.reserve_buffer(buffer_reserve_size_);
+        unpacker->reserve_buffer(buffer_reserve_size_);
+        auto buffer = boost::asio::buffer(
+            unpacker->buffer(), unpacker->buffer_capacity());
 
         socket_.async_read_some(
-            boost::asio::buffer(unpacker_.buffer(), unpacker_.buffer_capacity()),
-            [this](boost::system::error_code ec, size_t length) {
+            buffer,
+            [this, unpacker = std::move(unpacker)](
+                boost::system::error_code ec, size_t length) mutable {
                 if (ec) {
                     WARN("read error: {}", ec.message());
                     return;
                 }
 
                 TRACE("read: {}", length);
-                unpacker_.buffer_consumed(length);
+                unpacker->buffer_consumed(length);
 
-                for (msgpack::object_handle response; unpacker_.next(response);) {
+                for (msgpack::object_handle response; unpacker->next(response);) {
                     TRACE("dispatching");
                     // handle the response asynchronously (post)
                     // to schedule the next read immediately
@@ -243,7 +246,7 @@ private:
                     async_dispatch(std::move(response), ec);
                 }
 
-                async_read();
+                async_read(std::move(unpacker));
             });
     }
 
@@ -336,7 +339,6 @@ private:
     }
 
     socket_type socket_;
-    msgpack::unpacker unpacker_;
     std::size_t buffer_reserve_size_{kDefaultBufferReserveSize};
     std::atomic<id_type> id_{0};
 
