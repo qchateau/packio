@@ -65,21 +65,11 @@ public:
 
     std::size_t cancel(id_type id)
     {
-        std::unique_lock lock{mutex_};
-        auto it = pending_.find(id);
-        if (it == pending_.end()) {
-            return 0;
-        }
-
-        auto handler = std::move(it->second);
-        pending_.erase(it);
-        lock.unlock();
-
-        boost::asio::post(socket_.get_executor(), [handler = std::move(handler)] {
-            auto ec = make_error_code(error::cancelled);
-            handler(ec, internal::make_msgpack_object(ec.message()));
-        });
-        return 1;
+        auto ec = make_error_code(error::cancelled);
+        return async_call_handler(
+                   id, internal::make_msgpack_object(ec.message()), ec)
+                   ? 1
+                   : 0;
     }
 
     std::size_t cancel()
