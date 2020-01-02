@@ -51,20 +51,19 @@ int main(int argc, char** argv)
     client->socket().connect(server->acceptor().local_endpoint());
     server->async_serve_forever();
 
-    std::optional<int> result;
+    int result = 0;
 
     client->async_call(
         "fibonacci",
         std::make_tuple(n),
         [&](boost::system::error_code, msgpack::object_handle r) {
             result = r->as<int>();
+            io.stop();
         });
 
-    while (!result) {
-        io.run_one();
-    }
+    io.run();
 
-    std::cout << "F{" << n << "} = " << *result << std::endl;
+    std::cout << "F{" << n << "} = " << result << std::endl;
 
     return 0;
 }
