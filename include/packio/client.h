@@ -57,30 +57,38 @@ public:
 
     std::size_t cancel(id_type id)
     {
+        std::unique_lock lock{mutex_};
         auto ec = make_error_code(error::cancelled);
-        return async_call_handler(
-                   id, internal::make_msgpack_object(ec.message()), ec)
-                   ? 1
-                   : 0;
+        bool found = async_call_handler(
+            id, internal::make_msgpack_object(ec.message()), ec);
+
+        if (found) {
+            maybe_stop_reading();
+            return 1;
+        }
+        else {
+            return 0;
+        }
     }
 
     std::size_t cancel()
     {
-        decltype(pending_) pending;
-        {
-            std::unique_lock lock{mutex_};
-            std::swap(pending, pending_);
+        auto ec = make_error_code(error::cancelled);
+
+        std::unique_lock lock{mutex_};
+        std::size_t size = pending_.size();
+        while (!pending_.empty()) {
+            async_call_handler(
+                pending_.begin()->first,
+                internal::make_msgpack_object(ec.message()),
+                ec);
         }
 
-        for (auto& pair : pending) {
-            boost::asio::post(
-                socket_.get_executor(), [handler = std::move(pair.second)] {
-                    auto ec = make_error_code(error::cancelled);
-                    handler(ec, internal::make_msgpack_object(ec.message()));
-                });
+        if (size) {
+            maybe_stop_reading();
         }
 
-        return pending.size();
+        return size;
     }
 
     template <typename Buffer = msgpack::sbuffer, typename NotifyHandler>
@@ -148,7 +156,7 @@ public:
                 id,
                 internal::make_copyable_function(
                     std::forward<CallHandler>(handler)));
-            start_reading();
+            maybe_start_reading();
         }
 
         async_send(
@@ -193,15 +201,25 @@ private:
             }));
     }
 
-    void start_reading()
+    void maybe_stop_reading()
     {
-        if (reading_) {
-            return;
+        if (reading_ && pending_.empty()) {
+            DEBUG("stop reading");
+            boost::system::error_code ec;
+            socket_.cancel(ec);
+            if (ec) {
+                WARN("cancel failed: {}", ec.message());
+            }
         }
-        reading_ = true;
+    }
 
-        internal::set_no_delay(socket_);
-        async_read(std::make_unique<msgpack::unpacker>());
+    void maybe_start_reading()
+    {
+        if (!reading_ && !pending_.empty()) {
+            DEBUG("start reading");
+            internal::set_no_delay(socket_);
+            async_read(std::make_unique<msgpack::unpacker>());
+        }
     }
 
     void async_read(std::unique_ptr<msgpack::unpacker> unpacker)
@@ -210,24 +228,34 @@ private:
         auto buffer = boost::asio::buffer(
             unpacker->buffer(), unpacker->buffer_capacity());
 
+        reading_ = true;
         socket_.async_read_some(
             buffer,
             [this, self = shared_from_this(), unpacker = std::move(unpacker)](
                 boost::system::error_code ec, size_t length) mutable {
-                if (ec) {
-                    WARN("read error: {}", ec.message());
-                    return;
-                }
+                std::unique_lock lock{mutex_};
 
                 TRACE("read: {}", length);
                 unpacker->buffer_consumed(length);
 
-                for (msgpack::object_handle response; unpacker->next(response);) {
+                msgpack::object_handle response;
+                while (unpacker->next(response)) {
                     TRACE("dispatching");
                     dispatch(std::move(response), ec);
                 }
 
-                async_read(std::move(unpacker));
+                // if we were cancelled or there is no error
+                // check if we need to restart reading
+                if (!ec || ec == boost::asio::error::operation_aborted) {
+                    if (!pending_.empty()) {
+                        async_read(std::move(unpacker));
+                        return;
+                    }
+                }
+                else {
+                    WARN("read error: {}", ec.message());
+                }
+                reading_ = false;
             });
     }
 
@@ -260,7 +288,6 @@ private:
     {
         DEBUG("calling handler for id: {}", id);
 
-        std::unique_lock lock{mutex_};
         auto it = pending_.find(id);
         if (it == pending_.end()) {
             WARN("unexisting id");
@@ -269,7 +296,6 @@ private:
 
         auto handler = std::move(it->second);
         pending_.erase(it);
-        lock.unlock();
 
         // handle the response asynchronously (post)
         // to schedule the next read immediately
