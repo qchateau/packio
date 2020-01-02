@@ -9,7 +9,6 @@
 #include <chrono>
 #include <map>
 #include <memory>
-#include <mutex>
 #include <queue>
 #include <string_view>
 
@@ -23,8 +22,8 @@
 
 namespace packio {
 
-template <typename Protocol, template <class...> class Map = std::map, typename Mutex = std::mutex>
-class client : public std::enable_shared_from_this<client<Protocol, Map, Mutex>> {
+template <typename Protocol, template <class...> class Map = std::map>
+class client : public std::enable_shared_from_this<client<Protocol, Map>> {
 public:
     using protocol_type = Protocol;
     using socket_type = typename protocol_type::socket;
@@ -32,12 +31,14 @@ public:
     using executor_type = typename socket_type::executor_type;
     using async_call_handler_type =
         std::function<void(boost::system::error_code, msgpack::object_handle)>;
-    using std::enable_shared_from_this<client<Protocol, Map, Mutex>>::shared_from_this;
+    using std::enable_shared_from_this<client<Protocol, Map>>::shared_from_this;
 
     static constexpr size_t kDefaultBufferReserveSize = 4096;
 
     explicit client(socket_type socket)
-        : socket_{std::move(socket)}, wstrand_{socket_.get_executor()}
+        : socket_{std::move(socket)},
+          wstrand_{socket_.get_executor()},
+          call_strand_{socket_.get_executor()}
     {
     }
 
@@ -55,40 +56,28 @@ public:
 
     executor_type get_executor() { return socket().get_executor(); }
 
-    std::size_t cancel(id_type id)
+    void cancel(id_type id)
     {
-        std::unique_lock lock{mutex_};
-        auto ec = make_error_code(error::cancelled);
-        bool found = async_call_handler(
-            id, internal::make_msgpack_object(ec.message()), ec);
-
-        if (found) {
+        boost::asio::dispatch(call_strand_, [this, self = shared_from_this(), id] {
+            auto ec = make_error_code(error::cancelled);
+            async_call_handler(
+                id, internal::make_msgpack_object(ec.message()), ec);
             maybe_stop_reading();
-            return 1;
-        }
-        else {
-            return 0;
-        }
+        });
     }
 
-    std::size_t cancel()
+    void cancel()
     {
-        auto ec = make_error_code(error::cancelled);
-
-        std::unique_lock lock{mutex_};
-        std::size_t size = pending_.size();
-        while (!pending_.empty()) {
-            async_call_handler(
-                pending_.begin()->first,
-                internal::make_msgpack_object(ec.message()),
-                ec);
-        }
-
-        if (size) {
+        boost::asio::dispatch(call_strand_, [this] {
+            auto ec = make_error_code(error::cancelled);
+            while (!pending_.empty()) {
+                async_call_handler(
+                    pending_.begin()->first,
+                    internal::make_msgpack_object(ec.message()),
+                    ec);
+            }
             maybe_stop_reading();
-        }
-
-        return size;
+        });
     }
 
     template <typename Buffer = msgpack::sbuffer, typename NotifyHandler>
@@ -150,28 +139,41 @@ public:
             std::forward_as_tuple(
                 static_cast<int>(msgpack_rpc_type::request), id, name, args));
 
-        {
-            std::unique_lock lock{mutex_};
-            pending_.try_emplace(
-                id,
-                internal::make_copyable_function(
-                    std::forward<CallHandler>(handler)));
-            maybe_start_reading();
-        }
+        boost::asio::dispatch(
+            call_strand_,
+            [this,
+             self = shared_from_this(),
+             id,
+             handler = std::forward<CallHandler>(handler),
+             packer_buf = std::move(packer_buf)]() mutable {
+                assert(call_strand_.running_in_this_thread());
+                pending_.try_emplace(
+                    id,
+                    internal::make_copyable_function(
+                        std::forward<CallHandler>(handler)));
+                maybe_start_reading();
 
-        async_send(
-            std::move(packer_buf),
-            [this, self = shared_from_this(), id](
-                boost::system::error_code ec, std::size_t length) {
-                if (ec) {
-                    WARN("write error: {}", ec.message());
-                    async_call_handler(
-                        id, internal::make_msgpack_object(ec.message()), ec);
-                }
-                else {
-                    TRACE("write: {}", length);
-                    (void)length;
-                }
+                async_send(
+                    std::move(packer_buf),
+                    [this, self = std::move(self), id](
+                        boost::system::error_code ec, std::size_t length) mutable {
+                        if (ec) {
+                            WARN("write error: {}", ec.message());
+                            boost::asio::dispatch(
+                                call_strand_,
+                                [this, self = std::move(self), ec, id] {
+                                    async_call_handler(
+                                        id,
+                                        internal::make_msgpack_object(
+                                            ec.message()),
+                                        ec);
+                                });
+                        }
+                        else {
+                            TRACE("write: {}", length);
+                            (void)length;
+                        }
+                    });
             });
 
         return id;
@@ -203,6 +205,7 @@ private:
 
     void maybe_stop_reading()
     {
+        assert(call_strand_.running_in_this_thread());
         if (reading_ && pending_.empty()) {
             DEBUG("stop reading");
             boost::system::error_code ec;
@@ -215,6 +218,7 @@ private:
 
     void maybe_start_reading()
     {
+        assert(call_strand_.running_in_this_thread());
         if (!reading_ && !pending_.empty()) {
             DEBUG("start reading");
             internal::set_no_delay(socket_);
@@ -228,35 +232,37 @@ private:
         auto buffer = boost::asio::buffer(
             unpacker->buffer(), unpacker->buffer_capacity());
 
+        assert(call_strand_.running_in_this_thread());
         reading_ = true;
         socket_.async_read_some(
             buffer,
-            [this, self = shared_from_this(), unpacker = std::move(unpacker)](
-                boost::system::error_code ec, size_t length) mutable {
-                std::unique_lock lock{mutex_};
+            boost::asio::bind_executor(
+                call_strand_,
+                [this, self = shared_from_this(), unpacker = std::move(unpacker)](
+                    boost::system::error_code ec, size_t length) mutable {
+                    TRACE("read: {}", length);
+                    unpacker->buffer_consumed(length);
 
-                TRACE("read: {}", length);
-                unpacker->buffer_consumed(length);
-
-                msgpack::object_handle response;
-                while (unpacker->next(response)) {
-                    TRACE("dispatching");
-                    dispatch(std::move(response), ec);
-                }
-
-                // if we were cancelled or there is no error
-                // check if we need to restart reading
-                if (!ec || ec == boost::asio::error::operation_aborted) {
-                    if (!pending_.empty()) {
-                        async_read(std::move(unpacker));
-                        return;
+                    msgpack::object_handle response;
+                    while (unpacker->next(response)) {
+                        TRACE("dispatching");
+                        dispatch(std::move(response), ec);
                     }
-                }
-                else {
-                    WARN("read error: {}", ec.message());
-                }
-                reading_ = false;
-            });
+
+                    // if we were cancelled or there is no error
+                    // check if we need to restart reading
+                    assert(call_strand_.running_in_this_thread());
+                    if (!ec || ec == boost::asio::error::operation_aborted) {
+                        if (!pending_.empty()) {
+                            async_read(std::move(unpacker));
+                            return;
+                        }
+                    }
+                    else {
+                        WARN("read error: {}", ec.message());
+                    }
+                    reading_ = false;
+                }));
     }
 
     void dispatch(msgpack::object_handle response, boost::system::error_code ec)
@@ -281,17 +287,18 @@ private:
         }
     }
 
-    bool async_call_handler(
+    void async_call_handler(
         id_type id,
         msgpack::object_handle result,
         boost::system::error_code ec)
     {
         DEBUG("calling handler for id: {}", id);
 
+        assert(call_strand_.running_in_this_thread());
         auto it = pending_.find(id);
         if (it == pending_.end()) {
             WARN("unexisting id");
-            return false;
+            return;
         }
 
         auto handler = std::move(it->second);
@@ -306,8 +313,6 @@ private:
             [ec, handler = std::move(handler), result = std::move(result)]() mutable {
                 handler(ec, std::move(result));
             });
-
-        return true;
     }
 
     bool verify_reponse(const msgpack::object& response)
@@ -334,7 +339,7 @@ private:
 
     internal::manual_strand<executor_type> wstrand_;
 
-    Mutex mutex_;
+    boost::asio::strand<executor_type> call_strand_;
     Map<id_type, async_call_handler_type> pending_;
     bool reading_{false};
 };

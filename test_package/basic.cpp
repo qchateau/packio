@@ -32,10 +32,7 @@ typedef ::testing::Types<
 #if defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
     std::pair<client<boost::asio::local::stream_protocol>, server<boost::asio::local::stream_protocol>>,
 #endif // defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
-    std::pair<client<boost::asio::ip::tcp, my_unordered_map>, server<boost::asio::ip::tcp>>,
-    std::pair<
-        client<boost::asio::ip::tcp, std::map, std::recursive_mutex>,
-        server<boost::asio::ip::tcp>>>
+    std::pair<client<boost::asio::ip::tcp, my_unordered_map>, server<boost::asio::ip::tcp>>>
     Implementations;
 
 class packio_exception : public std::system_error {
@@ -258,7 +255,7 @@ TYPED_TEST(Test, test_timeout)
         auto f2 = this->template future_call<void>("block");
         assert_blocks(f1);
         assert_blocks(f2);
-        ASSERT_EQ(2ul, this->client_->cancel());
+        this->client_->cancel();
         assert_cancelled(f1);
         assert_cancelled(f2);
     }
@@ -274,14 +271,14 @@ TYPED_TEST(Test, test_timeout)
         auto f2 = this->template future_call<void>(id2, "block");
         assert_blocks(f1);
         assert_blocks(f2);
-        ASSERT_EQ(1ul, this->client_->cancel(id2));
+        this->client_->cancel(id2);
         assert_blocks(f1);
         assert_cancelled(f2);
-        ASSERT_EQ(1ul, this->client_->cancel(id1));
+        this->client_->cancel(id1);
         assert_cancelled(f1);
-        ASSERT_EQ(0ul, this->client_->cancel(id2));
-        ASSERT_EQ(0ul, this->client_->cancel(id1));
-        ASSERT_EQ(0ul, this->client_->cancel(424242));
+        this->client_->cancel(id2);
+        this->client_->cancel(id1);
+        this->client_->cancel(424242);
     }
 
     {
