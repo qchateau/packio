@@ -17,7 +17,7 @@
 namespace packio {
 
 template <typename Protocol, typename Dispatcher = dispatcher<>>
-class server {
+class server : public std::enable_shared_from_this<server<Protocol, Dispatcher>> {
 public:
     using protocol_type = Protocol;
     using dispatcher_type = Dispatcher;
@@ -25,6 +25,7 @@ public:
     using acceptor_type = typename Protocol::acceptor;
     using socket_type = typename Protocol::socket;
     using executor_type = typename boost::asio::io_context::executor_type;
+    using std::enable_shared_from_this<server<Protocol, Dispatcher>>::shared_from_this;
 
     explicit server(acceptor_type acceptor)
         : server{std::move(acceptor), std::make_shared<dispatcher_type>()}
@@ -62,7 +63,9 @@ public:
     {
         TRACE("async_serve");
         acceptor_.async_accept(
-            [this, handler = std::forward<ServerHandler>(handler)](
+            [this,
+             self = shared_from_this(),
+             handler = std::forward<ServerHandler>(handler)](
                 boost::system::error_code ec, socket_type sock) mutable {
                 std::shared_ptr<session_type> session;
                 if (ec) {
@@ -79,7 +82,7 @@ public:
 
     void async_serve_forever()
     {
-        async_serve([this](auto ec, auto session) {
+        async_serve([this, self = shared_from_this()](auto ec, auto session) {
             if (ec) {
                 return;
             }

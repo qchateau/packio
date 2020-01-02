@@ -31,9 +31,11 @@ protected:
     using socket_type = typename Protocol::socket;
     using acceptor_type = typename Protocol::acceptor;
 
-    Server() : server_{acceptor_type(io_, get_endpoint<endpoint_type>())}
+    Server()
+        : server_{std::make_shared<server_type>(
+            acceptor_type(io_, get_endpoint<endpoint_type>()))}
     {
-        server_.async_serve_forever();
+        server_->async_serve_forever();
     }
 
     ~Server()
@@ -53,29 +55,29 @@ protected:
 
     endpoint_type local_endpoint()
     {
-        return server_.acceptor().local_endpoint();
+        return server_->acceptor().local_endpoint();
     }
 
-    std::list<client_type> create_clients(int n)
+    std::vector<std::shared_ptr<client_type>> create_clients(int n)
     {
-        std::list<client_type> clients;
+        std::vector<std::shared_ptr<client_type>> clients;
         for (int i = 0; i < n; ++i) {
-            clients.emplace_back(socket_type{io_});
+            clients.emplace_back(std::make_shared<client_type>(socket_type{io_}));
         }
         return clients;
     }
 
-    std::list<client_type> create_connected_clients(int n)
+    std::vector<std::shared_ptr<client_type>> create_connected_clients(int n)
     {
-        std::list<client_type> clients = create_clients(n);
+        std::vector<std::shared_ptr<client_type>> clients = create_clients(n);
         for (auto& client : clients) {
-            client.socket().connect(local_endpoint());
+            client->socket().connect(local_endpoint());
         }
         return clients;
     }
 
     boost::asio::io_context io_;
-    server_type server_;
+    std::shared_ptr<server_type> server_;
     std::vector<std::thread> runners_;
 };
 
@@ -89,7 +91,7 @@ TYPED_TEST(Server, test_same_func)
 
     latch done{kNCalls * kNClients};
     latch calls{kNCalls * kNClients};
-    this->server_.dispatcher()->add("double", [&](int i) {
+    this->server_->dispatcher()->add("double", [&](int i) {
         calls.count_down();
         return 2 * i;
     });
@@ -97,7 +99,7 @@ TYPED_TEST(Server, test_same_func)
     auto clients = this->create_connected_clients(kNClients);
     for (int i = 0; i < kNCalls; ++i) {
         for (auto& client : clients) {
-            client.async_call(
+            client->async_call(
                 "double", std::make_tuple(42), [&](auto ec, auto result) {
                     ASSERT_FALSE(ec);
                     ASSERT_EQ(84, result->template as<int>());
@@ -119,7 +121,7 @@ TYPED_TEST(Server, test_big_msg)
 
     latch done{kNCalls * kNClients};
     latch calls{kNCalls * kNClients};
-    this->server_.dispatcher()->add("echo", [&](std::string s) {
+    this->server_->dispatcher()->add("echo", [&](std::string s) {
         EXPECT_EQ(big_msg, s);
         calls.count_down();
         return s;
@@ -129,7 +131,7 @@ TYPED_TEST(Server, test_big_msg)
 
     for (int i = 0; i < kNCalls; ++i) {
         for (auto& client : clients) {
-            client.async_call(
+            client->async_call(
                 "echo", std::make_tuple(big_msg), [&](auto ec, auto result) {
                     ASSERT_FALSE(ec);
                     ASSERT_EQ(big_msg, result->template as<std::string>());
@@ -151,7 +153,7 @@ TYPED_TEST(Server, test_many_func)
     latch done{kNCalls * kNClients * 2};
     latch calls{kNCalls * kNClients * 2};
     for (int i = 0; i < kNClients; ++i) {
-        this->server_.dispatcher()->add(std::to_string(i), [&](int n) {
+        this->server_->dispatcher()->add(std::to_string(i), [&](int n) {
             calls.count_down();
             return n;
         });
@@ -164,13 +166,13 @@ TYPED_TEST(Server, test_many_func)
         int j = 0;
         for (auto& client : clients) {
             std::string name = std::to_string(j++);
-            client.async_call(
+            client->async_call(
                 name, std::make_tuple(42), [&](auto ec, auto result) {
                     ASSERT_FALSE(ec);
                     ASSERT_EQ(42, result->template as<int>());
                     done.count_down();
                 });
-            client.async_notify(name, std::make_tuple(42), [&](auto ec) {
+            client->async_notify(name, std::make_tuple(42), [&](auto ec) {
                 ASSERT_FALSE(ec);
                 done.count_down();
             });

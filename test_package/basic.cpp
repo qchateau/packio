@@ -69,8 +69,9 @@ protected:
     using acceptor_type = typename protocol_type::acceptor;
 
     Test()
-        : server_{acceptor_type(io_, get_endpoint<endpoint_type>())},
-          client_{socket_type{io_}}
+        : server_{std::make_shared<server_type>(
+            acceptor_type(io_, get_endpoint<endpoint_type>()))},
+          client_{std::make_shared<client_type>(socket_type{io_})}
     {
     }
 
@@ -89,8 +90,8 @@ protected:
 
     void connect()
     {
-        auto ep = server_.acceptor().local_endpoint();
-        client_.socket().connect(ep);
+        auto ep = server_->acceptor().local_endpoint();
+        client_->socket().connect(ep);
     }
 
     template <typename... Args>
@@ -98,7 +99,7 @@ protected:
     {
         std::promise<void> p;
         auto f = p.get_future();
-        client_.async_notify(
+        client_->async_notify(
             name,
             std::forward_as_tuple(args...),
             [p = std::move(p)](auto ec) mutable {
@@ -125,7 +126,7 @@ protected:
     {
         std::promise<R> p;
         auto f = p.get_future();
-        id = client_.async_call(
+        id = client_->async_call(
             name,
             std::forward_as_tuple(args...),
             [p = std::move(p)](auto ec, auto result) mutable {
@@ -152,8 +153,8 @@ protected:
     }
 
     boost::asio::io_context io_;
-    server_type server_;
-    client_type client_;
+    std::shared_ptr<server_type> server_;
+    std::shared_ptr<client_type> client_;
     std::thread runner_;
 };
 
@@ -162,14 +163,14 @@ TYPED_TEST_CASE(Test, Implementations);
 TYPED_TEST(Test, test_connect)
 {
     this->connect();
-    ASSERT_TRUE(this->client_.socket().is_open());
+    ASSERT_TRUE(this->client_->socket().is_open());
 }
 
 TYPED_TEST(Test, test_typical_usage)
 {
     {
         latch connected{1};
-        this->server_.async_serve([&](auto ec, auto session) {
+        this->server_->async_serve([&](auto ec, auto session) {
             ASSERT_FALSE(ec);
             session->start();
             connected.count_down();
@@ -177,13 +178,13 @@ TYPED_TEST(Test, test_typical_usage)
         this->connect();
         this->async_run();
 
-        ASSERT_TRUE(this->client_.socket().is_open());
+        ASSERT_TRUE(this->client_->socket().is_open());
         ASSERT_TRUE(connected.wait_for(std::chrono::seconds{1}));
     }
 
     std::atomic<int> call_arg_received{0};
     latch call_latch{0};
-    this->server_.dispatcher()->add_async(
+    this->server_->dispatcher()->add_async(
         "echo", [&](completion_handler handler, int i) {
             call_arg_received = i;
             call_latch.count_down();
@@ -213,19 +214,19 @@ TYPED_TEST(Test, test_typical_usage)
 
 TYPED_TEST(Test, test_timeout)
 {
-    this->server_.async_serve_forever();
+    this->server_->async_serve_forever();
     this->connect();
     this->async_run();
 
     std::mutex mtx;
 
     std::list<completion_handler> pending;
-    this->server_.dispatcher()->add_async(
+    this->server_->dispatcher()->add_async(
         "block", [&](completion_handler handler) {
             std::unique_lock l{mtx};
             pending.push_back(std::move(handler));
         });
-    this->server_.dispatcher()->add_async(
+    this->server_->dispatcher()->add_async(
         "unblock", [&](completion_handler handler) {
             std::unique_lock l{mtx};
             for (auto& pending_handler : pending) {
@@ -258,7 +259,7 @@ TYPED_TEST(Test, test_timeout)
         auto f2 = this->template future_call<void>("block");
         assert_blocks(f1);
         assert_blocks(f2);
-        ASSERT_EQ(2ul, this->client_.cancel());
+        ASSERT_EQ(2ul, this->client_->cancel());
         assert_cancelled(f1);
         assert_cancelled(f2);
     }
@@ -274,14 +275,14 @@ TYPED_TEST(Test, test_timeout)
         auto f2 = this->template future_call<void>(id2, "block");
         assert_blocks(f1);
         assert_blocks(f2);
-        ASSERT_EQ(1ul, this->client_.cancel(id2));
+        ASSERT_EQ(1ul, this->client_->cancel(id2));
         assert_blocks(f1);
         assert_cancelled(f2);
-        ASSERT_EQ(1ul, this->client_.cancel(id1));
+        ASSERT_EQ(1ul, this->client_->cancel(id1));
         assert_cancelled(f1);
-        ASSERT_EQ(0ul, this->client_.cancel(id2));
-        ASSERT_EQ(0ul, this->client_.cancel(id1));
-        ASSERT_EQ(0ul, this->client_.cancel(424242));
+        ASSERT_EQ(0ul, this->client_->cancel(id2));
+        ASSERT_EQ(0ul, this->client_->cancel(id1));
+        ASSERT_EQ(0ul, this->client_->cancel(424242));
     }
 
     {
@@ -302,49 +303,49 @@ TYPED_TEST(Test, test_timeout)
 TYPED_TEST(Test, test_functions)
 {
     using tuple_int_str = std::tuple<int, std::string>;
-    this->server_.async_serve_forever();
+    this->server_->async_serve_forever();
     this->connect();
     this->async_run();
 
-    this->server_.dispatcher()->add_async(
+    this->server_->dispatcher()->add_async(
         "async_void_void", [](completion_handler handler) { handler(); });
-    this->server_.dispatcher()->add_async(
+    this->server_->dispatcher()->add_async(
         "async_int_void", [](completion_handler handler) { handler(42); });
-    this->server_.dispatcher()->add_async(
+    this->server_->dispatcher()->add_async(
         "async_void_int", [](completion_handler handler, int) { handler(); });
-    this->server_.dispatcher()->add_async(
+    this->server_->dispatcher()->add_async(
         "async_int_int", [](completion_handler handler, int i) { handler(i); });
-    this->server_.dispatcher()->add_async(
+    this->server_->dispatcher()->add_async(
         "async_int_intref",
         [](completion_handler handler, const int& i) { handler(i); });
-    this->server_.dispatcher()->add_async(
+    this->server_->dispatcher()->add_async(
         "async_int_intref_int",
         [](completion_handler handler, const int& i, int) { handler(i); });
-    this->server_.dispatcher()->add_async(
+    this->server_->dispatcher()->add_async(
         "async_str_str",
         [](completion_handler handler, std::string s) { handler(s); });
-    this->server_.dispatcher()->add_async(
+    this->server_->dispatcher()->add_async(
         "async_str_strref",
         [](completion_handler handler, const std::string& s) { handler(s); });
-    this->server_.dispatcher()->add_async(
+    this->server_->dispatcher()->add_async(
         "async_tuple_int_str",
         [](completion_handler handler, int i, std::string s) {
             handler(std::tuple(i, s));
         });
 
-    this->server_.dispatcher()->add("sync_void_void", []() {});
-    this->server_.dispatcher()->add("sync_int_void", []() { return 42; });
-    this->server_.dispatcher()->add("sync_void_int", [](int) {});
-    this->server_.dispatcher()->add("sync_int_int", [](int i) { return i; });
-    this->server_.dispatcher()->add(
+    this->server_->dispatcher()->add("sync_void_void", []() {});
+    this->server_->dispatcher()->add("sync_int_void", []() { return 42; });
+    this->server_->dispatcher()->add("sync_void_int", [](int) {});
+    this->server_->dispatcher()->add("sync_int_int", [](int i) { return i; });
+    this->server_->dispatcher()->add(
         "sync_int_intref", [](const int& i) { return i; });
-    this->server_.dispatcher()->add(
+    this->server_->dispatcher()->add(
         "sync_int_intref_int", [](const int& i, int) { return i; });
-    this->server_.dispatcher()->add(
+    this->server_->dispatcher()->add(
         "sync_str_str", [](std::string s) { return s; });
-    this->server_.dispatcher()->add(
+    this->server_->dispatcher()->add(
         "sync_str_strref", [](const std::string& s) { return s; });
-    this->server_.dispatcher()->add(
+    this->server_->dispatcher()->add(
         "sync_tuple_int_str",
         [](int i, std::string s) { return std::tuple(i, s); });
 
@@ -390,50 +391,51 @@ TYPED_TEST(Test, test_functions)
 
 TYPED_TEST(Test, test_dispatcher)
 {
-    this->server_.async_serve_forever();
+    this->server_->async_serve_forever();
     this->connect();
     this->async_run();
 
-    ASSERT_TRUE(this->server_.dispatcher()->add_async(
+    ASSERT_TRUE(this->server_->dispatcher()->add_async(
         "f001", [](completion_handler handler) { handler(); }));
-    ASSERT_TRUE(this->server_.dispatcher()->add("f002", []() {}));
+    ASSERT_TRUE(this->server_->dispatcher()->add("f002", []() {}));
 
-    ASSERT_FALSE(this->server_.dispatcher()->add_async(
+    ASSERT_FALSE(this->server_->dispatcher()->add_async(
         "f001", [](completion_handler handler) { handler(); }));
-    ASSERT_FALSE(this->server_.dispatcher()->add_async(
+    ASSERT_FALSE(this->server_->dispatcher()->add_async(
         "f002", [](completion_handler handler) { handler(); }));
-    ASSERT_FALSE(this->server_.dispatcher()->add("f001", []() {}));
-    ASSERT_FALSE(this->server_.dispatcher()->add("f002", []() {}));
+    ASSERT_FALSE(this->server_->dispatcher()->add("f001", []() {}));
+    ASSERT_FALSE(this->server_->dispatcher()->add("f002", []() {}));
 
     this->template future_call<void>("f001").get();
     this->template future_call<void>("f002").get();
 
-    ASSERT_TRUE(this->server_.dispatcher()->has("f001"));
-    ASSERT_TRUE(this->server_.dispatcher()->has("f002"));
-    ASSERT_FALSE(this->server_.dispatcher()->has("f003"));
-    auto known = this->server_.dispatcher()->known();
+    ASSERT_TRUE(this->server_->dispatcher()->has("f001"));
+    ASSERT_TRUE(this->server_->dispatcher()->has("f002"));
+    ASSERT_FALSE(this->server_->dispatcher()->has("f003"));
+    auto known = this->server_->dispatcher()->known();
     ASSERT_EQ(
         (std::set<std::string>{"f001", "f002"}),
         std::set<std::string>(begin(known), end(known)));
 
-    this->server_.dispatcher()->remove("f001");
+    this->server_->dispatcher()->remove("f001");
     ASSERT_THROW(
         this->template future_call<void>("f001").get(), packio_exception);
 
-    ASSERT_FALSE(this->server_.dispatcher()->has("f001"));
-    ASSERT_TRUE(this->server_.dispatcher()->has("f002"));
-    ASSERT_FALSE(this->server_.dispatcher()->has("f003"));
+    ASSERT_FALSE(this->server_->dispatcher()->has("f001"));
+    ASSERT_TRUE(this->server_->dispatcher()->has("f002"));
+    ASSERT_FALSE(this->server_->dispatcher()->has("f003"));
 
-    ASSERT_EQ(1u, this->server_.dispatcher()->clear());
+    ASSERT_EQ(1u, this->server_->dispatcher()->clear());
 
-    ASSERT_FALSE(this->server_.dispatcher()->has("f001"));
-    ASSERT_FALSE(this->server_.dispatcher()->has("f002"));
-    ASSERT_FALSE(this->server_.dispatcher()->has("f003"));
+    ASSERT_FALSE(this->server_->dispatcher()->has("f001"));
+    ASSERT_FALSE(this->server_->dispatcher()->has("f002"));
+    ASSERT_FALSE(this->server_->dispatcher()->has("f003"));
 }
 
 TYPED_TEST(Test, test_special_callables)
 {
-    using session_type = typename decltype(this->server_)::session_type;
+    using session_type = typename decltype(
+        this->server_)::element_type::session_type;
     struct move_only {
         move_only(const move_only&) = delete;
         move_only& operator=(const move_only&) = delete;
@@ -463,25 +465,25 @@ TYPED_TEST(Test, test_special_callables)
 
     this->connect();
 
-    this->server_.dispatcher()->add_async(
+    this->server_->dispatcher()->add_async(
         "move_only_lambda_async_001",
         [ptr = std::unique_ptr<int>{}](completion_handler) {});
-    this->server_.dispatcher()->add(
+    this->server_->dispatcher()->add(
         "move_only_lambda_sync_001", [ptr = std::unique_ptr<int>{}]() {});
 
-    this->server_.dispatcher()->add_async(
+    this->server_->dispatcher()->add_async(
         "move_only_callable_async_001", async_procedure{});
-    this->server_.dispatcher()->add(
+    this->server_->dispatcher()->add(
         "move_only_callable_sync_001", sync_procedure{});
 
-    this->server_.async_serve([ptr = std::unique_ptr<int>{}](auto, auto) {});
-    this->server_.async_serve(serve_handler{});
+    this->server_->async_serve([ptr = std::unique_ptr<int>{}](auto, auto) {});
+    this->server_->async_serve(serve_handler{});
 
-    this->server_.dispatcher()->add("f", sync_procedure{});
-    this->client_.async_notify("f", [ptr = std::unique_ptr<int>{}](auto) {});
-    this->client_.async_notify("f", notify_handler{});
-    this->client_.async_call("f", [ptr = std::unique_ptr<int>{}](auto, auto) {});
-    this->client_.async_call("f", call_handler{});
+    this->server_->dispatcher()->add("f", sync_procedure{});
+    this->client_->async_notify("f", [ptr = std::unique_ptr<int>{}](auto) {});
+    this->client_->async_notify("f", notify_handler{});
+    this->client_->async_call("f", [ptr = std::unique_ptr<int>{}](auto, auto) {});
+    this->client_->async_call("f", call_handler{});
 
     static_assert(std::is_move_assignable_v<completion_handler>);
     static_assert(std::is_move_constructible_v<completion_handler>);
@@ -489,7 +491,7 @@ TYPED_TEST(Test, test_special_callables)
 
 TYPED_TEST(Test, test_response_after_disconnect)
 {
-    this->server_.async_serve_forever();
+    this->server_->async_serve_forever();
     this->connect();
     this->async_run();
 
@@ -497,15 +499,15 @@ TYPED_TEST(Test, test_response_after_disconnect)
     // default-constructible type
     std::promise<std::unique_ptr<completion_handler>> complete_promise;
     auto future = complete_promise.get_future();
-    this->server_.dispatcher()->add_async(
+    this->server_->dispatcher()->add_async(
         "block", [&](completion_handler complete) {
             complete_promise.set_value(
                 std::make_unique<completion_handler>(std::move(complete)));
         });
 
-    this->client_.async_call("block", [&](auto, auto) {});
+    this->client_->async_call("block", [&](auto, auto) {});
     auto complete_ptr = future.get();
-    this->client_.socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both);
+    this->client_->socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both);
     (*complete_ptr)();
 }
 
@@ -517,33 +519,34 @@ TYPED_TEST(Test, test_shared_dispatcher)
     using endpoint_type = typename std::decay_t<decltype(*this)>::endpoint_type;
     using acceptor_type = typename std::decay_t<decltype(*this)>::acceptor_type;
 
-    this->server_.async_serve_forever();
+    this->server_->async_serve_forever();
     this->connect();
     this->async_run();
 
     // server2 is a different server but shares the same dispatcher as server_
-    server_type server2{acceptor_type(this->io_, get_endpoint<endpoint_type>()),
-                        this->server_.dispatcher()};
+    auto server2 = std::make_shared<server_type>(
+        acceptor_type(this->io_, get_endpoint<endpoint_type>()),
+        this->server_->dispatcher());
 
-    client_type client2{socket_type{this->io_}};
+    auto client2 = std::make_shared<client_type>(socket_type{this->io_});
 
-    auto ep = server2.acceptor().local_endpoint();
-    client2.socket().connect(ep);
-    server2.async_serve_forever();
+    auto ep = server2->acceptor().local_endpoint();
+    client2->socket().connect(ep);
+    server2->async_serve_forever();
 
     ASSERT_NE(
-        this->server_.acceptor().local_endpoint(),
-        server2.acceptor().local_endpoint());
+        this->server_->acceptor().local_endpoint(),
+        server2->acceptor().local_endpoint());
 
     latch l{2};
-    ASSERT_TRUE(this->server_.dispatcher()->add_async(
+    ASSERT_TRUE(this->server_->dispatcher()->add_async(
         "inc", [&](completion_handler handler) {
             l.count_down();
             handler();
         }));
 
-    this->client_.async_notify("inc", [](auto ec) { ASSERT_FALSE(ec); });
-    client2.async_notify("inc", [](auto ec) { ASSERT_FALSE(ec); });
+    this->client_->async_notify("inc", [](auto ec) { ASSERT_FALSE(ec); });
+    client2->async_notify("inc", [](auto ec) { ASSERT_FALSE(ec); });
 
     ASSERT_TRUE(l.wait_for(std::chrono::seconds{1}));
 }
@@ -552,20 +555,20 @@ TYPED_TEST(Test, test_errors)
 {
     constexpr auto kErrorMessage{"error message"};
 
-    this->server_.async_serve_forever();
+    this->server_->async_serve_forever();
     this->connect();
     this->async_run();
 
-    ASSERT_TRUE(this->server_.dispatcher()->add_async(
+    ASSERT_TRUE(this->server_->dispatcher()->add_async(
         "error",
         [&](completion_handler handler) { handler.set_error(kErrorMessage); }));
-    ASSERT_TRUE(this->server_.dispatcher()->add_async(
+    ASSERT_TRUE(this->server_->dispatcher()->add_async(
         "empty_error", [](completion_handler handler) { handler.set_error(); }));
-    ASSERT_TRUE(this->server_.dispatcher()->add_async(
+    ASSERT_TRUE(this->server_->dispatcher()->add_async(
         "no_result", [&](completion_handler) {}));
-    ASSERT_TRUE(this->server_.dispatcher()->add_async(
+    ASSERT_TRUE(this->server_->dispatcher()->add_async(
         "add", [](completion_handler handler, int a, int b) { handler(a + b); }));
-    ASSERT_TRUE(this->server_.dispatcher()->add(
+    ASSERT_TRUE(this->server_->dispatcher()->add(
         "add_sync", [](int a, int b) { return a + b; }));
 
     auto assert_error_message =

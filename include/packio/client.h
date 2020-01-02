@@ -8,6 +8,7 @@
 #include <atomic>
 #include <chrono>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <queue>
 #include <string_view>
@@ -23,7 +24,7 @@
 namespace packio {
 
 template <typename Protocol, template <class...> class Map = std::map, typename Mutex = std::mutex>
-class client {
+class client : public std::enable_shared_from_this<client<Protocol, Map, Mutex>> {
 public:
     using protocol_type = Protocol;
     using socket_type = typename protocol_type::socket;
@@ -31,6 +32,7 @@ public:
     using executor_type = typename socket_type::executor_type;
     using async_call_handler_type =
         std::function<void(boost::system::error_code, msgpack::object_handle)>;
+    using std::enable_shared_from_this<client<Protocol, Map, Mutex>>::shared_from_this;
 
     static constexpr size_t kDefaultBufferReserveSize = 4096;
 
@@ -161,7 +163,8 @@ public:
 
         async_send(
             std::move(packer_buf),
-            [this, id](boost::system::error_code ec, std::size_t length) {
+            [this, self = shared_from_this(), id](
+                boost::system::error_code ec, std::size_t length) {
                 if (ec) {
                     WARN("write error: {}", ec.message());
                     async_call_handler(
@@ -182,6 +185,7 @@ private:
     {
         wstrand_.push(internal::make_copyable_function(
             [this,
+             self = shared_from_this(),
              buffer_ptr = std::move(buffer_ptr),
              handler = std::forward<WriteHandler>(handler)]() mutable {
                 auto buffer = internal::buffer_to_asio(*buffer_ptr);
@@ -189,6 +193,7 @@ private:
                     socket_,
                     buffer,
                     [this,
+                     self = std::move(self),
                      buffer_ptr = std::move(buffer_ptr),
                      handler = std::forward<WriteHandler>(handler)](
                         boost::system::error_code ec, size_t length) mutable {
@@ -217,7 +222,7 @@ private:
 
         socket_.async_read_some(
             buffer,
-            [this, unpacker = std::move(unpacker)](
+            [this, self = shared_from_this(), unpacker = std::move(unpacker)](
                 boost::system::error_code ec, size_t length) mutable {
                 if (ec) {
                     WARN("read error: {}", ec.message());

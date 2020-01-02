@@ -15,10 +15,11 @@ int main(int argc, char** argv)
 
     boost::asio::io_context io;
     ip::tcp::endpoint bind_ep{ip::make_address("127.0.0.1"), 0};
-    packio::server<ip::tcp> server{ip::tcp::acceptor{io, bind_ep}};
-    packio::client<ip::tcp> client{ip::tcp::socket{io}};
+    auto server = std::make_shared<packio::server<ip::tcp>>(
+        ip::tcp::acceptor{io, bind_ep});
+    auto client = std::make_shared<packio::client<ip::tcp>>(ip::tcp::socket{io});
 
-    server.dispatcher()->add_async(
+    server->dispatcher()->add_async(
         "fibonacci", [&](packio::completion_handler complete, int n) {
             if (n == 0) {
                 complete(0);
@@ -27,14 +28,14 @@ int main(int argc, char** argv)
                 complete(1);
             }
             else {
-                client.async_call(
+                client->async_call(
                     "fibonacci",
                     std::make_tuple(n - 1),
                     [=, &client, complete = std::move(complete)](
                         boost::system::error_code,
                         msgpack::object_handle result1) mutable {
                         int r1 = result1->as<int>();
-                        client.async_call(
+                        client->async_call(
                             "fibonacci",
                             std::make_tuple(n - 2),
                             [=, complete = std::move(complete)](
@@ -47,12 +48,12 @@ int main(int argc, char** argv)
             }
         });
 
-    client.socket().connect(server.acceptor().local_endpoint());
-    server.async_serve_forever();
+    client->socket().connect(server->acceptor().local_endpoint());
+    server->async_serve_forever();
 
     std::optional<int> result;
 
-    client.async_call(
+    client->async_call(
         "fibonacci",
         std::make_tuple(n),
         [&](boost::system::error_code, msgpack::object_handle r) {
