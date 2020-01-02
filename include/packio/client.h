@@ -224,10 +224,6 @@ private:
 
                 for (msgpack::object_handle response; unpacker->next(response);) {
                     TRACE("dispatching");
-                    // handle the response asynchronously (post)
-                    // to schedule the next read immediately
-                    // this will allow parallel response handling
-                    // in multi-threaded environments
                     dispatch(std::move(response), ec);
                 }
 
@@ -275,6 +271,10 @@ private:
         pending_.erase(it);
         lock.unlock();
 
+        // handle the response asynchronously (post)
+        // to schedule the next read immediately
+        // this will allow parallel response handling
+        // in multi-threaded environments
         boost::asio::post(
             socket_.get_executor(),
             [ec, handler = std::move(handler), result = std::move(result)]() mutable {
