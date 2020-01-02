@@ -96,6 +96,10 @@ matrix:
         - CONAN_GCC_VERSIONS=9
         - CONAN_DOCKER_IMAGE=conanio/gcc9
         - CONAN_OPTIONS=loglevel=trace
+      script:
+        - chmod +x .ci/run.sh
+        # redirect logs to dev/null otherwise the job gets killed
+        - ./.ci/run.sh 2>&1 > /dev/null
 
 install:
   - chmod +x .ci/install.sh
