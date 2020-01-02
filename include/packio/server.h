@@ -37,16 +37,6 @@ public:
     {
     }
 
-    ~server()
-    {
-        boost::system::error_code ec;
-        acceptor_.cancel(ec);
-        if (ec) {
-            WARN("cancel failed: {}", ec.message());
-        }
-        INFO("stopped server");
-    }
-
     acceptor_type& acceptor() { return acceptor_; }
     const acceptor_type& acceptor() const { return acceptor_; }
 

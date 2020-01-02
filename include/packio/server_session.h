@@ -36,16 +36,6 @@ public:
         INFO("starting session {:p}", fmt::ptr(this));
     }
 
-    ~server_session()
-    {
-        boost::system::error_code ec;
-        socket_.cancel(ec);
-        if (ec) {
-            WARN("cancel failed: {}", ec.message());
-        }
-        INFO("stopped session {:p}", fmt::ptr(this));
-    }
-
     socket_type& socket() { return socket_; }
     const socket_type& socket() const { return socket_; }
 

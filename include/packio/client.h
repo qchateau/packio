@@ -41,16 +41,6 @@ public:
     {
     }
 
-    ~client()
-    {
-        boost::system::error_code ec;
-        socket_.cancel(ec);
-        if (ec) {
-            WARN("cancel failed: {}", ec.message());
-        }
-        INFO("stopped client");
-    }
-
     socket_type& socket() { return socket_; }
     const socket_type& socket() const { return socket_; }
 
