@@ -147,28 +147,31 @@ public:
              id,
              handler = std::forward<CallHandler>(handler),
              packer_buf = std::move(packer_buf)]() mutable {
+                // we must emplace the id and handler before sending data
+                // otherwise we might drop a fast response
                 assert(call_strand_.running_in_this_thread());
                 pending_.try_emplace(
                     id,
                     internal::make_copyable_function(
                         std::forward<CallHandler>(handler)));
-                maybe_start_reading();
 
+                // if we are not reading, start the read operation
+                if (!reading_) {
+                    DEBUG("start reading");
+                    async_read(std::make_unique<msgpack::unpacker>());
+                }
+
+                // send the request buffer
                 async_send(
                     std::move(packer_buf),
                     [this, self = std::move(self), id](
                         boost::system::error_code ec, std::size_t length) mutable {
                         if (ec) {
                             WARN("write error: {}", ec.message());
-                            boost::asio::dispatch(
-                                call_strand_,
-                                [this, self = std::move(self), ec, id] {
-                                    async_call_handler(
-                                        id,
-                                        internal::make_msgpack_object(
-                                            ec.message()),
-                                        ec);
-                                });
+                            async_call_handler(
+                                id,
+                                internal::make_msgpack_object(ec.message()),
+                                ec);
                         }
                         else {
                             TRACE("write: {}", length);
@@ -181,6 +184,19 @@ public:
     }
 
 private:
+    void maybe_stop_reading()
+    {
+        assert(call_strand_.running_in_this_thread());
+        if (reading_ && pending_.empty()) {
+            DEBUG("stop reading");
+            boost::system::error_code ec;
+            socket_.cancel(ec);
+            if (ec) {
+                WARN("cancel failed: {}", ec.message());
+            }
+        }
+    }
+
     template <typename Buffer, typename WriteHandler>
     void async_send(std::unique_ptr<Buffer> buffer_ptr, WriteHandler&& handler)
     {
@@ -205,28 +221,6 @@ private:
             }));
     }
 
-    void maybe_stop_reading()
-    {
-        assert(call_strand_.running_in_this_thread());
-        if (reading_ && pending_.empty()) {
-            DEBUG("stop reading");
-            boost::system::error_code ec;
-            socket_.cancel(ec);
-            if (ec) {
-                WARN("cancel failed: {}", ec.message());
-            }
-        }
-    }
-
-    void maybe_start_reading()
-    {
-        assert(call_strand_.running_in_this_thread());
-        if (!reading_ && !pending_.empty()) {
-            DEBUG("start reading");
-            async_read(std::make_unique<msgpack::unpacker>());
-        }
-    }
-
     void async_read(std::unique_ptr<msgpack::unpacker> unpacker)
     {
         unpacker->reserve_buffer(buffer_reserve_size_);
@@ -235,6 +229,7 @@ private:
 
         assert(call_strand_.running_in_this_thread());
         reading_ = true;
+        TRACE("reading ... {} call(s) pending", pending_.size());
         socket_.async_read_some(
             buffer,
             boost::asio::bind_executor(
@@ -246,27 +241,29 @@ private:
 
                     msgpack::object_handle response;
                     while (unpacker->next(response)) {
-                        TRACE("dispatching");
-                        dispatch(std::move(response), ec);
+                        process_response(std::move(response), ec);
                     }
 
-                    // if we were cancelled or there is no error
-                    // check if we need to restart reading
+                    // stop if there is an error or there is no more pending calls
                     assert(call_strand_.running_in_this_thread());
-                    if (!ec || ec == boost::asio::error::operation_aborted) {
-                        if (!pending_.empty()) {
-                            async_read(std::move(unpacker));
-                            return;
-                        }
-                    }
-                    else {
+
+                    if (ec && ec != boost::asio::error::operation_aborted) {
                         WARN("read error: {}", ec.message());
+                        reading_ = false;
+                        return;
                     }
-                    reading_ = false;
+
+                    if (pending_.empty()) {
+                        TRACE("done reading, no more pending calls");
+                        reading_ = false;
+                        return;
+                    }
+
+                    async_read(std::move(unpacker));
                 }));
     }
 
-    void dispatch(msgpack::object_handle response, boost::system::error_code ec)
+    void process_response(msgpack::object_handle response, boost::system::error_code ec)
     {
         if (!verify_reponse(response.get())) {
             ERROR("received unexpected response");
@@ -293,26 +290,31 @@ private:
         msgpack::object_handle result,
         boost::system::error_code ec)
     {
-        DEBUG("calling handler for id: {}", id);
+        boost::asio::dispatch(
+            call_strand_, [this, ec, id, result = std::move(result)]() mutable {
+                DEBUG("calling handler for id: {}", id);
 
-        assert(call_strand_.running_in_this_thread());
-        auto it = pending_.find(id);
-        if (it == pending_.end()) {
-            WARN("unexisting id");
-            return;
-        }
+                assert(call_strand_.running_in_this_thread());
+                auto it = pending_.find(id);
+                if (it == pending_.end()) {
+                    WARN("unexisting id");
+                    return;
+                }
 
-        auto handler = std::move(it->second);
-        pending_.erase(it);
+                auto handler = std::move(it->second);
+                pending_.erase(it);
 
-        // handle the response asynchronously (post)
-        // to schedule the next read immediately
-        // this will allow parallel response handling
-        // in multi-threaded environments
-        boost::asio::post(
-            socket_.get_executor(),
-            [ec, handler = std::move(handler), result = std::move(result)]() mutable {
-                handler(ec, std::move(result));
+                // handle the response asynchronously (post)
+                // to schedule the next read immediately
+                // this will allow parallel response handling
+                // in multi-threaded environments
+                boost::asio::post(
+                    socket_.get_executor(),
+                    [ec,
+                     handler = std::move(handler),
+                     result = std::move(result)]() mutable {
+                        handler(ec, std::move(result));
+                    });
             });
     }
 
