@@ -33,7 +33,6 @@ public:
           dispatcher_ptr_{std::move(dispatcher_ptr)},
           wstrand_{socket_.get_executor()}
     {
-        INFO("starting session {:p}", fmt::ptr(this));
     }
 
     socket_type& socket() { return socket_; }

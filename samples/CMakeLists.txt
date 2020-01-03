@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.12)
-project(UnitTests CXX)
+project(Samples CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -14,10 +14,11 @@ else ()
 endif ()
 
 add_definitions(-DBOOST_ASIO_NO_DEPRECATED=1)
-if (WITH_LOGS)
+if (PACKIO_LOGGING)
+    string(TOUPPER "${PACKIO_LOGGING}" LOGLEVEL)
     add_definitions(-DPACKIO_LOGGING=1)
-    add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_TRACE)
-    message(STATUS "Building with logs")
+    add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${LOGLEVEL})
+    message(STATUS "Building with logs: ${LOGLEVEL}")
 endif ()
 set(CMAKE_CXX_STANDARD 17)
 

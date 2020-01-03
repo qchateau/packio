@@ -3,7 +3,6 @@
 #include <future>
 
 #include <gtest/gtest.h>
-#include <spdlog/spdlog.h>
 
 #include <packio/client.h>
 #include <packio/server.h>
@@ -185,7 +184,10 @@ TYPED_TEST(Server, test_many_func)
 
 int main(int argc, char** argv)
 {
-    ::spdlog::default_logger()->set_level(::spdlog::level::trace);
+#if defined(PACKIO_LOGGING) && PACKIO_LOGGING
+    ::spdlog::default_logger()->set_level(
+        static_cast<::spdlog::level::level_enum>(SPDLOG_ACTIVE_LEVEL));
+#endif
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

@@ -90,7 +90,7 @@ matrix:
         - CONAN_DOCKER_IMAGE=conanio/gcc9
         - CPT_TEST_FOLDER=samples
 
-    # Test options
+    # Test logs
     - <<: *linux
       env:
         - CONAN_GCC_VERSIONS=8
@@ -98,8 +98,8 @@ matrix:
         - CONAN_OPTIONS=loglevel=trace
       script:
         - chmod +x .ci/run.sh
-        # redirect logs to dev/null otherwise the job gets killed
-        - ./.ci/run.sh 2>&1 > /dev/null
+        # grep-out logs otherwise the job gets killed
+        - ./.ci/run.sh | grep -E -v '\[[a-z]+\]'
 
 install:
   - chmod +x .ci/install.sh
