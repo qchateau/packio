@@ -21,31 +21,28 @@ int main(int argc, char** argv)
 
     server->dispatcher()->add_async(
         "fibonacci", [&](packio::completion_handler complete, int n) {
-            if (n == 0) {
-                complete(0);
+            if (n <= 1) {
+                complete(n);
+                return;
             }
-            else if (n == 1) {
-                complete(1);
-            }
-            else {
-                client->async_call(
-                    "fibonacci",
-                    std::make_tuple(n - 1),
-                    [=, &client, complete = std::move(complete)](
-                        boost::system::error_code,
-                        msgpack::object_handle result1) mutable {
-                        int r1 = result1->as<int>();
-                        client->async_call(
-                            "fibonacci",
-                            std::make_tuple(n - 2),
-                            [=, complete = std::move(complete)](
-                                boost::system::error_code,
-                                msgpack::object_handle result2) mutable {
-                                int r2 = result2->as<int>();
-                                complete(r1 + r2);
-                            });
-                    });
-            }
+
+            client->async_call(
+                "fibonacci",
+                std::tuple(n - 1),
+                [=, &client, complete = std::move(complete)](
+                    boost::system::error_code,
+                    msgpack::object_handle result1) mutable {
+                    int r1 = result1->as<int>();
+                    client->async_call(
+                        "fibonacci",
+                        std::tuple(n - 2),
+                        [=, complete = std::move(complete)](
+                            boost::system::error_code,
+                            msgpack::object_handle result2) mutable {
+                            int r2 = result2->as<int>();
+                            complete(r1 + r2);
+                        });
+                });
         });
 
     client->socket().connect(server->acceptor().local_endpoint());

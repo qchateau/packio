@@ -68,7 +68,8 @@ public:
 
     void cancel()
     {
-        boost::asio::dispatch(call_strand_, [this] {
+        boost::asio::dispatch(call_strand_, [this, self = shared_from_this()] {
+            assert(call_strand_.running_in_this_thread());
             auto ec = make_error_code(error::cancelled);
             while (!pending_.empty()) {
                 async_call_handler(
