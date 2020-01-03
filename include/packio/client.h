@@ -188,6 +188,7 @@ private:
              self = shared_from_this(),
              buffer_ptr = std::move(buffer_ptr),
              handler = std::forward<WriteHandler>(handler)]() mutable {
+                internal::set_no_delay(socket_);
                 auto buffer = internal::buffer_to_asio(*buffer_ptr);
                 boost::asio::async_write(
                     socket_,
@@ -221,7 +222,6 @@ private:
         assert(call_strand_.running_in_this_thread());
         if (!reading_ && !pending_.empty()) {
             DEBUG("start reading");
-            internal::set_no_delay(socket_);
             async_read(std::make_unique<msgpack::unpacker>());
         }
     }
