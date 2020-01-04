@@ -70,7 +70,7 @@ private:
     void complete(error err, msgpack::object_handle result)
     {
         handler_(make_error_code(err), std::move(result));
-        handler_ = function_type{};
+        handler_ = nullptr;
     }
     function_type handler_;
 };
