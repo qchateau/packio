@@ -28,7 +28,7 @@ int main(int, char**)
     // Run the io_context
     std::thread thread{[&] { io.run(); }};
 
-    // Make an asynchronous calls
+    // Make an asynchronous call
     std::promise<int> add_result, multiply_result;
     client->async_call(
         "add",
@@ -37,12 +37,13 @@ int main(int, char**)
             add_result.set_value(r->as<int>());
         });
 
+    // Use as<> wrapper to hide result type conversion
     client->async_call(
         "multiply",
         std::make_tuple(42, 24),
-        [&](boost::system::error_code, msgpack::object_handle r) {
-            multiply_result.set_value(r->as<int>());
-        });
+        packio::as<int>([&](boost::system::error_code, std::optional<int> r) {
+            multiply_result.set_value(*r);
+        }));
 
     std::cout << "42 + 24 = " << add_result.get_future().get() << std::endl;
     std::cout << "42 * 24 = " << multiply_result.get_future().get() << std::endl;

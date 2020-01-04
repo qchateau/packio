@@ -15,7 +15,8 @@ enum class error {
     unknown_function,
     communication_failure,
     cancelled,
-    call_error
+    call_error,
+    bad_result_type
 };
 
 struct packio_error_category : boost::system::error_category {
@@ -35,6 +36,8 @@ struct packio_error_category : boost::system::error_category {
             return "Cancelled";
         case error::call_error:
             return "Call error";
+        case error::bad_result_type:
+            return "Bad result type";
         default:
             return "Unrecognized error";
         }

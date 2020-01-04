@@ -1,6 +1,7 @@
 #ifndef PACKIO_PACKIO_H
 #define PACKIO_PACKIO_H
 
+#include "as.h"
 #include "client.h"
 #include "dispatcher.h"
 #include "error_code.h"
