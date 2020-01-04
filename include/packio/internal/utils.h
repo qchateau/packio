@@ -7,6 +7,7 @@
 
 #include <sstream>
 #include <string_view>
+#include <type_traits>
 #include <vector>
 
 #include <boost/asio.hpp>
@@ -17,8 +18,13 @@
 namespace packio {
 namespace internal {
 
+template <typename, typename = void>
+struct func_traits : std::false_type {
+};
+
 template <typename T>
-struct func_traits : func_traits<decltype(&std::decay_t<T>::operator())> {
+struct func_traits<T, std::void_t<decltype(&std::decay_t<T>::operator())>>
+    : func_traits<decltype(&std::decay_t<T>::operator())> {
 };
 
 template <typename C, typename R, typename... Args>
@@ -30,10 +36,13 @@ struct func_traits<R (C::*)(Args...) const> : func_traits<R (*)(Args...)> {
 };
 
 template <typename R, typename... Args>
-struct func_traits<R (*)(Args...)> {
+struct func_traits<R (*)(Args...)> : std::true_type {
     using result_type = R;
     using args_type = std::tuple<Args...>;
 };
+
+template <typename T>
+constexpr bool func_traits_v = func_traits<T>::value;
 
 template <typename T>
 struct shift_tuple;

@@ -30,18 +30,24 @@ public:
     using function_ptr_type = std::shared_ptr<function_type>;
     using map_type = Map<std::string, function_ptr_type>;
 
-    template <typename F>
-    bool add(std::string_view name, F&& fct)
+    template <typename SyncProcedure>
+    bool add(std::string_view name, SyncProcedure&& fct)
     {
+        ASSERT_TRAIT(SyncProcedure);
         std::unique_lock lock{map_mutex_};
-        return function_map_.emplace(name, wrap_sync(std::forward<F>(fct))).second;
+        return function_map_
+            .emplace(name, wrap_sync(std::forward<SyncProcedure>(fct)))
+            .second;
     }
 
-    template <typename F>
-    bool add_async(std::string_view name, F&& fct)
+    template <typename AsyncProcedure>
+    bool add_async(std::string_view name, AsyncProcedure&& fct)
     {
+        ASSERT_TRAIT(AsyncProcedure);
         std::unique_lock lock{map_mutex_};
-        return function_map_.emplace(name, wrap_async(std::forward<F>(fct))).second;
+        return function_map_
+            .emplace(name, wrap_async(std::forward<AsyncProcedure>(fct)))
+            .second;
     }
 
     bool remove(const std::string& name)
