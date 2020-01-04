@@ -16,7 +16,6 @@
 
 #include "error_code.h"
 #include "handler.h"
-#include "internal/traits.h"
 #include "internal/unique_function.h"
 #include "internal/utils.h"
 
