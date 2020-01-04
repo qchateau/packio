@@ -18,7 +18,7 @@ namespace packio {
 namespace internal {
 
 template <typename T>
-struct func_traits : func_traits<decltype(&std::decay<T>::type::operator())> {
+struct func_traits : func_traits<decltype(&std::decay_t<T>::operator())> {
 };
 
 template <typename C, typename R, typename... Args>
