@@ -428,6 +428,62 @@ TYPED_TEST(Test, test_dispatcher)
     ASSERT_FALSE(this->server_->dispatcher()->has("f003"));
 }
 
+TYPED_TEST(Test, test_end_of_work)
+{
+    using client_type = typename std::decay_t<decltype(*this)>::client_type;
+    using socket_type = typename std::decay_t<decltype(*this)>::socket_type;
+
+    this->server_->async_serve_forever();
+    std::vector<completion_handler> pending;
+    this->server_->dispatcher()->add("func", []() {});
+    this->server_->dispatcher()->add_async(
+        "block", [&](completion_handler c) { pending.push_back(std::move(c)); });
+    this->async_run();
+
+    auto ep = this->server_->acceptor().local_endpoint();
+
+    boost::asio::io_context io;
+    auto client = std::make_shared<client_type>(socket_type{io});
+    client->socket().connect(ep);
+
+    // client runs out of work if there is no pending calls
+    io.run_for(std::chrono::seconds{1});
+    ASSERT_TRUE(io.stopped());
+
+    // client runs out of work after a notify
+    io.restart();
+    client->async_notify("func", [](auto) {});
+    ASSERT_FALSE(io.stopped());
+    io.run_for(std::chrono::seconds{1});
+    ASSERT_TRUE(io.stopped());
+
+    // client runs out of work after a call
+    io.restart();
+    client->async_call("func", [](auto, auto) {});
+    ASSERT_FALSE(io.stopped());
+    io.run_for(std::chrono::seconds{1});
+    ASSERT_TRUE(io.stopped());
+
+    // client runs out of work after a cancelled call
+    io.restart();
+    auto id = client->async_call("block", [](auto, auto) {});
+    io.run_for(std::chrono::milliseconds{10});
+    ASSERT_FALSE(io.stopped());
+    client->cancel(id);
+    io.run_for(std::chrono::seconds{1});
+    ASSERT_TRUE(io.stopped());
+
+    // client runs out of work after multiple cancelled calls
+    io.restart();
+    client->async_call("block", [](auto, auto) {});
+    client->async_call("block", [](auto, auto) {});
+    io.run_for(std::chrono::milliseconds{10});
+    ASSERT_FALSE(io.stopped());
+    client->cancel();
+    io.run_for(std::chrono::seconds{1});
+    ASSERT_TRUE(io.stopped());
+}
+
 TYPED_TEST(Test, test_special_callables)
 {
     using session_type = typename decltype(
