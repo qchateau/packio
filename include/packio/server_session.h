@@ -211,31 +211,30 @@ private:
 
     void async_send_message(std::unique_ptr<message_type> message_ptr)
     {
-        wstrand_.push(internal::make_copyable_function(
-            [this,
-             self = shared_from_this(),
-             message_ptr = std::move(message_ptr)]() mutable {
-                auto buffer = internal::buffer_to_asio(
-                    std::get<buffer_type>(*message_ptr));
-                boost::asio::async_write(
-                    socket_,
-                    buffer,
-                    [this,
-                     self = std::move(self),
-                     message_ptr = std::move(message_ptr)](
-                        boost::system::error_code ec, size_t length) {
-                        wstrand_.next();
+        wstrand_.push([this,
+                       self = shared_from_this(),
+                       message_ptr = std::move(message_ptr)]() mutable {
+            auto buffer = internal::buffer_to_asio(
+                std::get<buffer_type>(*message_ptr));
+            boost::asio::async_write(
+                socket_,
+                buffer,
+                [this,
+                 self = std::move(self),
+                 message_ptr = std::move(message_ptr)](
+                    boost::system::error_code ec, size_t length) {
+                    wstrand_.next();
 
-                        if (ec) {
-                            WARN("write error: {}", ec.message());
-                            close_connection();
-                            return;
-                        }
+                    if (ec) {
+                        WARN("write error: {}", ec.message());
+                        close_connection();
+                        return;
+                    }
 
-                        TRACE("write: {}", length);
-                        (void)length;
-                    });
-            }));
+                    TRACE("write: {}", length);
+                    (void)length;
+                });
+        });
     };
 
     void close_connection()

@@ -200,25 +200,24 @@ private:
     template <typename Buffer, typename WriteHandler>
     void async_send(std::unique_ptr<Buffer> buffer_ptr, WriteHandler&& handler)
     {
-        wstrand_.push(internal::make_copyable_function(
-            [this,
-             self = shared_from_this(),
-             buffer_ptr = std::move(buffer_ptr),
-             handler = std::forward<WriteHandler>(handler)]() mutable {
-                internal::set_no_delay(socket_);
-                auto buffer = internal::buffer_to_asio(*buffer_ptr);
-                boost::asio::async_write(
-                    socket_,
-                    buffer,
-                    [this,
-                     self = std::move(self),
-                     buffer_ptr = std::move(buffer_ptr),
-                     handler = std::forward<WriteHandler>(handler)](
-                        boost::system::error_code ec, size_t length) mutable {
-                        wstrand_.next();
-                        handler(ec, length);
-                    });
-            }));
+        wstrand_.push([this,
+                       self = shared_from_this(),
+                       buffer_ptr = std::move(buffer_ptr),
+                       handler = std::forward<WriteHandler>(handler)]() mutable {
+            internal::set_no_delay(socket_);
+            auto buffer = internal::buffer_to_asio(*buffer_ptr);
+            boost::asio::async_write(
+                socket_,
+                buffer,
+                [this,
+                 self = std::move(self),
+                 buffer_ptr = std::move(buffer_ptr),
+                 handler = std::forward<WriteHandler>(handler)](
+                    boost::system::error_code ec, size_t length) mutable {
+                    wstrand_.next();
+                    handler(ec, length);
+                });
+        });
     }
 
     void async_read(std::unique_ptr<msgpack::unpacker> unpacker)

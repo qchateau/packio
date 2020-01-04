@@ -8,13 +8,15 @@
 #include <queue>
 #include <boost/asio.hpp>
 
+#include "unique_function.h"
+
 namespace packio {
 namespace internal {
 
 template <typename Executor>
 class manual_strand {
 public:
-    using function_type = std::function<void()>;
+    using function_type = unique_function<void()>;
 
     manual_strand(const Executor& executor) : strand_{executor} {}
 
