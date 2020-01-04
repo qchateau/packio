@@ -18,6 +18,7 @@
 #include "error_code.h"
 #include "internal/manual_strand.h"
 #include "internal/msgpack_rpc.h"
+#include "internal/unique_function.h"
 #include "internal/utils.h"
 
 namespace packio {
@@ -29,8 +30,8 @@ public:
     using socket_type = typename protocol_type::socket;
     using endpoint_type = typename protocol_type::endpoint;
     using executor_type = typename socket_type::executor_type;
-    using async_call_handler_type =
-        std::function<void(boost::system::error_code, msgpack::object_handle)>;
+    using async_call_handler_type = internal::unique_function<
+        void(boost::system::error_code, msgpack::object_handle)>;
     using std::enable_shared_from_this<client<Protocol, Map>>::shared_from_this;
 
     static constexpr size_t kDefaultBufferReserveSize = 4096;
@@ -150,10 +151,7 @@ public:
                 // we must emplace the id and handler before sending data
                 // otherwise we might drop a fast response
                 assert(call_strand_.running_in_this_thread());
-                pending_.try_emplace(
-                    id,
-                    internal::make_copyable_function(
-                        std::forward<CallHandler>(handler)));
+                pending_.try_emplace(id, std::forward<CallHandler>(handler));
 
                 // if we are not reading, start the read operation
                 if (!reading_) {
