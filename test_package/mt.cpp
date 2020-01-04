@@ -4,8 +4,7 @@
 
 #include <gtest/gtest.h>
 
-#include <packio/client.h>
-#include <packio/server.h>
+#include <packio/packio.h>
 
 #include "misc.h"
 

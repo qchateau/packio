@@ -65,8 +65,7 @@ Let's compute fibonacci's numbers recursively using packio on a single thread.
 ```cpp
 #include <iostream>
 #include <boost/asio.hpp>
-#include <packio/client.h>
-#include <packio/server.h>
+#include <packio/packio.h>
 
 namespace ip = boost::asio::ip;
 

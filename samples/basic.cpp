@@ -1,7 +1,6 @@
 #include <iostream>
 
-#include <packio/client.h>
-#include <packio/server.h>
+#include <packio/packio.h>
 
 namespace ip = boost::asio::ip;
 
