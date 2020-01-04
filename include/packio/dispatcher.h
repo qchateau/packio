@@ -21,12 +21,14 @@
 
 namespace packio {
 
-template <typename mutex = std::mutex>
+template <template <class...> class Map, typename Lockable>
 class dispatcher {
 public:
+    using mutex_type = Lockable;
     using function_type =
         internal::unique_function<void(completion_handler, const msgpack::object&)>;
     using function_ptr_type = std::shared_ptr<function_type>;
+    using map_type = Map<std::string, function_ptr_type>;
 
     template <typename F>
     bool add(std::string_view name, F&& fct)
@@ -156,9 +158,11 @@ private:
             });
     }
 
-    mutable mutex map_mutex_;
-    std::unordered_map<std::string, function_ptr_type> function_map_;
+    mutable mutex_type map_mutex_;
+    map_type function_map_;
 };
+
+using default_dispatcher = dispatcher<std::unordered_map, std::mutex>;
 
 } // packio
 

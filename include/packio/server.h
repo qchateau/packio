@@ -16,7 +16,7 @@
 
 namespace packio {
 
-template <typename Protocol, typename Dispatcher = dispatcher<>>
+template <typename Protocol, typename Dispatcher = default_dispatcher>
 class server : public std::enable_shared_from_this<server<Protocol, Dispatcher>> {
 public:
     using protocol_type = Protocol;

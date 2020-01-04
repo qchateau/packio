@@ -18,6 +18,20 @@ template <typename T>
 struct my_allocator : public std::allocator<T> {
 };
 
+class my_spinlock {
+public:
+    void lock()
+    {
+        while (locked_.exchange(true)) {
+        }
+    }
+
+    void unlock() { locked_ = false; }
+
+private:
+    std::atomic<bool> locked_{false};
+};
+
 template <typename Key, typename T>
 using my_unordered_map = std::unordered_map<
     Key,
@@ -27,10 +41,13 @@ using my_unordered_map = std::unordered_map<
     my_allocator<std::pair<const Key, T>>>;
 
 typedef ::testing::Types<
-    std::pair<client<boost::asio::ip::tcp>, server<boost::asio::ip::tcp>>,
 #if defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
     std::pair<client<boost::asio::local::stream_protocol>, server<boost::asio::local::stream_protocol>>,
 #endif // defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
+    std::pair<client<boost::asio::ip::tcp>, server<boost::asio::ip::tcp>>,
+    std::pair<
+        client<boost::asio::ip::tcp>,
+        server<boost::asio::ip::tcp, dispatcher<std::map, my_spinlock>>>,
     std::pair<client<boost::asio::ip::tcp, my_unordered_map>, server<boost::asio::ip::tcp>>>
     Implementations;
 
