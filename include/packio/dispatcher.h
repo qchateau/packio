@@ -17,6 +17,7 @@
 #include "error_code.h"
 #include "handler.h"
 #include "internal/traits.h"
+#include "internal/unique_function.h"
 #include "internal/utils.h"
 
 namespace packio {
@@ -25,7 +26,7 @@ template <typename mutex = std::mutex>
 class dispatcher {
 public:
     using function_type =
-        std::function<void(completion_handler, const msgpack::object&)>;
+        internal::unique_function<void(completion_handler, const msgpack::object&)>;
     using function_ptr_type = std::shared_ptr<function_type>;
 
     template <typename F>
@@ -91,16 +92,15 @@ public:
 
 private:
     template <typename F>
-    function_ptr_type wrap_sync(F&& in_fct)
+    function_ptr_type wrap_sync(F&& fct)
     {
         using value_args =
             internal::decay_tuple_t<typename internal::func_traits<F>::args_type>;
         using result_type = typename internal::func_traits<F>::result_type;
 
-        auto fct = internal::make_copyable_function(std::forward<F>(in_fct));
         return std::make_shared<function_type>(
-            [fct = std::move(fct)](
-                completion_handler handler, const msgpack::object& args) {
+            [fct = std::forward<F>(fct)](
+                completion_handler handler, const msgpack::object& args) mutable {
                 if (args.via.array.size != std::tuple_size_v<value_args>) {
                     // keep this check otherwise msgpack unpacker
                     // may silently drop arguments
@@ -126,15 +126,14 @@ private:
     }
 
     template <typename F>
-    function_ptr_type wrap_async(F&& in_fct)
+    function_ptr_type wrap_async(F&& fct)
     {
         using args = typename internal::func_traits<F>::args_type;
         using value_args = internal::decay_tuple_t<internal::shift_tuple_t<args>>;
 
-        auto fct = internal::make_copyable_function(std::forward<F>(in_fct));
         return std::make_shared<function_type>(
-            [fct = std::move(fct)](
-                completion_handler handler, const msgpack::object& args) {
+            [fct = std::forward<F>(fct)](
+                completion_handler handler, const msgpack::object& args) mutable {
                 if (args.via.array.size != std::tuple_size_v<value_args>) {
                     // keep this check otherwise msgpack unpacker
                     // may silently drop arguments
