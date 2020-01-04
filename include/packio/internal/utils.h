@@ -57,38 +57,14 @@ struct decay_tuple<std::tuple<Args...>> {
 template <typename T>
 using decay_tuple_t = typename decay_tuple<T>::type;
 
-template <typename T>
-struct asio_buffer {
-    using type = const T&;
-};
-
-template <>
-struct asio_buffer<msgpack::sbuffer> {
-    using type = boost::asio::const_buffer;
-};
-
-template <>
-struct asio_buffer<msgpack::vrefbuffer> {
-    using type = std::vector<boost::asio::const_buffer>;
-};
-
-template <typename Buffer>
-inline typename asio_buffer<Buffer>::type buffer_to_asio(const Buffer& buffer)
-{
-    return buffer;
-}
-
-template <>
-inline asio_buffer<msgpack::sbuffer>::type buffer_to_asio(const msgpack::sbuffer& buf)
+inline boost::asio::const_buffer buffer(const msgpack::sbuffer& buf)
 {
     return boost::asio::const_buffer(buf.data(), buf.size());
 }
 
-template <>
-inline asio_buffer<msgpack::vrefbuffer>::type buffer_to_asio(
-    const msgpack::vrefbuffer& buf)
+inline std::vector<boost::asio::const_buffer> buffer(const msgpack::vrefbuffer& buf)
 {
-    typename asio_buffer<msgpack::vrefbuffer>::type vec;
+    std::vector<boost::asio::const_buffer> vec;
     vec.reserve(buf.vector_size());
     const struct iovec* iov = buf.vector();
     for (std::size_t i = 0; i < buf.vector_size(); ++i) {

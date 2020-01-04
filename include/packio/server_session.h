@@ -214,11 +214,12 @@ private:
         wstrand_.push([this,
                        self = shared_from_this(),
                        message_ptr = std::move(message_ptr)]() mutable {
-            auto buffer = internal::buffer_to_asio(
-                std::get<buffer_type>(*message_ptr));
+            using internal::buffer;
+
+            auto buf = buffer(std::get<buffer_type>(*message_ptr));
             boost::asio::async_write(
                 socket_,
-                buffer,
+                buf,
                 [this,
                  self = std::move(self),
                  message_ptr = std::move(message_ptr)](

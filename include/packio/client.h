@@ -202,11 +202,14 @@ private:
                        self = shared_from_this(),
                        buffer_ptr = std::move(buffer_ptr),
                        handler = std::forward<WriteHandler>(handler)]() mutable {
+            using internal::buffer;
+
             internal::set_no_delay(socket_);
-            auto buffer = internal::buffer_to_asio(*buffer_ptr);
+
+            auto buf = buffer(*buffer_ptr);
             boost::asio::async_write(
                 socket_,
-                buffer,
+                buf,
                 [this,
                  self = std::move(self),
                  buffer_ptr = std::move(buffer_ptr),
