@@ -11,8 +11,9 @@ class PackioConan(ConanFile):
         "boost": "ANY",
         "msgpack": "ANY",
         "loglevel": [None, "trace", "debug", "info", "warn", "error"],
+        "rtti": [True, False]
     }
-    default_options = {"boost": None, "msgpack": None, "loglevel": None}
+    default_options = {"boost": None, "msgpack": None, "loglevel": None, "rtti": True}
 
     def requirements(self):
         if self.options.boost:
@@ -27,6 +28,8 @@ class PackioConan(ConanFile):
         defs = dict()
         if self.options.loglevel:
             defs["PACKIO_LOGGING"] = self.options.loglevel
+        if not self.options.rtti:
+            defs["PACKIO_NO_RTTI"] = "1"
         cmake.configure(defs=defs)
         cmake.build()
 
