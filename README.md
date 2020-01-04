@@ -12,30 +12,25 @@ The library is still under development and is therefore subject heavy API change
 // Declare a server and a client, sharing the same io_context
 boost::asio::io_context io;
 ip::tcp::endpoint bind_ep{ip::make_address("127.0.0.1"), 0};
-packio::server<ip::tcp> server{ip::tcp::acceptor{io, bind_ep}};
-packio::client<ip::tcp> client{ip::tcp::socket{io}};
+auto server = std::make_shared<packio::server<ip::tcp>>(ip::tcp::acceptor{io, bind_ep});
+auto client = std::make_shared<packio::client<ip::tcp>>(ip::tcp::socket{io});
 ```
 
 ```cpp
 // Declare a synchronous callback
-server.dispatcher()->add("add", [](int a, int b) { return a+b; });
+server->dispatcher()->add("add", [](int a, int b) { return a + b; });
 // Declare an asynchronous callback
-server.dispatcher()->add_async("multiply",
-    [&](packio::completion_handler complete, int a, int b) {
-        complete(a*b);
+server->dispatcher()->add_async(
+    "multiply", [](packio::completion_handler complete, int a, int b) {
+        complete(a * b);
     });
 ```
 
 ```cpp
+// Accept connections forever
+server.async_serve_forever();
 // Connect the client
 client.socket().connect(server.acceptor().local_endpoint());
-// Accept connections
-server.async_serve_forever();
-// Run the io_context
-std::thread thread{[&] { io.run(); }};
-```
-
-```cpp
 // Make an asynchronous call
 client.async_call("add", std::make_tuple(42, 24),
     [&](boost::system::error_code, msgpack::object r) {
@@ -85,56 +80,54 @@ int main(int argc, char** argv)
 
     boost::asio::io_context io;
     ip::tcp::endpoint bind_ep{ip::make_address("127.0.0.1"), 0};
-    packio::server<ip::tcp> server{ip::tcp::acceptor{io, bind_ep}};
-    packio::client<ip::tcp> client{ip::tcp::socket{io}};
+    auto server = std::make_shared<packio::server<ip::tcp>>(
+        ip::tcp::acceptor{io, bind_ep});
+    auto client = std::make_shared<packio::client<ip::tcp>>(ip::tcp::socket{io});
 
-    server.dispatcher()->add_async(
+    server->dispatcher()->add_async(
         "fibonacci", [&](packio::completion_handler complete, int n) {
-            if (n == 0) {
-                complete(0);
+            if (n <= 1) {
+                complete(n);
+                return;
             }
-            else if (n == 1) {
-                complete(1);
-            }
-            else {
-                client.async_call(
-                    "fibonacci",
-                    std::make_tuple(n - 1),
-                    [=, &client, complete = std::move(complete)](
-                        boost::system::error_code,
-                        msgpack::object result1) mutable {
-                        int r1 = result1.as<int>();
-                        client.async_call(
-                            "fibonacci",
-                            std::make_tuple(n - 2),
-                            [=, complete = std::move(complete)](
-                                boost::system::error_code,
-                                msgpack::object result2) mutable {
-                                int r2 = result2.as<int>();
-                                complete(r1 + r2);
-                            });
-                    });
-            }
+
+            client->async_call(
+                "fibonacci",
+                std::tuple(n - 1),
+                [=, &client, complete = std::move(complete)](
+                    boost::system::error_code,
+                    msgpack::object_handle result1) mutable {
+                    int r1 = result1->as<int>();
+                    client->async_call(
+                        "fibonacci",
+                        std::tuple(n - 2),
+                        [=, complete = std::move(complete)](
+                            boost::system::error_code,
+                            msgpack::object_handle result2) mutable {
+                            int r2 = result2->as<int>();
+                            complete(r1 + r2);
+                        });
+                });
         });
 
-    client.socket().connect(server.acceptor().local_endpoint());
-    server.async_serve_forever();
+    client->socket().connect(server->acceptor().local_endpoint());
+    server->async_serve_forever();
 
-    std::optional<int> result;
+    int result = 0;
 
-    client.async_call(
+    client->async_call(
         "fibonacci",
         std::make_tuple(n),
-        [&](boost::system::error_code, msgpack::object r) {
-            result = r.as<int>();
+        [&](boost::system::error_code, msgpack::object_handle r) {
+            result = r->as<int>();
+            io.stop();
         });
 
-    while (!result) {
-        io.run_one();
-    }
+    io.run();
 
-    std::cout << "F{" << n << "} = " << *result << std::endl;
+    std::cout << "F{" << n << "} = " << result << std::endl;
 
     return 0;
 }
+
 ```
