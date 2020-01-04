@@ -222,7 +222,7 @@ TYPED_TEST(Test, test_as)
 
         this->client_->async_call(
             "add",
-            std::tuple(12, 21),
+            std::tuple{12, 21},
             as<int>(
                 [&done](boost::system::error_code ec, std::optional<int> result) {
                     ASSERT_FALSE(ec);
@@ -242,7 +242,7 @@ TYPED_TEST(Test, test_as)
 
         this->client_->async_call(
             "add",
-            std::tuple("hello", "you"),
+            std::tuple<std::string, std::string>{"hello", "you"},
             as<int>(
                 [&done](boost::system::error_code ec, std::optional<int> result) {
                     ASSERT_EQ(::packio::error::call_error, ec);
@@ -262,7 +262,7 @@ TYPED_TEST(Test, test_as)
 
         this->client_->async_call(
             "add",
-            std::tuple(12, 21),
+            std::tuple{12, 21},
             as<std::string>([&done](
                                 boost::system::error_code ec,
                                 std::optional<std::string> result) {
@@ -395,7 +395,7 @@ TYPED_TEST(Test, test_functions)
     this->server_->dispatcher()->add_async(
         "async_tuple_int_str",
         [](completion_handler handler, int i, std::string s) {
-            handler(std::tuple(i, s));
+            handler(std::tuple{i, s});
         });
 
     this->server_->dispatcher()->add("sync_void_void", []() {});
@@ -411,8 +411,9 @@ TYPED_TEST(Test, test_functions)
     this->server_->dispatcher()->add(
         "sync_str_strref", [](const std::string& s) { return s; });
     this->server_->dispatcher()->add(
-        "sync_tuple_int_str",
-        [](int i, std::string s) { return std::tuple(i, s); });
+        "sync_tuple_int_str", [](int i, std::string s) {
+            return std::tuple{i, s};
+        });
 
     ASSERT_NO_THROW(this->template future_call<void>("async_void_void").get());
     ASSERT_EQ(42, this->template future_call<int>("async_int_void").get());

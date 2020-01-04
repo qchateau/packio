@@ -27,14 +27,14 @@ int main(int argc, char** argv)
 
             client->async_call(
                 "fibonacci",
-                std::tuple(n - 1),
+                std::tuple{n - 1},
                 [=, &client, complete = std::move(complete)](
                     boost::system::error_code,
                     msgpack::object_handle result1) mutable {
                     int r1 = result1->as<int>();
                     client->async_call(
                         "fibonacci",
-                        std::tuple(n - 2),
+                        std::tuple{n - 2},
                         [=, complete = std::move(complete)](
                             boost::system::error_code,
                             msgpack::object_handle result2) mutable {
