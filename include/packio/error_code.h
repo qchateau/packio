@@ -5,6 +5,7 @@
 #ifndef PACKIO_ERROR_CODE_H
 #define PACKIO_ERROR_CODE_H
 
+#include <type_traits>
 #include <boost/system/error_code.hpp>
 
 namespace packio {
@@ -44,39 +45,20 @@ struct packio_error_category : boost::system::error_category {
     }
 };
 
-inline const boost::system::error_category& packio_category()
-{
-    static packio_error_category cat;
-    return cat;
-}
-
 inline boost::system::error_code make_error_code(error e)
 {
-    return {static_cast<int>(e), packio_category()};
-}
-
-inline bool operator==(boost::system::error_code lhs, error rhs)
-{
-    return lhs.value() == static_cast<int>(rhs)
-           && dynamic_cast<const packio_error_category*>(&lhs.category());
-}
-
-inline bool operator==(error lhs, boost::system::error_code rhs)
-{
-    return rhs.value() == static_cast<int>(lhs)
-           && dynamic_cast<const packio_error_category*>(&rhs.category());
-}
-
-inline bool operator!=(error lhs, boost::system::error_code rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bool operator!=(boost::system::error_code lhs, error rhs)
-{
-    return !(lhs == rhs);
+    static constexpr packio_error_category category;
+    return {static_cast<int>(e), category};
 }
 
 } // packio
+
+namespace boost::system {
+
+template <>
+struct is_error_code_enum<packio::error> : std::true_type {
+};
+
+} // boost::system
 
 #endif // PACKIO_ERROR_CODE_H
