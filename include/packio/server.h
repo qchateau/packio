@@ -11,6 +11,7 @@
 
 #include "dispatcher.h"
 #include "internal/log.h"
+#include "internal/traits.h"
 #include "internal/utils.h"
 #include "server_session.h"
 
@@ -51,6 +52,7 @@ public:
     template <typename ServerHandler>
     void async_serve(ServerHandler&& handler)
     {
+        ASSERT_TTRAIT(ServerHandler, session_type);
         TRACE("async_serve");
         acceptor_.async_accept(
             [this,

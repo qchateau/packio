@@ -6,6 +6,7 @@
 #include <msgpack.hpp>
 
 #include "error_code.h"
+#include "internal/traits.h"
 #include "internal/utils.h"
 
 namespace packio {
@@ -13,6 +14,7 @@ namespace packio {
 template <typename Result, typename AsCallHandler>
 auto as(AsCallHandler&& handler)
 {
+    ASSERT_TTRAIT(AsCallHandler, Result);
     return [handler = std::forward<AsCallHandler>(handler)](
                boost::system::error_code ec,
                msgpack::object_handle result) mutable {

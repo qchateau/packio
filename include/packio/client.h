@@ -18,6 +18,7 @@
 #include "error_code.h"
 #include "internal/manual_strand.h"
 #include "internal/msgpack_rpc.h"
+#include "internal/traits.h"
 #include "internal/unique_function.h"
 #include "internal/utils.h"
 
@@ -95,6 +96,7 @@ public:
         std::tuple<Args...> args,
         NotifyHandler&& handler)
     {
+        ASSERT_TRAIT(NotifyHandler);
         DEBUG("async_notify: {}", name);
 
         auto packer_buf = std::make_unique<Buffer>();
@@ -132,6 +134,7 @@ public:
         std::tuple<Args...> args,
         CallHandler&& handler)
     {
+        ASSERT_TRAIT(CallHandler);
         DEBUG("async_call: {}", name);
 
         auto id = id_.fetch_add(1, std::memory_order_acq_rel);
