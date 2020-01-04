@@ -28,14 +28,21 @@ server->dispatcher()->add_async(
 
 ```cpp
 // Accept connections forever
-server.async_serve_forever();
+server->async_serve_forever();
 // Connect the client
-client.socket().connect(server.acceptor().local_endpoint());
+client->socket().connect(server.acceptor().local_endpoint());
 // Make an asynchronous call
-client.async_call("add", std::make_tuple(42, 24),
+client->async_call("add", std::make_tuple(42, 24),
     [&](boost::system::error_code, msgpack::object r) {
         std::cout << "The result is: " << r.as<int>() << std::endl;
     });
+// Use as<> wrapper to hide result type conversion
+client->async_call(
+    "multiply",
+    std::make_tuple(42, 24),
+    packio::as<int>([&](boost::system::error_code, std::optional<int> r) {
+        multiply_result.set_value(*r);
+    }));
 ```
 
 ## Requirements
@@ -92,14 +99,14 @@ int main(int argc, char** argv)
 
             client->async_call(
                 "fibonacci",
-                std::tuple(n - 1),
+                std::tuple{n - 1},
                 [=, &client, complete = std::move(complete)](
                     boost::system::error_code,
                     msgpack::object_handle result1) mutable {
                     int r1 = result1->as<int>();
                     client->async_call(
                         "fibonacci",
-                        std::tuple(n - 2),
+                        std::tuple{n - 2},
                         [=, complete = std::move(complete)](
                             boost::system::error_code,
                             msgpack::object_handle result2) mutable {
