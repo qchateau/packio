@@ -96,7 +96,7 @@ public:
         NotifyHandler&& handler)
     {
         ASSERT_TRAIT(NotifyHandler);
-        DEBUG("async_notify: {}", name);
+        PACKIO_DEBUG("async_notify: {}", name);
 
         auto packer_buf = std::make_unique<Buffer>();
         msgpack::pack(
@@ -109,10 +109,10 @@ public:
             [handler = std::forward<NotifyHandler>(handler)](
                 boost::system::error_code ec, std::size_t length) mutable {
                 if (ec) {
-                    WARN("write error: {}", ec.message());
+                    PACKIO_WARN("write error: {}", ec.message());
                 }
                 else {
-                    TRACE("write: {}", length);
+                    PACKIO_TRACE("write: {}", length);
                     (void)length;
                 }
 
@@ -134,7 +134,7 @@ public:
         CallHandler&& handler)
     {
         ASSERT_TRAIT(CallHandler);
-        DEBUG("async_call: {}", name);
+        PACKIO_DEBUG("async_call: {}", name);
 
         auto id = id_.fetch_add(1, std::memory_order_acq_rel);
         auto packer_buf = std::make_unique<Buffer>();
@@ -157,7 +157,7 @@ public:
 
                 // if we are not reading, start the read operation
                 if (!reading_) {
-                    DEBUG("start reading");
+                    PACKIO_DEBUG("start reading");
                     async_read(std::make_unique<msgpack::unpacker>());
                 }
 
@@ -167,14 +167,14 @@ public:
                     [this, self = std::move(self), id](
                         boost::system::error_code ec, std::size_t length) mutable {
                         if (ec) {
-                            WARN("write error: {}", ec.message());
+                            PACKIO_WARN("write error: {}", ec.message());
                             async_call_handler(
                                 id,
                                 internal::make_msgpack_object(ec.message()),
                                 ec);
                         }
                         else {
-                            TRACE("write: {}", length);
+                            PACKIO_TRACE("write: {}", length);
                             (void)length;
                         }
                     });
@@ -188,11 +188,11 @@ private:
     {
         assert(call_strand_.running_in_this_thread());
         if (reading_ && pending_.empty()) {
-            DEBUG("stop reading");
+            PACKIO_DEBUG("stop reading");
             boost::system::error_code ec;
             socket_.cancel(ec);
             if (ec) {
-                WARN("cancel failed: {}", ec.message());
+                PACKIO_WARN("cancel failed: {}", ec.message());
             }
         }
     }
@@ -231,14 +231,14 @@ private:
 
         assert(call_strand_.running_in_this_thread());
         reading_ = true;
-        TRACE("reading ... {} call(s) pending", pending_.size());
+        PACKIO_TRACE("reading ... {} call(s) pending", pending_.size());
         socket_.async_read_some(
             buffer,
             boost::asio::bind_executor(
                 call_strand_,
                 [this, self = shared_from_this(), unpacker = std::move(unpacker)](
                     boost::system::error_code ec, size_t length) mutable {
-                    TRACE("read: {}", length);
+                    PACKIO_TRACE("read: {}", length);
                     unpacker->buffer_consumed(length);
 
                     msgpack::object_handle response;
@@ -250,13 +250,13 @@ private:
                     assert(call_strand_.running_in_this_thread());
 
                     if (ec && ec != boost::asio::error::operation_aborted) {
-                        WARN("read error: {}", ec.message());
+                        PACKIO_WARN("read error: {}", ec.message());
                         reading_ = false;
                         return;
                     }
 
                     if (pending_.empty()) {
-                        TRACE("done reading, no more pending calls");
+                        PACKIO_TRACE("done reading, no more pending calls");
                         reading_ = false;
                         return;
                     }
@@ -268,7 +268,7 @@ private:
     void process_response(msgpack::object_handle response, boost::system::error_code ec)
     {
         if (!verify_reponse(response.get())) {
-            ERROR("received unexpected response");
+            PACKIO_ERROR("received unexpected response");
             return;
         }
 
@@ -294,12 +294,12 @@ private:
     {
         boost::asio::dispatch(
             call_strand_, [this, ec, id, result = std::move(result)]() mutable {
-                DEBUG("calling handler for id: {}", id);
+                PACKIO_DEBUG("calling handler for id: {}", id);
 
                 assert(call_strand_.running_in_this_thread());
                 auto it = pending_.find(id);
                 if (it == pending_.end()) {
-                    WARN("unexisting id");
+                    PACKIO_WARN("unexisting id");
                     return;
                 }
 
@@ -323,16 +323,16 @@ private:
     bool verify_reponse(const msgpack::object& response)
     {
         if (response.type != msgpack::type::ARRAY) {
-            ERROR("unexpected message type: {}", response.type);
+            PACKIO_ERROR("unexpected message type: {}", response.type);
             return false;
         }
         if (response.via.array.size != 4) {
-            ERROR("unexpected message size: {}", response.via.array.size);
+            PACKIO_ERROR("unexpected message size: {}", response.via.array.size);
             return false;
         }
         int type = response.via.array.ptr[0].as<int>();
         if (type != static_cast<int>(msgpack_rpc_type::response)) {
-            ERROR("unexpected type: {}", type);
+            PACKIO_ERROR("unexpected type: {}", type);
             return false;
         }
         return true;

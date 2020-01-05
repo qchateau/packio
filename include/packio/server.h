@@ -53,7 +53,7 @@ public:
     void async_serve(ServerHandler&& handler)
     {
         ASSERT_TTRAIT(ServerHandler, session_type);
-        TRACE("async_serve");
+        PACKIO_TRACE("async_serve");
         acceptor_.async_accept(
             [this,
              self = shared_from_this(),
@@ -61,7 +61,7 @@ public:
                 boost::system::error_code ec, socket_type sock) mutable {
                 std::shared_ptr<session_type> session;
                 if (ec) {
-                    WARN("accept error: {}", ec.message());
+                    PACKIO_WARN("accept error: {}", ec.message());
                 }
                 else {
                     internal::set_no_delay(sock);

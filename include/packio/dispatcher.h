@@ -111,7 +111,7 @@ private:
                 if (args.via.array.size != std::tuple_size_v<value_args>) {
                     // keep this check otherwise msgpack unpacker
                     // may silently drop arguments
-                    DEBUG("incompatible argument count");
+                    PACKIO_DEBUG("incompatible argument count");
                     handler.set_error("Incompatible arguments");
                     return;
                 }
@@ -126,7 +126,7 @@ private:
                     }
                 }
                 catch (msgpack::type_error&) {
-                    DEBUG("incompatible arguments");
+                    PACKIO_DEBUG("incompatible arguments");
                     handler.set_error("Incompatible arguments");
                 }
             });
@@ -144,7 +144,7 @@ private:
                 if (args.via.array.size != std::tuple_size_v<value_args>) {
                     // keep this check otherwise msgpack unpacker
                     // may silently drop arguments
-                    DEBUG("incompatible argument count");
+                    PACKIO_DEBUG("incompatible argument count");
                     handler.set_error("Incompatible arguments");
                     return;
                 }
@@ -158,7 +158,7 @@ private:
                         args.as<value_args>());
                 }
                 catch (msgpack::type_error&) {
-                    DEBUG("incompatible arguments");
+                    PACKIO_DEBUG("incompatible arguments");
                     handler.set_error("Incompatible arguments");
                 }
             });

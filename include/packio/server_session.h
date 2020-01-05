@@ -67,12 +67,12 @@ private:
             [this, self = shared_from_this(), unpacker = std::move(unpacker)](
                 boost::system::error_code ec, size_t length) mutable {
                 if (ec) {
-                    WARN("read error: {}", ec.message());
+                    PACKIO_WARN("read error: {}", ec.message());
                     close_connection();
                     return;
                 }
 
-                TRACE("read: {}", length);
+                PACKIO_TRACE("read: {}", length);
                 unpacker->buffer_consumed(length);
 
                 for (msgpack::object_handle call; unpacker->next(call);) {
@@ -108,18 +108,18 @@ private:
             [this, type = call->type, id = call->id, self = shared_from_this()](
                 boost::system::error_code ec, msgpack::object_handle result) {
                 if (type == msgpack_rpc_type::request) {
-                    TRACE("result: {}", ec.message());
+                    PACKIO_TRACE("result: {}", ec.message());
                     async_send_result(id, ec, std::move(result));
                 }
             };
 
         const auto function = dispatcher_ptr_->get(call->name);
         if (function) {
-            TRACE("call: {} (id={})", call->name, call->id);
+            PACKIO_TRACE("call: {} (id={})", call->name, call->id);
             (*function)(completion_handler, call->args);
         }
         else {
-            DEBUG("unknown function {}", call->name);
+            PACKIO_DEBUG("unknown function {}", call->name);
             completion_handler(make_error_code(error::unknown_function), {});
         }
     }
@@ -127,7 +127,7 @@ private:
     std::optional<Call> parse_call(const msgpack::object& call)
     {
         if (call.type != msgpack::type::ARRAY || call.via.array.size < 3) {
-            ERROR("unexpected message type: {}", call.type);
+            PACKIO_ERROR("unexpected message type: {}", call.type);
             return std::nullopt;
         }
 
@@ -147,12 +147,12 @@ private:
                 expected_size = 3;
                 break;
             default:
-                ERROR("unexpected type: {}", type);
+                PACKIO_ERROR("unexpected type: {}", type);
                 return std::nullopt;
             }
 
             if (call.via.array.size != expected_size) {
-                ERROR("unexpected message size: {}", call.via.array.size);
+                PACKIO_ERROR("unexpected message size: {}", call.via.array.size);
                 return std::nullopt;
             }
 
@@ -162,7 +162,7 @@ private:
             return Call{type, id, name, args};
         }
         catch (msgpack::type_error& exc) {
-            ERROR("unexpected message content: {}", exc.what());
+            PACKIO_ERROR("unexpected message content: {}", exc.what());
             (void)exc;
             return std::nullopt;
         }
@@ -227,12 +227,12 @@ private:
                     wstrand_.next();
 
                     if (ec) {
-                        WARN("write error: {}", ec.message());
+                        PACKIO_WARN("write error: {}", ec.message());
                         close_connection();
                         return;
                     }
 
-                    TRACE("write: {}", length);
+                    PACKIO_TRACE("write: {}", length);
                     (void)length;
                 });
         });
@@ -243,7 +243,7 @@ private:
         boost::system::error_code ec;
         socket_.close(ec);
         if (ec) {
-            WARN("close error: {}", ec.message());
+            PACKIO_WARN("close error: {}", ec.message());
         }
     }
 
