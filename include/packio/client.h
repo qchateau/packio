@@ -29,7 +29,6 @@ class client : public std::enable_shared_from_this<client<Protocol, Map>> {
 public:
     using protocol_type = Protocol;
     using socket_type = typename protocol_type::socket;
-    using endpoint_type = typename protocol_type::endpoint;
     using executor_type = typename socket_type::executor_type;
     using async_call_handler_type = internal::unique_function<
         void(boost::system::error_code, msgpack::object_handle)>;
