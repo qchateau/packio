@@ -3,7 +3,7 @@ from conans import ConanFile
 
 class PackioConan(ConanFile):
     name = "packio"
-    version = "0.5.0"
+    version = "0.6.0"
     license = "MPL2"
     author = "Quentin Chateau <quentin.chateau@gmail.com>"
     url = "https://github.com/qchateau/packio"
