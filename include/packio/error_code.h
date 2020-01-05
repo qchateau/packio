@@ -5,19 +5,22 @@
 #ifndef PACKIO_ERROR_CODE_H
 #define PACKIO_ERROR_CODE_H
 
+//! @file
+//! Enum @ref packio::error "error"
+
 #include <type_traits>
 #include <boost/system/error_code.hpp>
 
 namespace packio {
 
+//! The error codes enumeration
 enum class error {
-    success = 0,
-    error_during_call,
-    unknown_function,
-    communication_failure,
-    cancelled,
-    call_error,
-    bad_result_type
+    success = 0, //!< Success
+    error_during_call, //!< An error happened during the call, server-side error
+    unknown_procedure, //!< The procedure name is unknown, server-side error
+    cancelled, //!< The operation has been cancelled
+    call_error, //!< An error happened during the call
+    bad_result_type //!< The result type is not as expected
 };
 
 struct error_category : boost::system::error_category {
@@ -29,10 +32,8 @@ struct error_category : boost::system::error_category {
             return "Success";
         case error::error_during_call:
             return "Error during call";
-        case error::unknown_function:
+        case error::unknown_procedure:
             return "Unknown function";
-        case error::communication_failure:
-            return "Communication failure";
         case error::cancelled:
             return "Cancelled";
         case error::call_error:

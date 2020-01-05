@@ -5,6 +5,9 @@
 #ifndef PACKIO_TRAITS_H
 #define PACKIO_TRAITS_H
 
+//! @file
+//! Traits definition
+
 #include <type_traits>
 #include <utility>
 #include <boost/asio.hpp>
@@ -65,29 +68,58 @@ template <bool condition>
 struct Trait : std::integral_constant<bool, condition> {
 };
 
+//! NotifyHandler trait
+//!
+//! Handler used by @ref client::async_notify
+//! - Must be callable with a boost::system::error_code
 template <typename T>
 struct NotifyHandler : Trait<std::is_invocable_v<T, boost::system::error_code>> {
 };
 
+//! CallHandler trait
+//!
+//! Handler used by @ref client::async_call
+//! - Must be callable with boost::system::error_code, msgpack::object_handle
 template <typename T>
 struct CallHandler
     : Trait<std::is_invocable_v<T, boost::system::error_code, msgpack::object_handle>> {
 };
 
+//! AsCallHandler
+//!
+//! Handler wrapped by @ref as<T> \n
+//! - Must be callable with boost::system::error_code, std::optional<T>
 template <typename T, typename Result>
 struct AsCallHandler
     : Trait<std::is_invocable_v<T, boost::system::error_code, std::optional<Result>>> {
 };
 
+//! ServeHandler trait
+//!
+//! Handler used by @ref server::async_serve
+//! - Must be callable with
+//! boost::system::error_code, std::shared_ptr<@ref server::session_type "session_type">
 template <typename T, typename Session>
-struct ServerHandler
+struct ServeHandler
     : Trait<std::is_invocable_v<T, boost::system::error_code, std::shared_ptr<Session>>> {
 };
 
+//! AsyncProcedure trait
+//!
+//! Procedure registered with @ref dispatcher::add_async
+//! - Must be callable with @ref completion_handler as first argument.
+//! - No overload resolution can be performed.
+//! - The other arguments must be msgpack-able and will be used as the procedure's arguments.
 template <typename T>
 struct AsyncProcedure : Trait<details::AsyncProcedureImpl<T>::value> {
 };
 
+//! SyncProcedure trait
+//!
+//! Procedure registered with @ref dispatcher::add
+//! - Must be callable.
+//! - No overload resolution can be performed.
+//! - The arguments must be msgpack-able and will be used as the procedure's arguments.
 template <typename T>
 struct SyncProcedure : Trait<details::SyncProcedureImpl<T>::value> {
 };

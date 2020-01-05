@@ -5,6 +5,9 @@
 #ifndef PACKIO_CLIENT_H
 #define PACKIO_CLIENT_H
 
+//! @file
+//! Class @ref packio::client "client"
+
 #include <atomic>
 #include <chrono>
 #include <map>
@@ -24,18 +27,23 @@
 
 namespace packio {
 
+//! The client class
+//! @tparam Protocol Protocol to use for this client, use a boost::asio protocol
+//! @tparam Map Container used to associate call IDs and handlers
 template <typename Protocol, template <class...> class Map = std::map>
 class client : public std::enable_shared_from_this<client<Protocol, Map>> {
 public:
-    using protocol_type = Protocol;
-    using socket_type = typename protocol_type::socket;
-    using executor_type = typename socket_type::executor_type;
-    using async_call_handler_type = internal::unique_function<
-        void(boost::system::error_code, msgpack::object_handle)>;
+    using protocol_type = Protocol; //!< The protocol type
+    using socket_type = typename protocol_type::socket; //!< The socket type
+    using executor_type =
+        typename socket_type::executor_type; //!< The executor type
     using std::enable_shared_from_this<client<Protocol, Map>>::shared_from_this;
 
+    //! The default size reserved by the reception buffer
     static constexpr size_t kDefaultBufferReserveSize = 4096;
 
+    //! The constructor
+    //! @param socket The socket which the client will use. Can be connected or not
     explicit client(socket_type socket)
         : socket_{std::move(socket)},
           wstrand_{socket_.get_executor()},
@@ -43,20 +51,29 @@ public:
     {
     }
 
-    socket_type& socket() { return socket_; }
-    const socket_type& socket() const { return socket_; }
+    //! Get the underlying socket
+    socket_type& socket() noexcept { return socket_; }
+    //! Get the underlying socket, const
+    const socket_type& socket() const noexcept { return socket_; }
 
+    //! Set the size reserved by the reception buffer
     void set_buffer_reserve_size(std::size_t size) noexcept
     {
         buffer_reserve_size_ = size;
     }
+    //! Get the size reserved by the reception buffer
     std::size_t get_buffer_reserve_size() const noexcept
     {
         return buffer_reserve_size_;
     }
 
+    //! Get the executor associated with the object
     executor_type get_executor() { return socket().get_executor(); }
 
+    //! Cancel a pending call
+    //!
+    //! The associated handler will be called with @ref error::cancelled
+    //! @param id The call ID of the call to cancel
     void cancel(id_type id)
     {
         boost::asio::dispatch(call_strand_, [this, self = shared_from_this(), id] {
@@ -67,6 +84,9 @@ public:
         });
     }
 
+    //! Cancel all pending calls
+    //!
+    //! The associated handlers will be called with @ref error::cancelled
     void cancel()
     {
         boost::asio::dispatch(call_strand_, [this, self = shared_from_this()] {
@@ -82,13 +102,17 @@ public:
         });
     }
 
-    template <typename Buffer = msgpack::sbuffer, typename NotifyHandler>
-    void async_notify(std::string_view name, NotifyHandler&& handler)
-    {
-        return async_notify<Buffer>(
-            name, std::tuple<>{}, std::forward<NotifyHandler>(handler));
-    }
-
+    //! Send a notify request to the server with argument
+    //!
+    //! A notify request will call the remote procedure but
+    //! does not expect a response
+    //! @tparam Buffer Buffer used to serialize the arguments. Recommended:
+    //! - msgpack::sbuffer is an owning buffer \n
+    //! - msgpack::vrefbuffer is a non-owning buffer
+    //! @param name Remote procedure name to call
+    //! @param args Tuple of arguments to pass to the remote procedure
+    //! @param handler Handler called after the notify request is sent.
+    //! Must satisfy the @ref traits::NotifyHandler trait
     template <typename Buffer = msgpack::sbuffer, typename NotifyHandler, typename... Args>
     void async_notify(
         std::string_view name,
@@ -120,13 +144,25 @@ public:
             });
     }
 
-    template <typename Buffer = msgpack::sbuffer, typename CallHandler>
-    id_type async_call(std::string_view name, CallHandler&& handler)
+    //! Send a notify request to the server with no argument
+    //! @overload
+    template <typename Buffer = msgpack::sbuffer, typename NotifyHandler>
+    void async_notify(std::string_view name, NotifyHandler&& handler)
     {
-        return async_call<Buffer>(
-            name, std::tuple<>{}, std::forward<CallHandler>(handler));
+        return async_notify<Buffer>(
+            name, std::tuple<>{}, std::forward<NotifyHandler>(handler));
     }
 
+    //! Call a remote procedure
+    //!
+    //! @tparam Buffer Buffer used to serialize the arguments. Recommended:
+    //! - msgpack::sbuffer is an owning buffer \n
+    //! - msgpack::vrefbuffer is a non-owning buffer
+    //! @param name Remote procedure name to call
+    //! @param args Tuple of arguments to pass to the remote procedure
+    //! @param handler Handler called with the return value
+    //! Must satisfy the @ref traits::CallHandler trait
+    //! @return The call ID
     template <typename Buffer = msgpack::sbuffer, typename CallHandler, typename... Args>
     id_type async_call(
         std::string_view name,
@@ -183,7 +219,19 @@ public:
         return id;
     }
 
+    //! Call a remote procedure
+    //! @overload
+    template <typename Buffer = msgpack::sbuffer, typename CallHandler>
+    id_type async_call(std::string_view name, CallHandler&& handler)
+    {
+        return async_call<Buffer>(
+            name, std::tuple<>{}, std::forward<CallHandler>(handler));
+    }
+
 private:
+    using async_call_handler_type = internal::unique_function<
+        void(boost::system::error_code, msgpack::object_handle)>;
+
     void maybe_stop_reading()
     {
         assert(call_strand_.running_in_this_thread());

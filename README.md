@@ -1,10 +1,11 @@
-# packio [![License: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-blue.svg)](https://opensource.org/licenses/MPL-2.0) [![Build Status](https://travis-ci.com/qchateau/packio.svg?branch=master)](https://travis-ci.com/qchateau/packio) [![Build status](https://ci.appveyor.com/api/projects/status/b48fxx9p5emirg6w/branch/master?svg=true)](https://ci.appveyor.com/project/Tytan/packio/branch/master)
 
 ## Header-only | msgpack-RPC | Boost.Asio
 
 This library requires C++17 and is designed as an extension to Boost.Asio. It will let you built asynchronous servers or client for msgpack-RPC.
 
 The library is still under development and is therefore subject heavy API changes.
+
+The project is hosted on [GitHub](https://github.com/qchateau/packio/) and packaged with [Conan](https://bintray.com/beta/#/qchateau/qchateau/packio:_?tab=overview). Documentation is available on [GitHub Pages](https://qchateau.github.io/packio/).
 
 ## Primer
 
@@ -14,9 +15,7 @@ boost::asio::io_context io;
 ip::tcp::endpoint bind_ep{ip::make_address("127.0.0.1"), 0};
 auto server = std::make_shared<packio::server<ip::tcp>>(ip::tcp::acceptor{io, bind_ep});
 auto client = std::make_shared<packio::client<ip::tcp>>(ip::tcp::socket{io});
-```
 
-```cpp
 // Declare a synchronous callback
 server->dispatcher()->add("add", [](int a, int b) { return a + b; });
 // Declare an asynchronous callback
@@ -24,13 +23,12 @@ server->dispatcher()->add_async(
     "multiply", [](packio::completion_handler complete, int a, int b) {
         complete(a * b);
     });
-```
 
-```cpp
 // Accept connections forever
 server->async_serve_forever();
 // Connect the client
 client->socket().connect(server.acceptor().local_endpoint());
+
 // Make an asynchronous call
 client->async_call("add", std::make_tuple(42, 24),
     [&](boost::system::error_code, msgpack::object r) {
@@ -64,6 +62,14 @@ client->async_call(
 - Apple clang-10
 - Apple clang-11
 - Visual Studio 2019 Version 16
+
+## Conan
+
+Add my remote and install packio:
+```bash
+conan remote add qchateau https://api.bintray.com/conan/qchateau/qchateau
+conan install -r qchateau packio/0.8.0
+```
 
 ## Bonus
 

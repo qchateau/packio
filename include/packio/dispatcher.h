@@ -5,6 +5,9 @@
 #ifndef PACKIO_DISPATCHER_H
 #define PACKIO_DISPATCHER_H
 
+//! @file
+//! Class @ref packio::dispatcher "dispatcher"
+
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -22,15 +25,23 @@
 
 namespace packio {
 
+//! The dispatcher class, used to store and dispatch procedures
+//! @tparam Map The container used to associate procedures to their name
+//! @tparam Lockable The lockable used to protect accesses to the procedure map
 template <template <class...> class Map, typename Lockable>
 class dispatcher {
 public:
+    //! The mutex type used to protect the procedure map
     using mutex_type = Lockable;
+    //! The type of function stored in the dispatcher
     using function_type =
         internal::unique_function<void(completion_handler, const msgpack::object&)>;
+    //! A shared pointer to @ref function_type
     using function_ptr_type = std::shared_ptr<function_type>;
-    using map_type = Map<std::string, function_ptr_type>;
 
+    //! Add a synchronous procedure to the dispatcher
+    //! @param name The name of the procedure
+    //! @param fct The procedre itself
     template <typename SyncProcedure>
     bool add(std::string_view name, SyncProcedure&& fct)
     {
@@ -41,6 +52,9 @@ public:
             .second;
     }
 
+    //! Add an asynchronous procedure to the dispatcher
+    //! @param name The name of the procedure
+    //! @param fct The procedre itself
     template <typename AsyncProcedure>
     bool add_async(std::string_view name, AsyncProcedure&& fct)
     {
@@ -51,18 +65,26 @@ public:
             .second;
     }
 
+    //! Remove a procedure from the dispatcher
+    //! @param name The name of the procedure to remove
+    //! @return True if the procedure was removed, False if it was not found
     bool remove(const std::string& name)
     {
         std::unique_lock lock{map_mutex_};
         return function_map_.erase(name);
     }
 
+    //! Check if a procedure is registered
+    //! @param name The name of the procedure to check
+    //! @return True if the procedure is known
     bool has(const std::string& name) const
     {
         std::unique_lock lock{map_mutex_};
         return function_map_.find(name) != function_map_.end();
     }
 
+    //! Remove all procedures
+    //! @return The number of procedures removed
     size_t clear()
     {
         std::unique_lock lock{map_mutex_};
@@ -71,6 +93,8 @@ public:
         return size;
     }
 
+    //! Get the name of all known procedures
+    //! @return Vector containing the name of all known procedures
     std::vector<std::string> known() const
     {
         std::unique_lock lock{map_mutex_};
@@ -99,6 +123,8 @@ public:
     }
 
 private:
+    using map_type = Map<std::string, function_ptr_type>;
+
     template <typename F>
     function_ptr_type wrap_sync(F&& fct)
     {

@@ -5,6 +5,9 @@
 #ifndef PACKIO_SERVER_SESSION_H
 #define PACKIO_SERVER_SESSION_H
 
+//! @file
+//! Class @ref packio::server_session "server_session"
+
 #include <memory>
 #include <queue>
 #include <boost/asio.hpp>
@@ -18,15 +21,17 @@
 
 namespace packio {
 
+//! The server_session class, created by the @ref server
 template <typename Protocol, typename Dispatcher>
 class server_session
     : public std::enable_shared_from_this<server_session<Protocol, Dispatcher>> {
 public:
-    using protocol_type = Protocol;
-    using socket_type = typename protocol_type::socket;
+    using protocol_type = Protocol; //!< The protocol type
+    using socket_type = typename protocol_type::socket; //!< The socket type
     using std::enable_shared_from_this<server_session<Protocol, Dispatcher>>::shared_from_this;
 
-    static constexpr size_t kBufferReserveSize = 4096;
+    //! The default size reserved by the reception buffer
+    static constexpr size_t kDefaultBufferReserveSize = 4096;
 
     server_session(socket_type sock, std::shared_ptr<Dispatcher> dispatcher_ptr)
         : socket_{std::move(sock)},
@@ -35,9 +40,23 @@ public:
     {
     }
 
+    //! Get the underlying socket
     socket_type& socket() { return socket_; }
+    //! Get the underlying socket, const
     const socket_type& socket() const { return socket_; }
 
+    //! Set the size reserved by the reception buffer
+    void set_buffer_reserve_size(std::size_t size) noexcept
+    {
+        buffer_reserve_size_ = size;
+    }
+    //! Get the size reserved by the reception buffer
+    std::size_t get_buffer_reserve_size() const noexcept
+    {
+        return buffer_reserve_size_;
+    }
+
+    //! Start the session
     void start() { async_read(std::make_unique<msgpack::unpacker>()); }
 
 private:
@@ -59,7 +78,7 @@ private:
             return;
         }
 
-        unpacker->reserve_buffer(kBufferReserveSize);
+        unpacker->reserve_buffer(buffer_reserve_size_);
         auto buffer = boost::asio::buffer(
             unpacker->buffer(), unpacker->buffer_capacity());
         socket_.async_read_some(
@@ -120,7 +139,7 @@ private:
         }
         else {
             PACKIO_DEBUG("unknown function {}", call->name);
-            completion_handler(make_error_code(error::unknown_function), {});
+            completion_handler(make_error_code(error::unknown_procedure), {});
         }
     }
 
@@ -248,6 +267,7 @@ private:
     }
 
     socket_type socket_;
+    std::size_t buffer_reserve_size_{kDefaultBufferReserveSize};
     std::shared_ptr<Dispatcher> dispatcher_ptr_;
     internal::manual_strand<typename socket_type::executor_type> wstrand_;
 };
