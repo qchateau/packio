@@ -20,7 +20,7 @@ enum class error {
     bad_result_type
 };
 
-struct packio_error_category : boost::system::error_category {
+struct error_category : boost::system::error_category {
     const char* name() const noexcept override { return "packio"; }
     std::string message(int ev) const override
     {
@@ -47,7 +47,7 @@ struct packio_error_category : boost::system::error_category {
 
 inline boost::system::error_code make_error_code(error e)
 {
-    static constexpr packio_error_category category;
+    static constexpr error_category category;
     return {static_cast<int>(e), category};
 }
 
