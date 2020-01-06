@@ -6,8 +6,8 @@
 #include <msgpack.hpp>
 
 #include "error_code.h"
-#include "internal/traits.h"
 #include "internal/utils.h"
+#include "traits.h"
 
 namespace packio {
 

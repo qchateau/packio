@@ -11,9 +11,9 @@
 
 #include "dispatcher.h"
 #include "internal/log.h"
-#include "internal/traits.h"
 #include "internal/utils.h"
 #include "server_session.h"
+#include "traits.h"
 
 namespace packio {
 

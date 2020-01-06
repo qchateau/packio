@@ -18,9 +18,9 @@
 #include "error_code.h"
 #include "internal/manual_strand.h"
 #include "internal/msgpack_rpc.h"
-#include "internal/traits.h"
 #include "internal/unique_function.h"
 #include "internal/utils.h"
+#include "traits.h"
 
 namespace packio {
 

@@ -10,7 +10,7 @@
 #include <boost/asio.hpp>
 #include <msgpack.hpp>
 
-#include "utils.h"
+#include "internal/utils.h"
 
 #if defined(PACKIO_TRAITS_CHECK_DISABLE) && PACKIO_TRAITS_CHECK_DISABLE
 #define ASSERT_TRAIT(Trait) (void)0
