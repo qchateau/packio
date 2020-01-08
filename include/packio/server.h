@@ -76,7 +76,7 @@ public:
     template <typename ServeHandler>
     void async_serve(ServeHandler&& handler)
     {
-        ASSERT_TTRAIT(ServeHandler, session_type);
+        PACKIO_STATIC_ASSERT_TTRAIT(ServeHandler, session_type);
         PACKIO_TRACE("async_serve");
         acceptor_.async_accept(
             [this,

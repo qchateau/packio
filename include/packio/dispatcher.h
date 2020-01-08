@@ -45,7 +45,7 @@ public:
     template <typename SyncProcedure>
     bool add(std::string_view name, SyncProcedure&& fct)
     {
-        ASSERT_TRAIT(SyncProcedure);
+        PACKIO_STATIC_ASSERT_TRAIT(SyncProcedure);
         std::unique_lock lock{map_mutex_};
         return function_map_
             .emplace(name, wrap_sync(std::forward<SyncProcedure>(fct)))
@@ -58,7 +58,7 @@ public:
     template <typename AsyncProcedure>
     bool add_async(std::string_view name, AsyncProcedure&& fct)
     {
-        ASSERT_TRAIT(AsyncProcedure);
+        PACKIO_STATIC_ASSERT_TRAIT(AsyncProcedure);
         std::unique_lock lock{map_mutex_};
         return function_map_
             .emplace(name, wrap_async(std::forward<AsyncProcedure>(fct)))

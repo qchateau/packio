@@ -16,13 +16,13 @@
 #include "internal/utils.h"
 
 #if defined(PACKIO_TRAITS_CHECK_DISABLE) && PACKIO_TRAITS_CHECK_DISABLE
-#define ASSERT_TRAIT(Trait) (void)0
-#define ASSERT_TTRAIT(Trait, ...) (void)0
+#define PACKIO_STATIC_ASSERT_TRAIT(Trait) (void)0
+#define PACKIO_STATIC_ASSERT_TTRAIT(Trait, ...) (void)0
 #else
-#define ASSERT_TRAIT(Trait) \
-    static_assert(          \
+#define PACKIO_STATIC_ASSERT_TRAIT(Trait) \
+    static_assert(                        \
         ::packio::traits::Trait<Trait>::value, "Trait " #Trait " not satisfied")
-#define ASSERT_TTRAIT(Trait, ...)                           \
+#define PACKIO_STATIC_ASSERT_TTRAIT(Trait, ...)             \
     static_assert(                                          \
         ::packio::traits::Trait<Trait, __VA_ARGS__>::value, \
         "Trait " #Trait " not satisfied")

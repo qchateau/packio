@@ -119,7 +119,7 @@ public:
         std::tuple<Args...> args,
         NotifyHandler&& handler)
     {
-        ASSERT_TRAIT(NotifyHandler);
+        PACKIO_STATIC_ASSERT_TRAIT(NotifyHandler);
         PACKIO_DEBUG("async_notify: {}", name);
 
         auto packer_buf = std::make_unique<Buffer>();
@@ -169,7 +169,7 @@ public:
         std::tuple<Args...> args,
         CallHandler&& handler)
     {
-        ASSERT_TRAIT(CallHandler);
+        PACKIO_STATIC_ASSERT_TRAIT(CallHandler);
         PACKIO_DEBUG("async_call: {}", name);
 
         auto id = id_.fetch_add(1, std::memory_order_acq_rel);

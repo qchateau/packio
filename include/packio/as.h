@@ -30,7 +30,7 @@ auto as(
     AsCallHandler&& handler,
     std::enable_if_t<!std::is_void_v<Result>, void*> = nullptr)
 {
-    ASSERT_TTRAIT(AsCallHandler, Result);
+    PACKIO_STATIC_ASSERT_TTRAIT(AsCallHandler, Result);
     return [handler = std::forward<AsCallHandler>(handler)](
                boost::system::error_code ec,
                msgpack::object_handle result) mutable {
@@ -60,7 +60,7 @@ auto as(
     AsVoidCallHandler&& handler,
     std::enable_if_t<std::is_void_v<Result>, void*> = nullptr)
 {
-    ASSERT_TRAIT(AsVoidCallHandler);
+    PACKIO_STATIC_ASSERT_TRAIT(AsVoidCallHandler);
     return [handler = std::forward<AsVoidCallHandler>(handler)](
                boost::system::error_code ec,
                msgpack::object_handle result) mutable {
