@@ -230,7 +230,8 @@ TYPED_TEST(Test, test_as)
     this->connect();
     this->async_run();
 
-    this->server_->dispatcher()->add("add", [&](int a, int b) { return a + b; });
+    this->server_->dispatcher()->add("add", [](int a, int b) { return a + b; });
+    this->server_->dispatcher()->add("void", [] {});
 
     // test valid call
     {
@@ -246,6 +247,22 @@ TYPED_TEST(Test, test_as)
                     ASSERT_EQ(33, *result);
                     done.set_value();
                 }));
+
+        ASSERT_EQ(
+            std::future_status::ready,
+            future_done.wait_for(std::chrono::seconds{1}));
+    }
+
+    // test as<void> valid call
+    {
+        std::promise<void> done;
+        auto future_done = done.get_future();
+
+        this->client_->async_call(
+            "void", as<void>([&done](boost::system::error_code ec) {
+                ASSERT_FALSE(ec);
+                done.set_value();
+            }));
 
         ASSERT_EQ(
             std::future_status::ready,
@@ -285,6 +302,24 @@ TYPED_TEST(Test, test_as)
                                 std::optional<std::string> result) {
                 ASSERT_EQ(::packio::error::bad_result_type, ec);
                 ASSERT_FALSE(result);
+                done.set_value();
+            }));
+
+        ASSERT_EQ(
+            std::future_status::ready,
+            future_done.wait_for(std::chrono::seconds{1}));
+    }
+
+    // test as<void> invalid return type
+    {
+        std::promise<void> done;
+        auto future_done = done.get_future();
+
+        this->client_->async_call(
+            "add",
+            std::tuple{12, 21},
+            as<void>([&done](boost::system::error_code ec) {
+                ASSERT_EQ(::packio::error::bad_result_type, ec);
                 done.set_value();
             }));
 
