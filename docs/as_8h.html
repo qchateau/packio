@@ -72,9 +72,10 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 
-<p>Function <a class="el" href="namespacepackio.html#a105d07dad372d085dfb68cfafc2f62f1">as</a>.  
+<p>Function <a class="el" href="namespacepackio.html#accd75e308d49125935750356b345368c">as</a>.  
 <a href="#details">More...</a></p>
-<div class="textblock"><code>#include &lt;utility&gt;</code><br />
+<div class="textblock"><code>#include &lt;type_traits&gt;</code><br />
+<code>#include &lt;utility&gt;</code><br />
 <code>#include &lt;boost/asio.hpp&gt;</code><br />
 <code>#include &lt;msgpack.hpp&gt;</code><br />
 <code>#include &quot;<a class="el" href="error__code_8h_source.html">error_code.h</a>&quot;</code><br />
@@ -91,13 +92,17 @@ Namespaces</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:a105d07dad372d085dfb68cfafc2f62f1"><td class="memTemplParams" colspan="2">template&lt;typename Result , typename AsCallHandler &gt; </td></tr>
-<tr class="memitem:a105d07dad372d085dfb68cfafc2f62f1"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacepackio.html#a105d07dad372d085dfb68cfafc2f62f1">packio::as</a> (AsCallHandler &amp;&amp;handler)</td></tr>
-<tr class="memdesc:a105d07dad372d085dfb68cfafc2f62f1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function used to wrap a typed call handler.  <a href="namespacepackio.html#a105d07dad372d085dfb68cfafc2f62f1">More...</a><br /></td></tr>
-<tr class="separator:a105d07dad372d085dfb68cfafc2f62f1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:accd75e308d49125935750356b345368c"><td class="memTemplParams" colspan="2">template&lt;typename Result , typename AsCallHandler &gt; </td></tr>
+<tr class="memitem:accd75e308d49125935750356b345368c"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacepackio.html#accd75e308d49125935750356b345368c">packio::as</a> (AsCallHandler &amp;&amp;handler, std::enable_if_t&lt;!std::is_void_v&lt; Result &gt;, void *&gt;=nullptr)</td></tr>
+<tr class="memdesc:accd75e308d49125935750356b345368c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function used to wrap a typed call handler.  <a href="namespacepackio.html#accd75e308d49125935750356b345368c">More...</a><br /></td></tr>
+<tr class="separator:accd75e308d49125935750356b345368c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a62c17c043ff8e7eddcd61fccfae4a6e1"><td class="memTemplParams" colspan="2">template&lt;typename Result , typename AsVoidCallHandler &gt; </td></tr>
+<tr class="memitem:a62c17c043ff8e7eddcd61fccfae4a6e1"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacepackio.html#a62c17c043ff8e7eddcd61fccfae4a6e1">packio::as</a> (AsVoidCallHandler &amp;&amp;handler, std::enable_if_t&lt; std::is_void_v&lt; Result &gt;, void *&gt;=nullptr)</td></tr>
+<tr class="memdesc:a62c17c043ff8e7eddcd61fccfae4a6e1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function used to wrap a call handler that expects a void result.  <a href="namespacepackio.html#a62c17c043ff8e7eddcd61fccfae4a6e1">More...</a><br /></td></tr>
+<tr class="separator:a62c17c043ff8e7eddcd61fccfae4a6e1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Function <a class="el" href="namespacepackio.html#a105d07dad372d085dfb68cfafc2f62f1">as</a>. </p>
+<div class="textblock"><p>Function <a class="el" href="namespacepackio.html#accd75e308d49125935750356b345368c">as</a>. </p>
 </div></div><!-- contents -->
 <!-- HTML footer for doxygen 1.8.13-->
 <!-- start footer part -->
