@@ -13,7 +13,7 @@ class PackioConan(ConanFile):
 
     def requirements(self):
         if self.options.loglevel:
-            self.requires("spdlog/1.4.2@bincrafters/stable")
+            self.requires("spdlog/1.4.2")
 
     def build(self):
         cmake = CMake(self)

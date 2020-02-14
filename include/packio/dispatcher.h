@@ -41,7 +41,7 @@ public:
 
     //! Add a synchronous procedure to the dispatcher
     //! @param name The name of the procedure
-    //! @param fct The procedre itself
+    //! @param fct The procedure itself
     template <typename SyncProcedure>
     bool add(std::string_view name, SyncProcedure&& fct)
     {
@@ -54,7 +54,7 @@ public:
 
     //! Add an asynchronous procedure to the dispatcher
     //! @param name The name of the procedure
-    //! @param fct The procedre itself
+    //! @param fct The procedure itself
     template <typename AsyncProcedure>
     bool add_async(std::string_view name, AsyncProcedure&& fct)
     {

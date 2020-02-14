@@ -170,7 +170,7 @@ protected:
     std::thread runner_;
 };
 
-TYPED_TEST_CASE(Test, Implementations);
+TYPED_TEST_SUITE(Test, Implementations);
 
 TYPED_TEST(Test, test_connect)
 {

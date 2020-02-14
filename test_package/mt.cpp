@@ -79,7 +79,7 @@ protected:
     std::vector<std::thread> runners_;
 };
 
-TYPED_TEST_CASE(Server, Protocols);
+TYPED_TEST_SUITE(Server, Protocols);
 
 TYPED_TEST(Server, test_same_func)
 {

@@ -3,7 +3,7 @@ from conans import ConanFile
 
 class PackioConan(ConanFile):
     name = "packio"
-    version = "0.8.0"
+    version = "1.0.0"
     license = "MPL2"
     author = "Quentin Chateau <quentin.chateau@gmail.com>"
     url = "https://github.com/qchateau/packio"
@@ -13,7 +13,7 @@ class PackioConan(ConanFile):
     no_copy_source = True
     requires = [
         "msgpack/[>=3.0]@bincrafters/stable",
-        "boost/[>=1.70]@conan/stable",
+        "boost/[>=1.70]",
     ]
 
     def package(self):

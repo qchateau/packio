@@ -6,7 +6,7 @@ from conans import ConanFile, CMake, tools
 class PackioConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     generators = "cmake"
-    requires = ["gtest/1.8.1@bincrafters/stable"]
+    requires = ["gtest/1.10.0"]
     options = {
         "boost": "ANY",
         "msgpack": "ANY",
@@ -17,11 +17,11 @@ class PackioConan(ConanFile):
 
     def requirements(self):
         if self.options.boost:
-            self.requires("boost/{}@conan/stable".format(self.options.boost))
+            self.requires("boost/{}".format(self.options.boost))
         if self.options.msgpack:
             self.requires("msgpack/{}@bincrafters/stable".format(self.options.msgpack))
         if self.options.loglevel:
-            self.requires("spdlog/1.4.2@bincrafters/stable")
+            self.requires("spdlog/1.4.2")
 
     def build(self):
         cmake = CMake(self)
