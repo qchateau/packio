@@ -38,21 +38,6 @@ matrix:
         - CONAN_GCC_VERSIONS=7
         - CONAN_DOCKER_IMAGE=conanio/gcc7
         - CONAN_OPTIONS=boost=1.72.0
-    - <<: *linux
-      env:
-        - CONAN_GCC_VERSIONS=7
-        - CONAN_DOCKER_IMAGE=conanio/gcc7
-        - CONAN_OPTIONS=msgpack=3.0.1
-    - <<: *linux
-      env:
-        - CONAN_GCC_VERSIONS=7
-        - CONAN_DOCKER_IMAGE=conanio/gcc7
-        - CONAN_OPTIONS=msgpack=3.1.1
-    - <<: *linux
-      env:
-        - CONAN_GCC_VERSIONS=7
-        - CONAN_DOCKER_IMAGE=conanio/gcc7
-        - CONAN_OPTIONS=msgpack=3.2.0
 
     # Test supported linux compilers
     - <<: *linux
