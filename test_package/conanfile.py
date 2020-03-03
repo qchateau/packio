@@ -9,17 +9,14 @@ class PackioConan(ConanFile):
     requires = ["gtest/1.10.0"]
     options = {
         "boost": "ANY",
-        "msgpack": "ANY",
         "loglevel": [None, "trace", "debug", "info", "warn", "error"],
         "rtti": [True, False]
     }
-    default_options = {"boost": None, "msgpack": None, "loglevel": None, "rtti": True}
+    default_options = {"boost": None, "loglevel": None, "rtti": True}
 
     def requirements(self):
         if self.options.boost:
             self.requires("boost/{}".format(self.options.boost))
-        if self.options.msgpack:
-            self.requires("msgpack/{}@bincrafters/stable".format(self.options.msgpack))
         if self.options.loglevel:
             self.requires("spdlog/1.4.2")
 

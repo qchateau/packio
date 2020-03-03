@@ -8,16 +8,13 @@ class PackioConan(ConanFile):
     author = "Quentin Chateau <quentin.chateau@gmail.com>"
     url = "https://github.com/qchateau/packio"
     description = "C++ implementation of msgpack-RPC"
-    topics = ("rpc", "msgpack")
+    topics = ("rpc", "msgpack", "cpp17")
     exports_sources = "include/*"
     no_copy_source = True
     requires = [
-        "msgpack/[>=3.0]@bincrafters/stable",
+        "msgpack/3.2.1",
         "boost/[>=1.70]",
     ]
 
     def package(self):
         self.copy("*.h")
-
-    def package_id(self):
-        self.info.header_only()
