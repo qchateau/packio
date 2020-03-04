@@ -4,7 +4,7 @@ from conans import ConanFile
 class PackioConan(ConanFile):
     name = "packio"
     version = "1.0.1"
-    license = "MPL2"
+    license = "MPL-2.0"
     author = "Quentin Chateau <quentin.chateau@gmail.com>"
     url = "https://github.com/qchateau/packio"
     description = "C++ implementation of msgpack-RPC"
