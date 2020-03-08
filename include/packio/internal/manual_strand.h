@@ -46,8 +46,9 @@ private:
             return;
         }
 
-        queue_.front()();
+        auto function = std::move(queue_.front());
         queue_.pop();
+        function();
     }
 
     boost::asio::strand<Executor> strand_;
