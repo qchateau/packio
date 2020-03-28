@@ -10,10 +10,12 @@
 
 #include <atomic>
 #include <chrono>
+#include <functional>
 #include <map>
 #include <memory>
 #include <queue>
 #include <string_view>
+#include <type_traits>
 
 #include <boost/asio.hpp>
 #include <msgpack.hpp>
@@ -76,11 +78,11 @@ public:
     //! @param id The call ID of the call to cancel
     void cancel(id_type id)
     {
-        boost::asio::dispatch(call_strand_, [this, self = shared_from_this(), id] {
+        boost::asio::dispatch(call_strand_, [self = shared_from_this(), id] {
             auto ec = make_error_code(error::cancelled);
-            async_call_handler(
+            self->async_call_handler(
                 id, internal::make_msgpack_object(ec.message()), ec);
-            maybe_stop_reading();
+            self->maybe_stop_reading();
         });
     }
 
@@ -89,16 +91,16 @@ public:
     //! The associated handlers will be called with @ref error::cancelled
     void cancel()
     {
-        boost::asio::dispatch(call_strand_, [this, self = shared_from_this()] {
-            assert(call_strand_.running_in_this_thread());
+        boost::asio::dispatch(call_strand_, [self = shared_from_this()] {
+            assert(self->call_strand_.running_in_this_thread());
             auto ec = make_error_code(error::cancelled);
-            while (!pending_.empty()) {
-                async_call_handler(
-                    pending_.begin()->first,
+            while (!self->pending_.empty()) {
+                self->async_call_handler(
+                    self->pending_.begin()->first,
                     internal::make_msgpack_object(ec.message()),
                     ec);
             }
-            maybe_stop_reading();
+            self->maybe_stop_reading();
         });
     }
 
@@ -248,24 +250,22 @@ private:
     template <typename Buffer, typename WriteHandler>
     void async_send(std::unique_ptr<Buffer> buffer_ptr, WriteHandler&& handler)
     {
-        wstrand_.push([this,
-                       self = shared_from_this(),
+        wstrand_.push([self = shared_from_this(),
                        buffer_ptr = std::move(buffer_ptr),
                        handler = std::forward<WriteHandler>(handler)]() mutable {
             using internal::buffer;
 
-            internal::set_no_delay(socket_);
+            internal::set_no_delay(self->socket_);
 
             auto buf = buffer(*buffer_ptr);
             boost::asio::async_write(
-                socket_,
+                self->socket_,
                 buf,
-                [this,
-                 self = std::move(self),
+                [self = std::move(self),
                  buffer_ptr = std::move(buffer_ptr),
                  handler = std::forward<WriteHandler>(handler)](
                     boost::system::error_code ec, size_t length) mutable {
-                    wstrand_.next();
+                    self->wstrand_.next();
                     handler(ec, length);
                 });
         });
@@ -284,32 +284,32 @@ private:
             buffer,
             boost::asio::bind_executor(
                 call_strand_,
-                [this, self = shared_from_this(), unpacker = std::move(unpacker)](
+                [self = shared_from_this(), unpacker = std::move(unpacker)](
                     boost::system::error_code ec, size_t length) mutable {
                     PACKIO_TRACE("read: {}", length);
                     unpacker->buffer_consumed(length);
 
                     msgpack::object_handle response;
                     while (unpacker->next(response)) {
-                        process_response(std::move(response), ec);
+                        self->process_response(std::move(response), ec);
                     }
 
                     // stop if there is an error or there is no more pending calls
-                    assert(call_strand_.running_in_this_thread());
+                    assert(self->call_strand_.running_in_this_thread());
 
                     if (ec && ec != boost::asio::error::operation_aborted) {
                         PACKIO_WARN("read error: {}", ec.message());
-                        reading_ = false;
+                        self->reading_ = false;
                         return;
                     }
 
-                    if (pending_.empty()) {
+                    if (self->pending_.empty()) {
                         PACKIO_TRACE("done reading, no more pending calls");
-                        reading_ = false;
+                        self->reading_ = false;
                         return;
                     }
 
-                    async_read(std::move(unpacker));
+                    self->async_read(std::move(unpacker));
                 }));
     }
 
