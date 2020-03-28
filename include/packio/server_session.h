@@ -230,13 +230,14 @@ private:
 
     void async_send_message(std::unique_ptr<message_type> message_ptr)
     {
-        wstrand_.push([self = shared_from_this(),
+        wstrand_.push([this,
+                       self = shared_from_this(),
                        message_ptr = std::move(message_ptr)]() mutable {
             using internal::buffer;
 
             auto buf = buffer(std::get<buffer_type>(*message_ptr));
             boost::asio::async_write(
-                self->socket_,
+                socket_,
                 buf,
                 [self = std::move(self), message_ptr = std::move(message_ptr)](
                     boost::system::error_code ec, size_t length) {

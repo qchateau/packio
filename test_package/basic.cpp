@@ -12,6 +12,7 @@
 using namespace std::chrono;
 using namespace boost::asio;
 using namespace packio;
+using boost::asio::use_future;
 using std::this_thread::sleep_for;
 
 template <typename T>
@@ -51,25 +52,6 @@ typedef ::testing::Types<
     std::pair<client<boost::asio::ip::tcp, my_unordered_map>, server<boost::asio::ip::tcp>>>
     Implementations;
 
-class packio_exception : public std::system_error {
-public:
-    packio_exception(std::error_code ec, msgpack::object result)
-        : system_error(ec)
-    {
-        if (result.type == msgpack::type::STR) {
-            result_message_ = result.as<std::string>();
-        }
-        else {
-            result_message_ = "not a string";
-        }
-    }
-
-    std::string result_message() const { return result_message_; }
-
-private:
-    std::string result_message_;
-};
-
 template <class Impl>
 class Test : public ::testing::Test {
 protected:
@@ -104,64 +86,6 @@ protected:
     {
         auto ep = server_->acceptor().local_endpoint();
         client_->socket().connect(ep);
-    }
-
-    template <typename... Args>
-    auto future_notify(std::string_view name, Args&&... args)
-    {
-        std::promise<void> p;
-        auto f = p.get_future();
-        client_->async_notify(
-            name,
-            std::forward_as_tuple(args...),
-            [p = std::move(p)](auto ec) mutable {
-                if (ec) {
-                    p.set_exception(
-                        std::make_exception_ptr(std::system_error(ec)));
-                }
-                else {
-                    p.set_value();
-                }
-            });
-        return f;
-    }
-
-    template <typename R, typename... Args>
-    auto future_call(std::string_view name, Args&&... args)
-    {
-        id_type id;
-        return future_call<R>(id, name, std::forward<Args>(args)...);
-    }
-
-    template <typename R, typename... Args>
-    auto future_call(id_type& id, std::string_view name, Args&&... args)
-    {
-        std::promise<R> p;
-        auto f = p.get_future();
-        id = client_->async_call(
-            name,
-            std::forward_as_tuple(args...),
-            [p = std::move(p)](auto ec, auto result) mutable {
-                if (ec) {
-                    p.set_exception(std::make_exception_ptr(
-                        packio_exception(ec, result.get())));
-                }
-                else {
-                    if constexpr (std::is_void_v<R>) {
-                        if (result->type != msgpack::type::NIL) {
-                            p.set_exception(std::make_exception_ptr(
-                                std::runtime_error("bad result type")));
-                        }
-                        else {
-                            p.set_value();
-                        }
-                    }
-                    else {
-                        p.set_value(result->template as<R>());
-                    }
-                }
-            });
-        return f;
     }
 
     boost::asio::io_context io_;
@@ -206,7 +130,7 @@ TYPED_TEST(Test, test_typical_usage)
     {
         call_latch.reset(1);
 
-        auto f = this->future_notify("echo", 42);
+        auto f = this->client_->async_notify("echo", std::tuple{42}, use_future);
         ASSERT_EQ(std::future_status::ready, f.wait_for(std::chrono::seconds{1}));
         ASSERT_NO_THROW(f.get());
         ASSERT_TRUE(call_latch.wait_for(std::chrono::seconds{1}));
@@ -217,9 +141,9 @@ TYPED_TEST(Test, test_typical_usage)
         call_latch.reset(1);
         call_arg_received = 0;
 
-        auto f = this->template future_call<int>("echo", 42);
+        auto f = this->client_->async_call("echo", std::tuple{42}, use_future);
         ASSERT_EQ(std::future_status::ready, f.wait_for(std::chrono::seconds{1}));
-        ASSERT_EQ(42, f.get());
+        ASSERT_EQ(42, f.get()->template as<int>());
         ASSERT_EQ(42, call_arg_received.load());
     }
 }
@@ -366,14 +290,14 @@ TYPED_TEST(Test, test_timeout)
             future.get();
             ASSERT_FALSE(true); // never reached
         }
-        catch (std::system_error& err) {
+        catch (boost::system::system_error& err) {
             ASSERT_EQ(make_error_code(packio::error::cancelled), err.code());
         }
     };
 
     {
-        auto f1 = this->template future_call<void>("block");
-        auto f2 = this->template future_call<void>("block");
+        auto f1 = this->client_->async_call("block", use_future);
+        auto f2 = this->client_->async_call("block", use_future);
         assert_blocks(f1);
         assert_blocks(f2);
         this->client_->cancel();
@@ -388,8 +312,8 @@ TYPED_TEST(Test, test_timeout)
 
     {
         id_type id1, id2;
-        auto f1 = this->template future_call<void>(id1, "block");
-        auto f2 = this->template future_call<void>(id2, "block");
+        auto f1 = this->client_->async_call("block", use_future, id1);
+        auto f2 = this->client_->async_call("block", use_future, id2);
         assert_blocks(f1);
         assert_blocks(f2);
         this->client_->cancel(id2);
@@ -408,9 +332,9 @@ TYPED_TEST(Test, test_timeout)
     }
 
     {
-        auto f = this->template future_call<void>("block");
+        auto f = this->client_->async_call("block", use_future);
         assert_blocks(f);
-        this->template future_call<void>("unblock").get();
+        this->client_->async_call("unblock", use_future).get();
         f.get();
     }
 
@@ -467,44 +391,95 @@ TYPED_TEST(Test, test_functions)
             return std::tuple{i, s};
         });
 
-    ASSERT_NO_THROW(this->template future_call<void>("async_void_void").get());
-    ASSERT_EQ(42, this->template future_call<int>("async_int_void").get());
-    ASSERT_NO_THROW(this->template future_call<void>("async_void_int", 42).get());
-    ASSERT_EQ(42, this->template future_call<int>("async_int_int", 42).get());
-    ASSERT_EQ(42, this->template future_call<int>("async_int_intref", 42).get());
+    ASSERT_NO_THROW(
+        this->client_->async_call("async_void_void", use_future).get());
     ASSERT_EQ(
         42,
-        this->template future_call<int>("async_int_intref_int", 42, 24).get());
+        this->client_->async_call("async_int_void", use_future)
+            .get()
+            ->template as<int>());
+    ASSERT_NO_THROW(
+        this->client_->async_call("async_void_int", std::tuple{42}, use_future)
+            .get());
+    ASSERT_EQ(
+        42,
+        this->client_->async_call("async_int_int", std ::tuple{42}, use_future)
+            .get()
+            ->template as<int>());
+    ASSERT_EQ(
+        42,
+        this->client_->async_call("async_int_intref", std::tuple{42}, use_future)
+            .get()
+            ->template as<int>());
+    ASSERT_EQ(
+        42,
+        this->client_
+            ->async_call("async_int_intref_int", std::tuple{42, 24}, use_future)
+            .get()
+            ->template as<int>());
     ASSERT_EQ(
         "foobar",
-        this->template future_call<std::string>("async_str_str", "foobar").get());
+        this->client_
+            ->async_call("async_str_str", std::make_tuple("foobar"), use_future)
+            .get()
+            ->template as<std::string>());
     ASSERT_EQ(
         "foobar",
-        this->template future_call<std::string>("async_str_strref", "foobar").get());
+        this->client_
+            ->async_call("async_str_strref", std::make_tuple("foobar"), use_future)
+            .get()
+            ->template as<std::string>());
     ASSERT_EQ(
         tuple_int_str(42, "foobar"),
-        this->template future_call<tuple_int_str>(
-                "async_tuple_int_str", 42, "foobar")
-            .get());
+        this->client_
+            ->async_call(
+                "async_tuple_int_str", std::make_tuple(42, "foobar"), use_future)
+            .get()
+            ->template as<tuple_int_str>());
 
-    ASSERT_NO_THROW(this->template future_call<void>("sync_void_void").get());
-    ASSERT_EQ(42, this->template future_call<int>("sync_int_void").get());
-    ASSERT_NO_THROW(this->template future_call<void>("sync_void_int", 42).get());
-    ASSERT_EQ(42, this->template future_call<int>("sync_int_int", 42).get());
-    ASSERT_EQ(42, this->template future_call<int>("sync_int_intref", 42).get());
+    ASSERT_NO_THROW(this->client_->async_call("sync_void_void", use_future).get());
     ASSERT_EQ(
-        42, this->template future_call<int>("sync_int_intref_int", 42, 24).get());
+        42,
+        this->client_->async_call("sync_int_void", use_future)
+            .get()
+            ->template as<int>());
+    ASSERT_NO_THROW(
+        this->client_->async_call("sync_void_int", std::tuple{42}, use_future).get());
+    ASSERT_EQ(
+        42,
+        this->client_->async_call("sync_int_int", std::tuple{42}, use_future)
+            .get()
+            ->template as<int>());
+    ASSERT_EQ(
+        42,
+        this->client_->async_call("sync_int_intref", std::tuple{42}, use_future)
+            .get()
+            ->template as<int>());
+    ASSERT_EQ(
+        42,
+        this->client_
+            ->async_call("sync_int_intref_int", std::tuple{42, 24}, use_future)
+            .get()
+            ->template as<int>());
     ASSERT_EQ(
         "foobar",
-        this->template future_call<std::string>("sync_str_str", "foobar").get());
+        this->client_
+            ->async_call("sync_str_str", std::make_tuple("foobar"), use_future)
+            .get()
+            ->template as<std::string>());
     ASSERT_EQ(
         "foobar",
-        this->template future_call<std::string>("sync_str_strref", "foobar").get());
+        this->client_
+            ->async_call("sync_str_strref", std::make_tuple("foobar"), use_future)
+            .get()
+            ->template as<std::string>());
     ASSERT_EQ(
         tuple_int_str(42, "foobar"),
-        this->template future_call<tuple_int_str>(
-                "sync_tuple_int_str", 42, "foobar")
-            .get());
+        this->client_
+            ->async_call(
+                "sync_tuple_int_str", std::make_tuple(42, "foobar"), use_future)
+            .get()
+            ->template as<tuple_int_str>());
 }
 
 TYPED_TEST(Test, test_dispatcher)
@@ -524,8 +499,8 @@ TYPED_TEST(Test, test_dispatcher)
     ASSERT_FALSE(this->server_->dispatcher()->add("f001", []() {}));
     ASSERT_FALSE(this->server_->dispatcher()->add("f002", []() {}));
 
-    this->template future_call<void>("f001").get();
-    this->template future_call<void>("f002").get();
+    this->client_->async_call("f001", use_future).get();
+    this->client_->async_call("f002", use_future).get();
 
     ASSERT_TRUE(this->server_->dispatcher()->has("f001"));
     ASSERT_TRUE(this->server_->dispatcher()->has("f002"));
@@ -537,7 +512,8 @@ TYPED_TEST(Test, test_dispatcher)
 
     this->server_->dispatcher()->remove("f001");
     ASSERT_THROW(
-        this->template future_call<void>("f001").get(), packio_exception);
+        this->client_->async_call("f001", use_future).get(),
+        boost::system::system_error);
 
     ASSERT_FALSE(this->server_->dispatcher()->has("f001"));
     ASSERT_TRUE(this->server_->dispatcher()->has("f002"));
@@ -588,7 +564,9 @@ TYPED_TEST(Test, test_end_of_work)
 
     // client runs out of work after a cancelled call
     io.restart();
-    auto id = client->async_call("block", [](auto, auto) {});
+    id_type id;
+    client->async_call(
+        "block", [](auto, auto) {}, id);
     io.run_for(std::chrono::milliseconds{10});
     ASSERT_FALSE(io.stopped());
     client->cancel(id);
@@ -746,14 +724,19 @@ TYPED_TEST(Test, test_errors)
         "add_sync", [](int a, int b) { return a + b; }));
 
     auto assert_error_message =
-        [&](std::string message, std::string procedure, auto... args) {
-            try {
-                this->template future_call<void>(procedure, args...).get();
-                ASSERT_FALSE(true); // never reached
-            }
-            catch (packio_exception& exc) {
-                ASSERT_EQ(message, exc.result_message());
-            }
+        [&](std::string expected_message, std::string procedure, auto... args) {
+            std::promise<std::string> p;
+            auto f = p.get_future();
+
+            this->client_->async_call(
+                procedure,
+                std::tuple{args...},
+                [&](auto ec, msgpack::object_handle res) {
+                    ASSERT_TRUE(ec);
+                    p.set_value(res->as<std::string>());
+                });
+
+            ASSERT_EQ(expected_message, f.get());
         };
 
     assert_error_message(kErrorMessage, "error");
