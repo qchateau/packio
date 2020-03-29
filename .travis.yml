@@ -22,17 +22,7 @@ matrix:
       env:
         - CONAN_APPLE_CLANG_VERSIONS=11.0
 
-    # Test supported dependency versions
-    - <<: *linux
-      env:
-        - CONAN_GCC_VERSIONS=7
-        - CONAN_DOCKER_IMAGE=conanio/gcc7
-        - CONAN_OPTIONS=boost=1.70.0
-    - <<: *linux
-      env:
-        - CONAN_GCC_VERSIONS=7
-        - CONAN_DOCKER_IMAGE=conanio/gcc7
-        - CONAN_OPTIONS=boost=1.71.0
+    # Test supported boost versions
     - <<: *linux
       env:
         - CONAN_GCC_VERSIONS=7
