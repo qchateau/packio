@@ -434,13 +434,13 @@ private:
                 self_->call_strand_,
                 [self = self_->shared_from_this(),
                  call_id,
-                 handler = std::forward<CallHandler>(handler),
+                 handler = internal::wrap_call_handler(
+                     std::forward<CallHandler>(handler)),
                  packer_buf = std::move(packer_buf)]() mutable {
                     // we must emplace the id and handler before sending data
                     // otherwise we might drop a fast response
                     assert(self->call_strand_.running_in_this_thread());
-                    self->pending_.try_emplace(
-                        call_id, std::forward<CallHandler>(handler));
+                    self->pending_.try_emplace(call_id, std::move(handler));
 
                     // if we are not reading, start the read operation
                     if (!self->reading_) {

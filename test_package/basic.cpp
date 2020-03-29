@@ -253,6 +253,89 @@ TYPED_TEST(Test, test_as)
     }
 }
 
+TYPED_TEST(Test, test_implicit_result_conversion)
+{
+    this->server_->async_serve_forever();
+    this->connect();
+    this->async_run();
+
+    this->server_->dispatcher()->add("add", [](int a, int b) { return a + b; });
+    this->server_->dispatcher()->add("void", [] {});
+
+    // one argument, valid
+    {
+        std::promise<void> done;
+        auto future_done = done.get_future();
+
+        this->client_->async_call(
+            "add",
+            std::tuple{12, 21},
+            [&done](boost::system::error_code ec, std::optional<int> result) {
+                ASSERT_FALSE(ec);
+                ASSERT_EQ(33, *result);
+                done.set_value();
+            });
+
+        ASSERT_EQ(
+            std::future_status::ready,
+            future_done.wait_for(std::chrono::seconds{1}));
+    }
+
+    // no argument, valid
+    {
+        std::promise<void> done;
+        auto future_done = done.get_future();
+
+        this->client_->async_call("void", [&done](boost::system::error_code ec) {
+            ASSERT_FALSE(ec);
+            done.set_value();
+        });
+
+        ASSERT_EQ(
+            std::future_status::ready,
+            future_done.wait_for(std::chrono::seconds{1}));
+    }
+
+    // one argument, bad call
+    {
+        std::promise<void> done;
+        auto future_done = done.get_future();
+
+        this->client_->async_call(
+            "add",
+            std::tuple<std::string, std::string>{"hello", "you"},
+            [&done](boost::system::error_code ec, std::optional<int> result) {
+                ASSERT_EQ(::packio::error::call_error, ec);
+                ASSERT_FALSE(result);
+                done.set_value();
+            });
+
+        ASSERT_EQ(
+            std::future_status::ready,
+            future_done.wait_for(std::chrono::seconds{1}));
+    }
+
+    // one argument, invalid type
+    {
+        std::promise<void> done;
+        auto future_done = done.get_future();
+
+        this->client_->async_call(
+            "add",
+            std::tuple{12, 21},
+            [&done](
+                boost::system::error_code ec, std::optional<std::string> result) {
+                ASSERT_EQ(::packio::error::bad_result_type, ec);
+                ASSERT_FALSE(result);
+                done.set_value();
+            });
+
+        ASSERT_EQ(
+            std::future_status::ready,
+            future_done.wait_for(std::chrono::seconds{1}));
+    }
+}
+
 TYPED_TEST(Test, test_timeout)
 {
     this->server_->async_serve_forever();
