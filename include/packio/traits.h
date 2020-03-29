@@ -86,24 +86,6 @@ template <typename T>
 struct CallHandler : Trait<internal::is_valid_call_handler_v<T>> {
 };
 
-//! AsCallHandler
-//!
-//! Handler wrapped by @ref as<T>
-//! - Must be callable with boost::system::error_code, std::optional<T>
-template <typename T, typename Result>
-struct AsCallHandler
-    : Trait<std::is_invocable_v<T, boost::system::error_code, std::optional<Result>>> {
-};
-
-//! AsVoidCallHandler
-//!
-//! Handler wrapped by @ref as<void>
-//! - Must be callable with boost::system::error_code
-template <typename T>
-struct AsVoidCallHandler
-    : Trait<std::is_invocable_v<T, boost::system::error_code>> {
-};
-
 //! ServeHandler trait
 //!
 //! Handler used by @ref server::async_serve
