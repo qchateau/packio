@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['client_2eh',['client.h',['../client_8h.html',1,'']]]
+  ['dispatcher_2eh',['dispatcher.h',['../dispatcher_8h.html',1,'']]]
 ];

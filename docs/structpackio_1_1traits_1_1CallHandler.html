@@ -78,8 +78,10 @@ $(function() {
 struct packio::traits::CallHandler&lt; T &gt;</h3>
 
 <p><a class="el" href="structpackio_1_1traits_1_1CallHandler.html" title="CallHandler trait. ">CallHandler</a> trait. </p>
-<p>Handler used by <a class="el" href="classpackio_1_1client.html#ad90463809693d4c237e3bad0e9b1de8f">client::async_call</a></p><ul>
-<li>Must be callable with boost::system::error_code, msgpack::object_handle </li>
+<p>Handler used by <a class="el" href="classpackio_1_1client.html#a5d5a56eb59280c790e7bc2c3a709cb2c">client::async_call</a>, must meet one of:</p><ul>
+<li>Must be callable with boost::system::error_code, msgpack::object_handle</li>
+<li>Must be callable with boost::system::error_code</li>
+<li>Must be callable with boost::system::error_code, std::optional&lt;T&gt; </li>
 </ul>
 </div><hr/>The documentation for this struct was generated from the following file:<ul>
 <li>packio/<a class="el" href="traits_8h_source.html">traits.h</a></li>
