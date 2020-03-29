@@ -258,12 +258,11 @@ TYPED_TEST(Test, test_timeout)
     const auto assert_blocks = [](auto& future) {
         ASSERT_EQ(
             std::future_status::timeout,
-            future.wait_for(std::chrono::milliseconds{1}));
+            future.wait_for(std::chrono::milliseconds{100}));
     };
     const auto assert_cancelled = [](auto& future) {
         ASSERT_EQ(
-            std::future_status::ready,
-            future.wait_for(std::chrono::milliseconds{1}));
+            std::future_status::ready, future.wait_for(std::chrono::seconds{1}));
         try {
             future.get();
             ASSERT_FALSE(true); // never reached
@@ -541,10 +540,17 @@ TYPED_TEST(Test, test_end_of_work)
     ASSERT_TRUE(io.stopped());
 
     // client runs out of work after a cancelled call
+    int cancelled_count{0};
     io.restart();
+    ASSERT_FALSE(io.stopped());
     id_type id;
     client->async_call(
-        "block", [](auto, auto) {}, id);
+        "block",
+        [&](auto ec, auto) {
+            ASSERT_TRUE(ec);
+            cancelled_count++;
+        },
+        id);
     io.run_for(std::chrono::milliseconds{10});
     ASSERT_FALSE(io.stopped());
     client->cancel(id);
@@ -553,13 +559,20 @@ TYPED_TEST(Test, test_end_of_work)
 
     // client runs out of work after multiple cancelled calls
     io.restart();
-    client->async_call("block", [](auto, auto) {});
-    client->async_call("block", [](auto, auto) {});
+    client->async_call("block", [&](auto ec, auto) {
+        ASSERT_TRUE(ec);
+        cancelled_count++;
+    });
+    client->async_call("block", [&](auto ec, auto) {
+        ASSERT_TRUE(ec);
+        cancelled_count++;
+    });
     io.run_for(std::chrono::milliseconds{10});
     ASSERT_FALSE(io.stopped());
     client->cancel();
     io.run_for(std::chrono::seconds{1});
     ASSERT_TRUE(io.stopped());
+    ASSERT_EQ(3, cancelled_count);
 }
 
 TYPED_TEST(Test, test_special_callables)
