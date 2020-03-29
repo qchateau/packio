@@ -28,18 +28,15 @@ int main(int argc, char** argv)
             client->async_call(
                 "fibonacci",
                 std::tuple{n - 1},
-                [=, &client, complete = std::move(complete)](
-                    boost::system::error_code,
-                    msgpack::object_handle result1) mutable {
-                    int r1 = result1->as<int>();
+                [n, &client, complete = std::move(complete)](
+                    boost::system::error_code, std::optional<int> r1) mutable {
                     client->async_call(
                         "fibonacci",
                         std::tuple{n - 2},
-                        [=, complete = std::move(complete)](
+                        [r1, complete = std::move(complete)](
                             boost::system::error_code,
-                            msgpack::object_handle result2) mutable {
-                            int r2 = result2->as<int>();
-                            complete(r1 + r2);
+                            std::optional<int> r2) mutable {
+                            complete(*r1 + *r2);
                         });
                 });
         });
@@ -51,9 +48,9 @@ int main(int argc, char** argv)
 
     client->async_call(
         "fibonacci",
-        std::make_tuple(n),
-        [&](boost::system::error_code, msgpack::object_handle r) {
-            result = r->as<int>();
+        std::tuple{n},
+        [&](boost::system::error_code, std::optional<int> r) {
+            result = *r;
             io.stop();
         });
 
