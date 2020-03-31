@@ -46,9 +46,22 @@ public:
     completion_handler& operator=(const completion_handler&) = delete;
 
     //! Move constructor
-    completion_handler(completion_handler&&) = default;
+    completion_handler(completion_handler&& other)
+        : handler_{std::move(other.handler_)}
+    {
+        other.handler_ = nullptr;
+    }
+
     //! Move assignment operator
-    completion_handler& operator=(completion_handler&&) = default;
+    completion_handler& operator=(completion_handler&& other)
+    {
+        if (handler_) {
+            set_error("Call finished with no result");
+        }
+        handler_ = std::move(other.handler_);
+        other.handler_ = nullptr;
+        return *this;
+    }
 
     //! Notify successful completion of the procedure and set the return value
     //! @param return_value The value that the procedure will return to the client
@@ -94,6 +107,7 @@ private:
         handler_(make_error_code(err), std::move(result));
         handler_ = nullptr;
     }
+
     function_type handler_;
 };
 } // packio

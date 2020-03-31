@@ -1,11 +1,9 @@
 
 ## Header-only | msgpack-RPC | Boost.Asio
 
-This library requires C++17 and is designed as an extension to Boost.Asio. It will let you built asynchronous servers or client for msgpack-RPC.
+This library requires C++17 and is designed as an extension to Boost.Asio. It will let you build asynchronous servers or client for msgpack-RPC.
 
-The library is still under development and is therefore subject heavy API changes.
-
-The project is hosted on [GitHub](https://github.com/qchateau/packio/) and packaged with [Conan](https://bintray.com/beta/#/qchateau/qchateau/packio:_?tab=overview). Documentation is available on [GitHub Pages](https://qchateau.github.io/packio/).
+The project is hosted on [GitHub](https://github.com/qchateau/packio/) and available on [Conan Center](https://conan.io/center/). Documentation is available on [GitHub Pages](https://qchateau.github.io/packio/).
 
 ## Primer
 
@@ -21,7 +19,11 @@ server->dispatcher()->add("add", [](int a, int b) { return a + b; });
 // Declare an asynchronous callback
 server->dispatcher()->add_async(
     "multiply", [](packio::completion_handler complete, int a, int b) {
-        complete(a * b);
+        // Call the completion handler later
+        boost::asio::post(
+            io, [a, b, complete = std::move(complete)]() mutable {
+                complete(a * b);
+            });
     });
 
 // Accept connections forever
@@ -34,20 +36,26 @@ client->async_call("add", std::make_tuple(42, 24),
     [&](boost::system::error_code, msgpack::object r) {
         std::cout << "The result is: " << r.as<int>() << std::endl;
     });
-// Use as<> wrapper to hide result type conversion
+
+// Use boost::asio::use_future
+std::future<msgpack::object_handle> add_future = client->async_call(
+    "add", std::tuple{12, 23}, boost::asio::use_future);
+std::cout << "The result is: " << add_future.get()->as<int>() << std::endl;
+
+// Use auto result type conversion
 client->async_call(
     "multiply",
     std::make_tuple(42, 24),
-    packio::as<int>([&](boost::system::error_code, std::optional<int> r) {
-        multiply_result.set_value(*r);
-    }));
+    [&](boost::system::error_code, std::optional<int> r) {
+        std::cout << "The result is: " << *r << std::endl;
+    });
 ```
 
 ## Requirements
 
 - C++17
-- Boost.Asio >= 1.70.0
-- msgpack >= 3.0.1
+- Boost.Asio >= 1.72.0
+- msgpack >= 3.2.1
 
 ## Tested compilers
 
@@ -65,10 +73,8 @@ client->async_call(
 
 ## Conan
 
-Add my remote and install packio:
 ```bash
-conan remote add qchateau https://api.bintray.com/conan/qchateau/qchateau
-conan install -r qchateau packio/0.8.0
+conan install packio/1.1.0
 ```
 
 ## Bonus
@@ -106,18 +112,15 @@ int main(int argc, char** argv)
             client->async_call(
                 "fibonacci",
                 std::tuple{n - 1},
-                [=, &client, complete = std::move(complete)](
-                    boost::system::error_code,
-                    msgpack::object_handle result1) mutable {
-                    int r1 = result1->as<int>();
+                [n, &client, complete = std::move(complete)](
+                    boost::system::error_code, std::optional<int> r1) mutable {
                     client->async_call(
                         "fibonacci",
                         std::tuple{n - 2},
-                        [=, complete = std::move(complete)](
+                        [r1, complete = std::move(complete)](
                             boost::system::error_code,
-                            msgpack::object_handle result2) mutable {
-                            int r2 = result2->as<int>();
-                            complete(r1 + r2);
+                            std::optional<int> r2) mutable {
+                            complete(*r1 + *r2);
                         });
                 });
         });
@@ -129,9 +132,9 @@ int main(int argc, char** argv)
 
     client->async_call(
         "fibonacci",
-        std::make_tuple(n),
-        [&](boost::system::error_code, msgpack::object_handle r) {
-            result = r->as<int>();
+        std::tuple{n},
+        [&](boost::system::error_code, std::optional<int> r) {
+            result = *r;
             io.stop();
         });
 
@@ -141,5 +144,4 @@ int main(int argc, char** argv)
 
     return 0;
 }
-
 ```

@@ -83,11 +83,11 @@ private:
             unpacker->buffer(), unpacker->buffer_capacity());
         socket_.async_read_some(
             buffer,
-            [this, self = shared_from_this(), unpacker = std::move(unpacker)](
+            [self = shared_from_this(), unpacker = std::move(unpacker)](
                 boost::system::error_code ec, size_t length) mutable {
                 if (ec) {
                     PACKIO_WARN("read error: {}", ec.message());
-                    close_connection();
+                    self->close_connection();
                     return;
                 }
 
@@ -99,10 +99,10 @@ private:
                     // to schedule the next read immediately
                     // this will allow parallel call handling
                     // in multi-threaded environments
-                    async_dispatch(std::move(call));
+                    self->async_dispatch(std::move(call));
                 }
 
-                async_read(std::move(unpacker));
+                self->async_read(std::move(unpacker));
             });
     }
 
@@ -110,8 +110,8 @@ private:
     {
         boost::asio::post(
             socket_.get_executor(),
-            [this, self = shared_from_this(), call = std::move(call)] {
-                dispatch(call.get());
+            [self = shared_from_this(), call = std::move(call)] {
+                self->dispatch(call.get());
             });
     }
 
@@ -124,11 +124,11 @@ private:
         }
 
         auto completion_handler =
-            [this, type = call->type, id = call->id, self = shared_from_this()](
+            [type = call->type, id = call->id, self = shared_from_this()](
                 boost::system::error_code ec, msgpack::object_handle result) {
                 if (type == msgpack_rpc_type::request) {
                     PACKIO_TRACE("result: {}", ec.message());
-                    async_send_result(id, ec, std::move(result));
+                    self->async_send_result(id, ec, std::move(result));
                 }
             };
 
@@ -239,15 +239,13 @@ private:
             boost::asio::async_write(
                 socket_,
                 buf,
-                [this,
-                 self = std::move(self),
-                 message_ptr = std::move(message_ptr)](
+                [self = std::move(self), message_ptr = std::move(message_ptr)](
                     boost::system::error_code ec, size_t length) {
-                    wstrand_.next();
+                    self->wstrand_.next();
 
                     if (ec) {
                         PACKIO_WARN("write error: {}", ec.message());
-                        close_connection();
+                        self->close_connection();
                         return;
                     }
 

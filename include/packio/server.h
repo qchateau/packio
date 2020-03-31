@@ -79,8 +79,7 @@ public:
         PACKIO_STATIC_ASSERT_TTRAIT(ServeHandler, session_type);
         PACKIO_TRACE("async_serve");
         acceptor_.async_accept(
-            [this,
-             self = shared_from_this(),
+            [self = shared_from_this(),
              handler = std::forward<ServeHandler>(handler)](
                 boost::system::error_code ec, socket_type sock) mutable {
                 std::shared_ptr<session_type> session;
@@ -90,7 +89,7 @@ public:
                 else {
                     internal::set_no_delay(sock);
                     session = std::make_shared<session_type>(
-                        std::move(sock), dispatcher_ptr_);
+                        std::move(sock), self->dispatcher_ptr_);
                 }
                 handler(ec, std::move(session));
             });
@@ -99,13 +98,13 @@ public:
     //! Accept connections and automatically start the associated sessions forever
     void async_serve_forever()
     {
-        async_serve([this, self = shared_from_this()](auto ec, auto session) {
+        async_serve([self = shared_from_this()](auto ec, auto session) {
             if (ec) {
                 return;
             }
 
             session->start();
-            async_serve_forever();
+            self->async_serve_forever();
         });
     }
 

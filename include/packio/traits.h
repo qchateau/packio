@@ -78,29 +78,12 @@ struct NotifyHandler : Trait<std::is_invocable_v<T, boost::system::error_code>> 
 
 //! CallHandler trait
 //!
-//! Handler used by @ref client::async_call
+//! Handler used by @ref client::async_call, must meet one of:
 //! - Must be callable with boost::system::error_code, msgpack::object_handle
-template <typename T>
-struct CallHandler
-    : Trait<std::is_invocable_v<T, boost::system::error_code, msgpack::object_handle>> {
-};
-
-//! AsCallHandler
-//!
-//! Handler wrapped by @ref as<T>
-//! - Must be callable with boost::system::error_code, std::optional<T>
-template <typename T, typename Result>
-struct AsCallHandler
-    : Trait<std::is_invocable_v<T, boost::system::error_code, std::optional<Result>>> {
-};
-
-//! AsVoidCallHandler
-//!
-//! Handler wrapped by @ref as<void>
 //! - Must be callable with boost::system::error_code
+//! - Must be callable with boost::system::error_code, std::optional<T>
 template <typename T>
-struct AsVoidCallHandler
-    : Trait<std::is_invocable_v<T, boost::system::error_code>> {
+struct CallHandler : Trait<internal::is_valid_call_handler_v<T>> {
 };
 
 //! ServeHandler trait

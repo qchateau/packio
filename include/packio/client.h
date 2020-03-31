@@ -10,10 +10,12 @@
 
 #include <atomic>
 #include <chrono>
+#include <functional>
 #include <map>
 #include <memory>
 #include <queue>
 #include <string_view>
+#include <type_traits>
 
 #include <boost/asio.hpp>
 #include <msgpack.hpp>
@@ -76,11 +78,11 @@ public:
     //! @param id The call ID of the call to cancel
     void cancel(id_type id)
     {
-        boost::asio::dispatch(call_strand_, [this, self = shared_from_this(), id] {
+        boost::asio::dispatch(call_strand_, [self = shared_from_this(), id] {
             auto ec = make_error_code(error::cancelled);
-            async_call_handler(
+            self->async_call_handler(
                 id, internal::make_msgpack_object(ec.message()), ec);
-            maybe_stop_reading();
+            self->maybe_stop_reading();
         });
     }
 
@@ -89,16 +91,16 @@ public:
     //! The associated handlers will be called with @ref error::cancelled
     void cancel()
     {
-        boost::asio::dispatch(call_strand_, [this, self = shared_from_this()] {
-            assert(call_strand_.running_in_this_thread());
+        boost::asio::dispatch(call_strand_, [self = shared_from_this()] {
+            assert(self->call_strand_.running_in_this_thread());
             auto ec = make_error_code(error::cancelled);
-            while (!pending_.empty()) {
-                async_call_handler(
-                    pending_.begin()->first,
+            while (!self->pending_.empty()) {
+                self->async_call_handler(
+                    self->pending_.begin()->first,
                     internal::make_msgpack_object(ec.message()),
                     ec);
             }
-            maybe_stop_reading();
+            self->maybe_stop_reading();
         });
     }
 
@@ -113,44 +115,34 @@ public:
     //! @param args Tuple of arguments to pass to the remote procedure
     //! @param handler Handler called after the notify request is sent.
     //! Must satisfy the @ref traits::NotifyHandler trait
-    template <typename Buffer = msgpack::sbuffer, typename NotifyHandler, typename... Args>
-    void async_notify(
+    template <
+        typename Buffer = msgpack::sbuffer,
+        typename NotifyHandler =
+            typename boost::asio::default_completion_token<executor_type>::type,
+        typename... Args>
+    auto async_notify(
         std::string_view name,
-        std::tuple<Args...> args,
-        NotifyHandler&& handler)
+        const std::tuple<Args...>& args,
+        NotifyHandler&& handler =
+            typename boost::asio::default_completion_token<executor_type>::type())
     {
-        PACKIO_STATIC_ASSERT_TRAIT(NotifyHandler);
-        PACKIO_DEBUG("async_notify: {}", name);
-
-        auto packer_buf = std::make_unique<Buffer>();
-        msgpack::pack(
-            *packer_buf,
-            std::forward_as_tuple(
-                static_cast<int>(msgpack_rpc_type::notification), name, args));
-
-        async_send(
-            std::move(packer_buf),
-            [handler = std::forward<NotifyHandler>(handler)](
-                boost::system::error_code ec, std::size_t length) mutable {
-                if (ec) {
-                    PACKIO_WARN("write error: {}", ec.message());
-                }
-                else {
-                    PACKIO_TRACE("write: {}", length);
-                    (void)length;
-                }
-
-                handler(ec);
-            });
+        return boost::asio::async_initiate<NotifyHandler, void(boost::system::error_code)>(
+            initiate_async_notify<Buffer>(this), handler, name, args);
     }
 
     //! Send a notify request to the server with no argument
     //! @overload
-    template <typename Buffer = msgpack::sbuffer, typename NotifyHandler>
-    void async_notify(std::string_view name, NotifyHandler&& handler)
+    template <
+        typename Buffer = msgpack::sbuffer,
+        typename NotifyHandler =
+            typename boost::asio::default_completion_token<executor_type>::type>
+    auto async_notify(
+        std::string_view name,
+        NotifyHandler&& handler =
+            typename boost::asio::default_completion_token<executor_type>::type())
     {
         return async_notify<Buffer>(
-            name, std::tuple<>{}, std::forward<NotifyHandler>(handler));
+            name, std::tuple{}, std::forward<NotifyHandler>(handler));
     }
 
     //! Call a remote procedure
@@ -161,71 +153,45 @@ public:
     //! @param name Remote procedure name to call
     //! @param args Tuple of arguments to pass to the remote procedure
     //! @param handler Handler called with the return value
+    //! @param call_id Output parameter that will receive the call ID
     //! Must satisfy the @ref traits::CallHandler trait
-    //! @return The call ID
-    template <typename Buffer = msgpack::sbuffer, typename CallHandler, typename... Args>
-    id_type async_call(
+    template <
+        typename Buffer = msgpack::sbuffer,
+        typename CallHandler =
+            typename boost::asio::default_completion_token<executor_type>::type,
+        typename... Args>
+    auto async_call(
         std::string_view name,
-        std::tuple<Args...> args,
-        CallHandler&& handler)
+        const std::tuple<Args...>& args,
+        CallHandler&& handler =
+            typename boost::asio::default_completion_token<executor_type>::type(),
+        std::optional<std::reference_wrapper<id_type>> call_id = std::nullopt)
     {
-        PACKIO_STATIC_ASSERT_TRAIT(CallHandler);
-        PACKIO_DEBUG("async_call: {}", name);
-
-        auto id = id_.fetch_add(1, std::memory_order_acq_rel);
-        auto packer_buf = std::make_unique<Buffer>();
-        msgpack::pack(
-            *packer_buf,
-            std::forward_as_tuple(
-                static_cast<int>(msgpack_rpc_type::request), id, name, args));
-
-        boost::asio::dispatch(
-            call_strand_,
-            [this,
-             self = shared_from_this(),
-             id,
-             handler = std::forward<CallHandler>(handler),
-             packer_buf = std::move(packer_buf)]() mutable {
-                // we must emplace the id and handler before sending data
-                // otherwise we might drop a fast response
-                assert(call_strand_.running_in_this_thread());
-                pending_.try_emplace(id, std::forward<CallHandler>(handler));
-
-                // if we are not reading, start the read operation
-                if (!reading_) {
-                    PACKIO_DEBUG("start reading");
-                    async_read(std::make_unique<msgpack::unpacker>());
-                }
-
-                // send the request buffer
-                async_send(
-                    std::move(packer_buf),
-                    [this, self = std::move(self), id](
-                        boost::system::error_code ec, std::size_t length) mutable {
-                        if (ec) {
-                            PACKIO_WARN("write error: {}", ec.message());
-                            async_call_handler(
-                                id,
-                                internal::make_msgpack_object(ec.message()),
-                                ec);
-                        }
-                        else {
-                            PACKIO_TRACE("write: {}", length);
-                            (void)length;
-                        }
-                    });
-            });
-
-        return id;
+        id_type tmp_id;
+        return boost::asio::async_initiate<
+            CallHandler,
+            void(boost::system::error_code, msgpack::object_handle)>(
+            initiate_async_call<Buffer>(this),
+            handler,
+            name,
+            args,
+            call_id.value_or(tmp_id));
     }
 
     //! Call a remote procedure
     //! @overload
-    template <typename Buffer = msgpack::sbuffer, typename CallHandler>
-    id_type async_call(std::string_view name, CallHandler&& handler)
+    template <
+        typename Buffer = msgpack::sbuffer,
+        typename CallHandler =
+            typename boost::asio::default_completion_token<executor_type>::type>
+    auto async_call(
+        std::string_view name,
+        CallHandler&& handler =
+            typename boost::asio::default_completion_token<executor_type>::type(),
+        std::optional<std::reference_wrapper<id_type>> call_id = std::nullopt)
     {
         return async_call<Buffer>(
-            name, std::tuple<>{}, std::forward<CallHandler>(handler));
+            name, std::tuple{}, std::forward<CallHandler>(handler), call_id);
     }
 
 private:
@@ -260,12 +226,11 @@ private:
             boost::asio::async_write(
                 socket_,
                 buf,
-                [this,
-                 self = std::move(self),
+                [self = std::move(self),
                  buffer_ptr = std::move(buffer_ptr),
                  handler = std::forward<WriteHandler>(handler)](
                     boost::system::error_code ec, size_t length) mutable {
-                    wstrand_.next();
+                    self->wstrand_.next();
                     handler(ec, length);
                 });
         });
@@ -284,32 +249,32 @@ private:
             buffer,
             boost::asio::bind_executor(
                 call_strand_,
-                [this, self = shared_from_this(), unpacker = std::move(unpacker)](
+                [self = shared_from_this(), unpacker = std::move(unpacker)](
                     boost::system::error_code ec, size_t length) mutable {
                     PACKIO_TRACE("read: {}", length);
                     unpacker->buffer_consumed(length);
 
                     msgpack::object_handle response;
                     while (unpacker->next(response)) {
-                        process_response(std::move(response), ec);
+                        self->process_response(std::move(response), ec);
                     }
 
                     // stop if there is an error or there is no more pending calls
-                    assert(call_strand_.running_in_this_thread());
+                    assert(self->call_strand_.running_in_this_thread());
 
                     if (ec && ec != boost::asio::error::operation_aborted) {
                         PACKIO_WARN("read error: {}", ec.message());
-                        reading_ = false;
+                        self->reading_ = false;
                         return;
                     }
 
-                    if (pending_.empty()) {
+                    if (self->pending_.empty()) {
                         PACKIO_TRACE("done reading, no more pending calls");
-                        reading_ = false;
+                        self->reading_ = false;
                         return;
                     }
 
-                    async_read(std::move(unpacker));
+                    self->async_read(std::move(unpacker));
                 }));
     }
 
@@ -385,6 +350,128 @@ private:
         }
         return true;
     }
+
+    template <typename Buffer>
+    class initiate_async_notify {
+    public:
+        using executor_type = typename client::executor_type;
+
+        explicit initiate_async_notify(client* self) : self_(self) {}
+
+        executor_type get_executor() const noexcept
+        {
+            return self_->get_executor();
+        }
+
+        template <typename NotifyHandler, typename... Args>
+        void operator()(
+            NotifyHandler&& handler,
+            std::string_view name,
+            const std::tuple<Args...>& args) const
+        {
+            PACKIO_STATIC_ASSERT_TRAIT(NotifyHandler);
+            PACKIO_DEBUG("async_notify: {}", name);
+
+            auto packer_buf = std::make_unique<Buffer>();
+            msgpack::pack(
+                *packer_buf,
+                std::forward_as_tuple(
+                    static_cast<int>(msgpack_rpc_type::notification), name, args));
+
+            self_->async_send(
+                std::move(packer_buf),
+                [handler = std::forward<NotifyHandler>(handler)](
+                    boost::system::error_code ec, std::size_t length) mutable {
+                    if (ec) {
+                        PACKIO_WARN("write error: {}", ec.message());
+                    }
+                    else {
+                        PACKIO_TRACE("write: {}", length);
+                        (void)length;
+                    }
+
+                    handler(ec);
+                });
+        }
+
+    private:
+        client* self_;
+    };
+
+    template <typename Buffer>
+    class initiate_async_call {
+    public:
+        using executor_type = typename client::executor_type;
+
+        explicit initiate_async_call(client* self) : self_(self) {}
+
+        executor_type get_executor() const noexcept
+        {
+            return self_->get_executor();
+        }
+
+        template <typename CallHandler, typename... Args>
+        void operator()(
+            CallHandler&& handler,
+            std::string_view name,
+            const std::tuple<Args...>& args,
+            id_type& call_id) const
+        {
+            PACKIO_STATIC_ASSERT_TRAIT(CallHandler);
+            PACKIO_DEBUG("async_call: {}", name);
+
+            call_id = self_->id_.fetch_add(1, std::memory_order_acq_rel);
+            auto packer_buf = std::make_unique<Buffer>();
+            msgpack::pack(
+                *packer_buf,
+                std::forward_as_tuple(
+                    static_cast<int>(msgpack_rpc_type::request),
+                    call_id,
+                    name,
+                    args));
+
+            boost::asio::dispatch(
+                self_->call_strand_,
+                [self = self_->shared_from_this(),
+                 call_id,
+                 handler = internal::wrap_call_handler(
+                     std::forward<CallHandler>(handler)),
+                 packer_buf = std::move(packer_buf)]() mutable {
+                    // we must emplace the id and handler before sending data
+                    // otherwise we might drop a fast response
+                    assert(self->call_strand_.running_in_this_thread());
+                    self->pending_.try_emplace(call_id, std::move(handler));
+
+                    // if we are not reading, start the read operation
+                    if (!self->reading_) {
+                        PACKIO_DEBUG("start reading");
+                        self->async_read(std::make_unique<msgpack::unpacker>());
+                    }
+
+                    // send the request buffer
+                    self->async_send(
+                        std::move(packer_buf),
+                        [self = std::move(self), call_id](
+                            boost::system::error_code ec,
+                            std::size_t length) mutable {
+                            if (ec) {
+                                PACKIO_WARN("write error: {}", ec.message());
+                                self->async_call_handler(
+                                    call_id,
+                                    internal::make_msgpack_object(ec.message()),
+                                    ec);
+                            }
+                            else {
+                                PACKIO_TRACE("write: {}", length);
+                                (void)length;
+                            }
+                        });
+                });
+        }
+
+    private:
+        client* self_;
+    };
 
     socket_type socket_;
     std::size_t buffer_reserve_size_{kDefaultBufferReserveSize};

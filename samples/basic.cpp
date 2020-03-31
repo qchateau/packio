@@ -17,8 +17,12 @@ int main(int, char**)
     server->dispatcher()->add("add", [](int a, int b) { return a + b; });
     // Declare an asynchronous callback
     server->dispatcher()->add_async(
-        "multiply", [](packio::completion_handler complete, int a, int b) {
-            complete(a * b);
+        "multiply", [&io](packio::completion_handler complete, int a, int b) {
+            // Call the completion handler later
+            boost::asio::post(
+                io, [a, b, complete = std::move(complete)]() mutable {
+                    complete(a * b);
+                });
         });
 
     // Connect the client
@@ -32,20 +36,24 @@ int main(int, char**)
     std::promise<int> add_result, multiply_result;
     client->async_call(
         "add",
-        std::make_tuple(42, 24),
+        std::tuple{42, 24},
         [&](boost::system::error_code, msgpack::object_handle r) {
             add_result.set_value(r->as<int>());
         });
+    std::cout << "42 + 24 = " << add_result.get_future().get() << std::endl;
 
-    // Use as<> wrapper to hide result type conversion
+    // Use boost::asio::use_future
+    std::future<msgpack::object_handle> add_future = client->async_call(
+        "add", std::tuple{12, 23}, boost::asio::use_future);
+    std::cout << "12 + 23 = " << add_future.get()->as<int>() << std::endl;
+
+    // Use auto result type conversion
     client->async_call(
         "multiply",
-        std::make_tuple(42, 24),
-        packio::as<int>([&](boost::system::error_code, std::optional<int> r) {
+        std::tuple{42, 24},
+        [&](boost::system::error_code, std::optional<int> r) {
             multiply_result.set_value(*r);
-        }));
-
-    std::cout << "42 + 24 = " << add_result.get_future().get() << std::endl;
+        });
     std::cout << "42 * 24 = " << multiply_result.get_future().get() << std::endl;
 
     io.stop();
