@@ -14,6 +14,7 @@
 #include <msgpack.hpp>
 
 #include "error_code.h"
+#include "internal/config.h"
 #include "internal/utils.h"
 
 namespace packio {

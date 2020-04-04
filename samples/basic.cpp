@@ -9,9 +9,8 @@ int main(int, char**)
     // Declare a server and a client, sharing the same io_context
     boost::asio::io_context io;
     ip::tcp::endpoint bind_ep{ip::make_address("127.0.0.1"), 0};
-    auto server = std::make_shared<packio::server<ip::tcp>>(
-        ip::tcp::acceptor{io, bind_ep});
-    auto client = std::make_shared<packio::client<ip::tcp>>(ip::tcp::socket{io});
+    auto server = packio::make_server(ip::tcp::acceptor{io, bind_ep});
+    auto client = packio::make_client(ip::tcp::socket{io});
 
     // Declare a synchronous callback
     server->dispatcher()->add("add", [](int a, int b) { return a + b; });

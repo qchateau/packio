@@ -21,6 +21,7 @@
 #include <msgpack.hpp>
 
 #include "error_code.h"
+#include "internal/config.h"
 #include "internal/manual_strand.h"
 #include "internal/msgpack_rpc.h"
 #include "internal/unique_function.h"
@@ -30,16 +31,17 @@
 namespace packio {
 
 //! The client class
-//! @tparam Protocol Protocol to use for this client, use a boost::asio protocol
+//! @tparam Socket Socket type to use for this client
 //! @tparam Map Container used to associate call IDs and handlers
-template <typename Protocol, template <class...> class Map = std::map>
-class client : public std::enable_shared_from_this<client<Protocol, Map>> {
+template <typename Socket, template <class...> class Map = std::map>
+class client : public std::enable_shared_from_this<client<Socket, Map>> {
 public:
-    using protocol_type = Protocol; //!< The protocol type
-    using socket_type = typename protocol_type::socket; //!< The socket type
+    using socket_type = Socket; //!< The socket type
+    using protocol_type =
+        typename socket_type::protocol_type; //!< The protocol type
     using executor_type =
         typename socket_type::executor_type; //!< The executor type
-    using std::enable_shared_from_this<client<Protocol, Map>>::shared_from_this;
+    using std::enable_shared_from_this<client<Socket, Map>>::shared_from_this;
 
     //! The default size reserved by the reception buffer
     static constexpr size_t kDefaultBufferReserveSize = 4096;
@@ -481,6 +483,15 @@ private:
     Map<id_type, async_call_handler_type> pending_;
     bool reading_{false};
 };
+
+//! Create a client from a socket
+//! @tparam Socket Socket type to use for this client
+//! @tparam Map Container used to associate call IDs and handlers
+template <typename Socket, template <class...> class Map = std::map>
+auto make_client(Socket&& socket)
+{
+    return std::make_shared<client<Socket, Map>>(std::forward<Socket>(socket));
+}
 
 } // packio
 

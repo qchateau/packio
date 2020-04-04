@@ -14,6 +14,7 @@
 #include <msgpack.hpp>
 
 #include "error_code.h"
+#include "internal/config.h"
 #include "internal/log.h"
 #include "internal/manual_strand.h"
 #include "internal/msgpack_rpc.h"
@@ -22,13 +23,16 @@
 namespace packio {
 
 //! The server_session class, created by the @ref server
-template <typename Protocol, typename Dispatcher>
+template <typename Socket, typename Dispatcher>
 class server_session
-    : public std::enable_shared_from_this<server_session<Protocol, Dispatcher>> {
+    : public std::enable_shared_from_this<server_session<Socket, Dispatcher>> {
 public:
-    using protocol_type = Protocol; //!< The protocol type
-    using socket_type = typename protocol_type::socket; //!< The socket type
-    using std::enable_shared_from_this<server_session<Protocol, Dispatcher>>::shared_from_this;
+    using socket_type = Socket; //!< The socket type
+    using protocol_type =
+        typename socket_type::protocol_type; //!< The protocol type
+    using executor_type =
+        typename socket_type::executor_type; //!< The executor type
+    using std::enable_shared_from_this<server_session<Socket, Dispatcher>>::shared_from_this;
 
     //! The default size reserved by the reception buffer
     static constexpr size_t kDefaultBufferReserveSize = 4096;
@@ -44,6 +48,9 @@ public:
     socket_type& socket() { return socket_; }
     //! Get the underlying socket, const
     const socket_type& socket() const { return socket_; }
+
+    //! Get the executor associated with the object
+    executor_type get_executor() { return socket().get_executor(); }
 
     //! Set the size reserved by the reception buffer
     void set_buffer_reserve_size(std::size_t size) noexcept
@@ -99,19 +106,13 @@ private:
                     // to schedule the next read immediately
                     // this will allow parallel call handling
                     // in multi-threaded environments
-                    self->async_dispatch(std::move(call));
+                    boost::asio::post(
+                        self->get_executor(), [self, call = std::move(call)] {
+                            self->dispatch(call.get());
+                        });
                 }
 
                 self->async_read(std::move(unpacker));
-            });
-    }
-
-    void async_dispatch(msgpack::object_handle call)
-    {
-        boost::asio::post(
-            socket_.get_executor(),
-            [self = shared_from_this(), call = std::move(call)] {
-                self->dispatch(call.get());
             });
     }
 

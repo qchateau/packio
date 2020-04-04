@@ -14,17 +14,17 @@ using namespace packio;
 using std::this_thread::sleep_for;
 
 typedef ::testing::Types<
-#if defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
+#if defined(PACKIO_HAS_LOCAL_SOCKETS)
     boost::asio::local::stream_protocol,
-#endif // defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
+#endif // defined(PACKIO_HAS_LOCAL_SOCKETS)
     boost::asio::ip::tcp>
     Protocols;
 
 template <class Protocol>
 class Server : public ::testing::Test {
 protected:
-    using server_type = server<Protocol>;
-    using client_type = client<Protocol>;
+    using server_type = server<typename Protocol::acceptor>;
+    using client_type = client<typename Protocol::socket>;
     using endpoint_type = typename Protocol::endpoint;
     using socket_type = typename Protocol::socket;
     using acceptor_type = typename Protocol::acceptor;
@@ -183,7 +183,7 @@ TYPED_TEST(Server, test_many_func)
 
 int main(int argc, char** argv)
 {
-#if defined(PACKIO_LOGGING) && PACKIO_LOGGING
+#if defined(PACKIO_LOGGING)
     ::spdlog::default_logger()->set_level(
         static_cast<::spdlog::level::level_enum>(SPDLOG_ACTIVE_LEVEL));
 #endif

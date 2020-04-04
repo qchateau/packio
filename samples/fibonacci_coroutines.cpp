@@ -17,27 +17,18 @@ int main(int argc, char** argv)
     auto server = packio::make_server(ip::tcp::acceptor{io, bind_ep});
     auto client = packio::make_client(ip::tcp::socket{io});
 
-    server->dispatcher()->add_async(
-        "fibonacci", [&](packio::completion_handler complete, int n) {
+    server->dispatcher()->add_coro(
+        "fibonacci", io, [&](int n) -> boost::asio::awaitable<int> {
             if (n <= 1) {
-                complete(n);
-                return;
+                co_return n;
             }
 
-            client->async_call(
-                "fibonacci",
-                std::tuple{n - 1},
-                [n, &client, complete = std::move(complete)](
-                    boost::system::error_code, std::optional<int> r1) mutable {
-                    client->async_call(
-                        "fibonacci",
-                        std::tuple{n - 2},
-                        [r1, complete = std::move(complete)](
-                            boost::system::error_code,
-                            std::optional<int> r2) mutable {
-                            complete(*r1 + *r2);
-                        });
-                });
+            msgpack::object_handle r1 = co_await client->async_call(
+                "fibonacci", std::tuple{n - 1}, boost::asio::use_awaitable);
+            msgpack::object_handle r2 = co_await client->async_call(
+                "fibonacci", std::tuple{n - 2}, boost::asio::use_awaitable);
+
+            co_return r1->as<int>() + r2->as<int>();
         });
 
     client->socket().connect(server->acceptor().local_endpoint());

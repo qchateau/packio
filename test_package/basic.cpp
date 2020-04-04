@@ -42,14 +42,18 @@ using my_unordered_map = std::unordered_map<
     my_allocator<std::pair<const Key, T>>>;
 
 typedef ::testing::Types<
-#if defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
-    std::pair<client<boost::asio::local::stream_protocol>, server<boost::asio::local::stream_protocol>>,
-#endif // defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
-    std::pair<client<boost::asio::ip::tcp>, server<boost::asio::ip::tcp>>,
+#if defined(PACKIO_HAS_LOCAL_SOCKETS)
     std::pair<
-        client<boost::asio::ip::tcp>,
-        server<boost::asio::ip::tcp, dispatcher<std::map, my_spinlock>>>,
-    std::pair<client<boost::asio::ip::tcp, my_unordered_map>, server<boost::asio::ip::tcp>>>
+        client<boost::asio::local::stream_protocol::socket>,
+        server<boost::asio::local::stream_protocol::acceptor>>,
+#endif // defined(PACKIO_HAS_LOCAL_SOCKETS)
+    std::pair<client<boost::asio::ip::tcp::socket>, server<boost::asio::ip::tcp::acceptor>>,
+    std::pair<
+        client<boost::asio::ip::tcp::socket>,
+        server<boost::asio::ip::tcp::acceptor, dispatcher<std::map, my_spinlock>>>,
+    std::pair<
+        client<boost::asio::ip::tcp::socket, my_unordered_map>,
+        server<boost::asio::ip::tcp::acceptor>>>
     Implementations;
 
 template <class Impl>
@@ -742,9 +746,59 @@ TYPED_TEST(Test, test_errors)
     assert_error_message("Incompatible arguments", "add_sync", 1, 2, 3);
 }
 
+#if defined(PACKIO_HAS_CO_AWAIT)
+TYPED_TEST(Test, test_coroutine)
+{
+    using boost::asio::use_awaitable;
+
+    boost::asio::steady_timer timer{this->io_};
+    this->server_->async_serve_forever();
+    this->connect();
+    this->async_run();
+
+    this->server_->dispatcher()->add_coro(
+        "add",
+        this->io_.get_executor(), // executor
+        [&](int a, int b) -> boost::asio::awaitable<int> {
+            timer.expires_after(std::chrono::milliseconds{1});
+            co_await timer.async_wait(use_awaitable);
+            co_return a + b;
+        });
+
+    this->server_->dispatcher()->add_coro(
+        "add2",
+        this->io_, // executor context
+        [&](int a, int b) -> boost::asio::awaitable<int> {
+            timer.expires_after(std::chrono::milliseconds{1});
+            co_await timer.async_wait(use_awaitable);
+            co_return a + b;
+        });
+
+    std::promise<void> p;
+    boost::asio::co_spawn(
+        this->io_,
+        [&]() -> boost::asio::awaitable<void> {
+            // Call using an awaitable
+            msgpack::object_handle res = co_await this->client_->async_call(
+                "add", std::tuple{12, 23}, use_awaitable);
+            EXPECT_EQ(res->as<int>(), 35);
+
+            res = co_await this->client_->async_call(
+                "add2", std::tuple{31, 3}, use_awaitable);
+            EXPECT_EQ(res->as<int>(), 34);
+
+            p.set_value();
+        },
+        boost::asio::detached);
+    ASSERT_EQ(
+        p.get_future().wait_for(std::chrono::seconds{1}),
+        std::future_status::ready);
+}
+#endif // defined(PACKIO_HAS_CO_AWAIT)
+
 int main(int argc, char** argv)
 {
-#if defined(PACKIO_LOGGING) && PACKIO_LOGGING
+#if defined(PACKIO_LOGGING)
     ::spdlog::default_logger()->set_level(
         static_cast<::spdlog::level::level_enum>(SPDLOG_ACTIVE_LEVEL));
 #endif
