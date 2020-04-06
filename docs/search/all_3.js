@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['dispatcher',['dispatcher',['../classpackio_1_1dispatcher.html',1,'packio::dispatcher&lt; Map, Lockable &gt;'],['../classpackio_1_1server.html#aec0f465381ac2bd00c1df37373a2f28d',1,'packio::server::dispatcher()'],['../classpackio_1_1server.html#ab802cffba61c9a4e3ab7fc34ee4a6cf1',1,'packio::server::dispatcher() const']]],
-  ['dispatcher_2eh',['dispatcher.h',['../dispatcher_8h.html',1,'']]],
-  ['dispatcher_5ftype',['dispatcher_type',['../classpackio_1_1server.html#ab29f0af82772ca4ce7f35b92eca08422',1,'packio::server']]]
+  ['dispatcher_20',['dispatcher',['../classpackio_1_1dispatcher.html',1,'packio::dispatcher&lt; Map, Lockable &gt;'],['../classpackio_1_1server.html#a71c73a5ab56575e2fa3e05b39865a68e',1,'packio::server::dispatcher()'],['../classpackio_1_1server.html#a343d3dab6de63fe6dee0c0765d781f2c',1,'packio::server::dispatcher() const']]],
+  ['dispatcher_2eh_21',['dispatcher.h',['../dispatcher_8h.html',1,'']]],
+  ['dispatcher_5ftype_22',['dispatcher_type',['../classpackio_1_1server.html#a57a2a6a784736a55bec1f2e099f47a67',1,'packio::server']]]
 ];

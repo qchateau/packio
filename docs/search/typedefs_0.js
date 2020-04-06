@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['acceptor_5ftype',['acceptor_type',['../classpackio_1_1server.html#a16f4fbd6d3777b72786029baa2ff5e10',1,'packio::server']]]
+  ['acceptor_5ftype_115',['acceptor_type',['../classpackio_1_1server.html#a4bcd39b0d3f5a297e476382b97402707',1,'packio::server']]]
 ];
