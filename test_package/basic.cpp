@@ -543,7 +543,7 @@ TYPED_TEST(Test, test_end_of_work)
     int cancelled_count{0};
     io.restart();
     ASSERT_FALSE(io.stopped());
-    id_type id;
+    id_type id{};
     client->async_call(
         "block",
         [&](auto ec, auto) {

@@ -92,7 +92,6 @@ public:
     void cancel()
     {
         boost::asio::dispatch(call_strand_, [self = shared_from_this()] {
-            assert(self->call_strand_.running_in_this_thread());
             auto ec = make_error_code(error::cancelled);
             while (!self->pending_.empty()) {
                 self->async_call_handler(
@@ -167,15 +166,10 @@ public:
             typename boost::asio::default_completion_token<executor_type>::type(),
         std::optional<std::reference_wrapper<id_type>> call_id = std::nullopt)
     {
-        id_type tmp_id;
         return boost::asio::async_initiate<
             CallHandler,
             void(boost::system::error_code, msgpack::object_handle)>(
-            initiate_async_call<Buffer>(this),
-            handler,
-            name,
-            args,
-            call_id.value_or(tmp_id));
+            initiate_async_call<Buffer>(this), handler, name, args, call_id);
     }
 
     //! Call a remote procedure
@@ -415,12 +409,16 @@ private:
             CallHandler&& handler,
             std::string_view name,
             const std::tuple<Args...>& args,
-            id_type& call_id) const
+            std::optional<std::reference_wrapper<id_type>> opt_call_id) const
         {
             PACKIO_STATIC_ASSERT_TRAIT(CallHandler);
             PACKIO_DEBUG("async_call: {}", name);
 
-            call_id = self_->id_.fetch_add(1, std::memory_order_acq_rel);
+            id_type call_id = self_->id_.fetch_add(1, std::memory_order_acq_rel);
+            if (opt_call_id) {
+                opt_call_id->get() = call_id;
+            }
+
             auto packer_buf = std::make_unique<Buffer>();
             msgpack::pack(
                 *packer_buf,
