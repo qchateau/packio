@@ -1,5 +1,5 @@
 
-## Header-only | msgpack-RPC | Boost.Asio
+## Header-only | msgpack-RPC | Boost.Asio | Coroutines
 
 This library requires C++17 and is designed as an extension to Boost.Asio. It will let you build asynchronous servers or client for msgpack-RPC.
 
