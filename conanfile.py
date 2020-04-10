@@ -13,7 +13,7 @@ class PackioConan(ConanFile):
     no_copy_source = True
     requires = [
         "msgpack/3.2.1",
-        "boost/[>=1.72]",
+        "boost/[>=1.70]",
     ]
 
     def package(self):

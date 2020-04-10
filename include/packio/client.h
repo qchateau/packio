@@ -118,14 +118,13 @@ public:
     //! Must satisfy the @ref traits::NotifyHandler trait
     template <
         typename Buffer = msgpack::sbuffer,
-        typename NotifyHandler =
-            typename boost::asio::default_completion_token<executor_type>::type,
+        PACKIO_COMPLETION_TOKEN_FOR(void(boost::system::error_code))
+            NotifyHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type),
         typename... Args>
     auto async_notify(
         std::string_view name,
         const std::tuple<Args...>& args,
-        NotifyHandler&& handler =
-            typename boost::asio::default_completion_token<executor_type>::type())
+        NotifyHandler&& handler PACKIO_DEFAULT_COMPLETION_TOKEN(executor_type))
     {
         return boost::asio::async_initiate<NotifyHandler, void(boost::system::error_code)>(
             initiate_async_notify<Buffer>(this), handler, name, args);
@@ -135,12 +134,11 @@ public:
     //! @overload
     template <
         typename Buffer = msgpack::sbuffer,
-        typename NotifyHandler =
-            typename boost::asio::default_completion_token<executor_type>::type>
+        PACKIO_COMPLETION_TOKEN_FOR(void(boost::system::error_code))
+            NotifyHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type)>
     auto async_notify(
         std::string_view name,
-        NotifyHandler&& handler =
-            typename boost::asio::default_completion_token<executor_type>::type())
+        NotifyHandler&& handler PACKIO_DEFAULT_COMPLETION_TOKEN(executor_type))
     {
         return async_notify<Buffer>(
             name, std::tuple{}, std::forward<NotifyHandler>(handler));
@@ -158,14 +156,13 @@ public:
     //! Must satisfy the @ref traits::CallHandler trait
     template <
         typename Buffer = msgpack::sbuffer,
-        typename CallHandler =
-            typename boost::asio::default_completion_token<executor_type>::type,
+        PACKIO_COMPLETION_TOKEN_FOR(void(boost::system::error_code, msgpack::object_handle))
+            CallHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type),
         typename... Args>
     auto async_call(
         std::string_view name,
         const std::tuple<Args...>& args,
-        CallHandler&& handler =
-            typename boost::asio::default_completion_token<executor_type>::type(),
+        CallHandler&& handler PACKIO_DEFAULT_COMPLETION_TOKEN(executor_type),
         std::optional<std::reference_wrapper<id_type>> call_id = std::nullopt)
     {
         return boost::asio::async_initiate<
@@ -178,12 +175,11 @@ public:
     //! @overload
     template <
         typename Buffer = msgpack::sbuffer,
-        typename CallHandler =
-            typename boost::asio::default_completion_token<executor_type>::type>
+        PACKIO_COMPLETION_TOKEN_FOR(void(boost::system::error_code, msgpack::object_handle))
+            CallHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type)>
     auto async_call(
         std::string_view name,
-        CallHandler&& handler =
-            typename boost::asio::default_completion_token<executor_type>::type(),
+        CallHandler&& handler PACKIO_DEFAULT_COMPLETION_TOKEN(executor_type),
         std::optional<std::reference_wrapper<id_type>> call_id = std::nullopt)
     {
         return async_call<Buffer>(
