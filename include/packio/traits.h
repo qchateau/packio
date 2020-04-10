@@ -13,9 +13,10 @@
 #include <boost/asio.hpp>
 #include <msgpack.hpp>
 
+#include "internal/config.h"
 #include "internal/utils.h"
 
-#if defined(PACKIO_TRAITS_CHECK_DISABLE) && PACKIO_TRAITS_CHECK_DISABLE
+#if defined(PACKIO_TRAITS_CHECK_DISABLE)
 #define PACKIO_STATIC_ASSERT_TRAIT(Trait) (void)0
 #define PACKIO_STATIC_ASSERT_TTRAIT(Trait, ...) (void)0
 #else
@@ -61,6 +62,17 @@ template <typename T>
 struct SyncProcedureImpl<T, std::enable_if_t<internal::func_traits_v<T>>>
     : std::true_type {
 };
+
+#if defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_DOCUMENTATION)
+template <typename, typename = void>
+struct CoroProcedureImpl : std::false_type {
+};
+
+template <typename T>
+struct CoroProcedureImpl<T, std::enable_if_t<internal::is_coroutine_v<T>>>
+    : std::true_type {
+};
+#endif // defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_DOCUMENTATION)
 
 } // details
 
@@ -115,6 +127,18 @@ struct AsyncProcedure : Trait<details::AsyncProcedureImpl<T>::value> {
 template <typename T>
 struct SyncProcedure : Trait<details::SyncProcedureImpl<T>::value> {
 };
+
+#if defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_DOCUMENTATION)
+//! CoroProcedure trait
+//!
+//! Procedure registered with @ref dispatcher::add_coro
+//! - Must be coroutine.
+//! - No overload resolution can be performed.
+//! - The arguments must be msgpack-able and will be used as the procedure's arguments.
+template <typename T>
+struct CoroProcedure : Trait<details::CoroProcedureImpl<T>::value> {
+};
+#endif // defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_DOCUMENTATION)
 
 } // traits
 } // packio

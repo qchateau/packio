@@ -45,6 +45,26 @@ struct func_traits<R (*)(Args...)> : std::true_type {
 template <typename T>
 constexpr bool func_traits_v = func_traits<T>::value;
 
+#if defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_DOCUMENTATION)
+template <typename>
+struct is_awaitable : std::false_type {
+};
+template <typename... Args>
+struct is_awaitable<boost::asio::awaitable<Args...>> : std::true_type {
+};
+
+template <typename, typename = void>
+struct is_coroutine : std::false_type {
+};
+template <typename T>
+struct is_coroutine<T, std::enable_if_t<func_traits_v<T>>>
+    : is_awaitable<typename func_traits<T>::result_type> {
+};
+
+template <typename T>
+constexpr bool is_coroutine_v = is_coroutine<T>::value;
+#endif // defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_DOCUMENTATION)
+
 template <typename T>
 struct shift_tuple;
 

@@ -13,6 +13,7 @@
 #include <msgpack.hpp>
 
 #include "dispatcher.h"
+#include "internal/config.h"
 #include "internal/log.h"
 #include "internal/utils.h"
 #include "server_session.h"
@@ -21,20 +22,21 @@
 namespace packio {
 
 //! The server class
-//! @tparam Protocol Protocol to use for this client, use a boost::asio protocol
+//! @tparam Acceptor Acceptor type to use for this server
 //! @tparam Dispatcher Dispatcher used to store and dispatch procedures. See @ref dispatcher
-template <typename Protocol, typename Dispatcher = default_dispatcher>
-class server : public std::enable_shared_from_this<server<Protocol, Dispatcher>> {
+template <typename Acceptor, typename Dispatcher = dispatcher<>>
+class server : public std::enable_shared_from_this<server<Acceptor, Dispatcher>> {
 public:
-    using protocol_type = Protocol; //!< The protocol type
+    using acceptor_type = Acceptor; //!< The acceptor type
+    using protocol_type = typename Acceptor::protocol_type; //!< The protocol type
     using dispatcher_type = Dispatcher; //!< The dispatcher type
-    using session_type =
-        server_session<protocol_type, dispatcher_type>; //!< The session type
-    using acceptor_type = typename Protocol::acceptor; //!< The acceptor type
-    using socket_type = typename Protocol::socket; //!< The socket type
     using executor_type =
         typename acceptor_type::executor_type; //!< The executor type
-    using std::enable_shared_from_this<server<Protocol, Dispatcher>>::shared_from_this;
+    using socket_type = std::decay_t<decltype(
+        std::declval<acceptor_type>().accept())>; //!< The connection socket type
+    using session_type = server_session<socket_type, dispatcher_type>;
+
+    using std::enable_shared_from_this<server<Acceptor, Dispatcher>>::shared_from_this;
 
     //! The constructor
     //!
@@ -78,6 +80,7 @@ public:
     {
         PACKIO_STATIC_ASSERT_TTRAIT(ServeHandler, session_type);
         PACKIO_TRACE("async_serve");
+
         acceptor_.async_accept(
             [self = shared_from_this(),
              handler = std::forward<ServeHandler>(handler)](
@@ -112,6 +115,16 @@ private:
     acceptor_type acceptor_;
     std::shared_ptr<dispatcher_type> dispatcher_ptr_;
 };
+
+//! Create a server from an acceptor
+//! @tparam Acceptor Acceptor type to use for this server
+//! @tparam Dispatcher Dispatcher used to store and dispatch procedures. See @ref dispatcher
+template <typename Acceptor, typename Dispatcher = dispatcher<>>
+auto make_server(Acceptor&& acceptor)
+{
+    return std::make_shared<server<Acceptor, Dispatcher>>(
+        std::forward<Acceptor>(acceptor));
+}
 
 } // packio
 

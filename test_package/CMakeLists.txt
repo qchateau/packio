@@ -34,6 +34,18 @@ if (PACKIO_LOGGING)
     message(STATUS "Building with logs: ${LOGLEVEL}")
 endif ()
 
+
+if (PACKIO_COROUTINES)
+    message(STATUS "Building with coroutines")
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        add_compile_options(-fcoroutines-ts)
+    elseif (MSVC)
+        add_compile_options(/await)
+    else ()
+        message(FATAL_ERROR "Compiler '${CMAKE_CXX_COMPILER_ID}' not supported for coroutines")
+    endif ()
+endif ()
+
 add_executable(basic basic.cpp)
 target_link_libraries(basic ${CONAN_LIBS})
 add_executable(mt mt.cpp)

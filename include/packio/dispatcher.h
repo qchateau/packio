@@ -15,10 +15,12 @@
 #include <string_view>
 #include <tuple>
 
+#include <boost/asio.hpp>
 #include <msgpack.hpp>
 
 #include "error_code.h"
 #include "handler.h"
+#include "internal/config.h"
 #include "internal/unique_function.h"
 #include "internal/utils.h"
 #include "traits.h"
@@ -28,7 +30,7 @@ namespace packio {
 //! The dispatcher class, used to store and dispatch procedures
 //! @tparam Map The container used to associate procedures to their name
 //! @tparam Lockable The lockable used to protect accesses to the procedure map
-template <template <class...> class Map, typename Lockable>
+template <template <class...> class Map = std::unordered_map, typename Lockable = std::mutex>
 class dispatcher {
 public:
     //! The mutex type used to protect the procedure map
@@ -64,6 +66,31 @@ public:
             .emplace(name, wrap_async(std::forward<AsyncProcedure>(fct)))
             .second;
     }
+
+#if defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_DOCUMENTATION)
+    //! Add a coroutine to the dispatcher
+    //! @param name The name of the procedure
+    //! @param executor The executor used to execute the coroutine
+    //! @param coro The coroutine to use as procedure
+    template <typename Executor, typename CoroProcedure>
+    bool add_coro(std::string_view name, const Executor& executor, CoroProcedure&& coro)
+    {
+        PACKIO_STATIC_ASSERT_TRAIT(CoroProcedure);
+        std::unique_lock lock{map_mutex_};
+        return function_map_
+            .emplace(name, wrap_coro(executor, std::forward<CoroProcedure>(coro)))
+            .second;
+    }
+
+    //! Add a coroutine to the dispatcher
+    //! @overload
+    template <typename ExecutionContext, typename CoroProcedure>
+    bool add_coro(std::string_view name, ExecutionContext& ctx, CoroProcedure&& coro)
+    {
+        return add_coro(
+            name, ctx.get_executor(), std::forward<CoroProcedure>(coro));
+    }
+#endif // defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_DOCUMENTATION)
 
     //! Remove a procedure from the dispatcher
     //! @param name The name of the procedure to remove
@@ -191,11 +218,58 @@ private:
             });
     }
 
+#if defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_DOCUMENTATION)
+    template <typename E, typename C>
+    function_ptr_type wrap_coro(const E& executor, C&& coro)
+    {
+        using value_args =
+            internal::decay_tuple_t<typename internal::func_traits<C>::args_type>;
+        using result_type =
+            typename internal::func_traits<C>::result_type::value_type;
+
+        return std::make_shared<function_type>(
+            [executor, coro = std::forward<C>(coro)](
+                completion_handler handler, const msgpack::object& args) mutable {
+                if (args.via.array.size != std::tuple_size_v<value_args>) {
+                    // keep this check otherwise msgpack unpacker
+                    // may silently drop arguments
+                    PACKIO_DEBUG("incompatible argument count");
+                    handler.set_error("Incompatible arguments");
+                    return;
+                }
+
+                boost::asio::co_spawn(
+                    executor,
+                    [args = args.as<value_args>(),
+                     handler = std::move(handler),
+                     coro = std::forward<C>(
+                         coro)]() mutable -> boost::asio::awaitable<void> {
+                        try {
+                            if constexpr (std::is_void_v<result_type>) {
+                                co_await std::apply(coro, args);
+                                handler();
+                            }
+                            else {
+                                handler(co_await std::apply(coro, args));
+                            }
+                        }
+                        catch (msgpack::type_error&) {
+                            PACKIO_DEBUG("incompatible arguments");
+                            handler.set_error("Incompatible arguments");
+                        }
+                    },
+                    [](std::exception_ptr exc) {
+                        if (exc) {
+                            std::rethrow_exception(exc);
+                        }
+                    });
+            });
+    }
+#endif // defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_DOCUMENTATION)
+
     mutable mutex_type map_mutex_;
     map_type function_map_;
 };
-
-using default_dispatcher = dispatcher<std::unordered_map, std::mutex>;
 
 } // packio
 

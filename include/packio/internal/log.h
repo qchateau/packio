@@ -5,7 +5,7 @@
 #ifndef PACKIO_LOG_H
 #define PACKIO_LOG_H
 
-#if defined(PACKIO_LOGGING) && PACKIO_LOGGING
+#if defined(PACKIO_LOGGING)
 #include <spdlog/spdlog.h>
 #define PACKIO_TRACE(...) SPDLOG_TRACE(__VA_ARGS__)
 #define PACKIO_DEBUG(...) SPDLOG_DEBUG(__VA_ARGS__)

@@ -11,6 +11,8 @@
 #include <type_traits>
 #include <boost/system/error_code.hpp>
 
+#include "internal/config.h"
+
 namespace packio {
 
 //! The error codes enumeration

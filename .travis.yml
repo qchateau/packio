@@ -63,12 +63,20 @@ matrix:
         - CONAN_CLANG_VERSIONS=9
         - CONAN_DOCKER_IMAGE=conanio/clang9
 
-    # Test samples
+    # Test coroutines
     - <<: *linux
       env:
-        - CONAN_CLANG_VERSIONS=7.0
-        - CONAN_DOCKER_IMAGE=conanio/clang70
+        - CONAN_CLANG_VERSIONS=9
+        - CONAN_DOCKER_IMAGE=conanio/clang9
+        - BUILDER_CLANG_COROUTINE=1
+
+    # Test samples, including coroutines
+    - <<: *linux
+      env:
+        - CONAN_CLANG_VERSIONS=9
+        - CONAN_DOCKER_IMAGE=conanio/clang9
         - CPT_TEST_FOLDER=samples
+        - BUILDER_CLANG_COROUTINE=1
 
     # Test no RTTI
     - <<: *linux

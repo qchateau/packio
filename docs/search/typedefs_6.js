@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['protocol_5ftype',['protocol_type',['../classpackio_1_1client.html#aea5114454034ae8151d689214d278b5b',1,'packio::client::protocol_type()'],['../classpackio_1_1server.html#a7dbd6f779d4cd9170780ae9b0a07f755',1,'packio::server::protocol_type()'],['../classpackio_1_1server__session.html#ad38e3e97d1303269e7dc03150d673d75',1,'packio::server_session::protocol_type()']]]
+  ['protocol_5ftype_122',['protocol_type',['../classpackio_1_1client.html#a15b4926e18f5c3221412ae885f318a3a',1,'packio::client::protocol_type()'],['../classpackio_1_1server.html#ac3cca245e7251e2f834407bbfe6e0aaa',1,'packio::server::protocol_type()'],['../classpackio_1_1server__session.html#af544ff51d72997416c11bc8c8de4a9f9',1,'packio::server_session::protocol_type()']]]
 ];

@@ -11,8 +11,8 @@ The project is hosted on [GitHub](https://github.com/qchateau/packio/) and avail
 // Declare a server and a client, sharing the same io_context
 boost::asio::io_context io;
 ip::tcp::endpoint bind_ep{ip::make_address("127.0.0.1"), 0};
-auto server = std::make_shared<packio::server<ip::tcp>>(ip::tcp::acceptor{io, bind_ep});
-auto client = std::make_shared<packio::client<ip::tcp>>(ip::tcp::socket{io});
+auto server = packio::make_server(ip::tcp::acceptor{io, bind_ep});
+auto client = packio::make_client(ip::tcp::socket{io});
 
 // Declare a synchronous callback
 server->dispatcher()->add("add", [](int a, int b) { return a + b; });
@@ -71,15 +71,25 @@ client->async_call(
 - Apple clang-11
 - Visual Studio 2019 Version 16
 
-## Conan
+## Install with conan
 
 ```bash
-conan install packio/1.1.0
+conan install packio/1.2.0
 ```
+
+## Coroutines
+
+``packio`` is compatible with C++20 coroutines:
+- calls can use the ``boost::asio::use_awaitable`` completion token
+- coroutines can be registered in the server
+
+Coroutines are tested for the following compilers:
+- clang-9 with libc++
+- Visual Studio 2019 Version 16
 
 ## Bonus
 
-Let's compute fibonacci's numbers recursively using packio on a single thread.
+Let's compute fibonacci's numbers recursively using ``packio`` and coroutines on a single thread.
 
 ```cpp
 #include <iostream>
@@ -98,31 +108,21 @@ int main(int argc, char** argv)
 
     boost::asio::io_context io;
     ip::tcp::endpoint bind_ep{ip::make_address("127.0.0.1"), 0};
-    auto server = std::make_shared<packio::server<ip::tcp>>(
-        ip::tcp::acceptor{io, bind_ep});
-    auto client = std::make_shared<packio::client<ip::tcp>>(ip::tcp::socket{io});
+    auto server = packio::make_server(ip::tcp::acceptor{io, bind_ep});
+    auto client = packio::make_client(ip::tcp::socket{io});
 
-    server->dispatcher()->add_async(
-        "fibonacci", [&](packio::completion_handler complete, int n) {
+    server->dispatcher()->add_coro(
+        "fibonacci", io, [&](int n) -> boost::asio::awaitable<int> {
             if (n <= 1) {
-                complete(n);
-                return;
+                co_return n;
             }
 
-            client->async_call(
-                "fibonacci",
-                std::tuple{n - 1},
-                [n, &client, complete = std::move(complete)](
-                    boost::system::error_code, std::optional<int> r1) mutable {
-                    client->async_call(
-                        "fibonacci",
-                        std::tuple{n - 2},
-                        [r1, complete = std::move(complete)](
-                            boost::system::error_code,
-                            std::optional<int> r2) mutable {
-                            complete(*r1 + *r2);
-                        });
-                });
+            msgpack::object_handle r1 = co_await client->async_call(
+                "fibonacci", std::tuple{n - 1}, boost::asio::use_awaitable);
+            msgpack::object_handle r2 = co_await client->async_call(
+                "fibonacci", std::tuple{n - 2}, boost::asio::use_awaitable);
+
+            co_return r1->as<int>() + r2->as<int>();
         });
 
     client->socket().connect(server->acceptor().local_endpoint());
