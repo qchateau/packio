@@ -54,7 +54,7 @@ client->async_call(
 ## Requirements
 
 - C++17
-- Boost.Asio >= 1.72.0
+- Boost.Asio >= 1.70.0
 - msgpack >= 3.2.1
 
 ## Tested compilers
