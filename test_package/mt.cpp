@@ -9,15 +9,15 @@
 #include "misc.h"
 
 using namespace std::chrono;
-using namespace boost::asio;
+using namespace packio::asio;
 using namespace packio;
 using std::this_thread::sleep_for;
 
 typedef ::testing::Types<
 #if defined(PACKIO_HAS_LOCAL_SOCKETS)
-    boost::asio::local::stream_protocol,
+    packio::asio::local::stream_protocol,
 #endif // defined(PACKIO_HAS_LOCAL_SOCKETS)
-    boost::asio::ip::tcp>
+    packio::asio::ip::tcp>
     Protocols;
 
 template <class Protocol>
@@ -74,7 +74,7 @@ protected:
         return clients;
     }
 
-    boost::asio::io_context io_;
+    packio::asio::io_context io_;
     std::shared_ptr<server_type> server_;
     std::vector<std::thread> runners_;
 };

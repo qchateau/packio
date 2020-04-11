@@ -9,7 +9,6 @@
 //! Enum @ref packio::error "error"
 
 #include <type_traits>
-#include <boost/system/error_code.hpp>
 
 #include "internal/config.h"
 
@@ -25,7 +24,7 @@ enum class error {
     bad_result_type //!< The result type is not as expected
 };
 
-struct error_category : boost::system::error_category {
+struct error_category : packio::err::error_category {
     const char* name() const noexcept override { return "packio"; }
     std::string message(int ev) const override
     {
@@ -48,20 +47,26 @@ struct error_category : boost::system::error_category {
     }
 };
 
-inline boost::system::error_code make_error_code(error e)
+inline packio::err::error_code make_error_code(error e)
 {
-    static constexpr error_category category;
+    static error_category category;
     return {static_cast<int>(e), category};
 }
 
 } // packio
 
-namespace boost::system {
-
+#if defined(PACKIO_STANDALONE_ASIO)
+namespace std {
 template <>
 struct is_error_code_enum<packio::error> : std::true_type {
 };
-
+} // std
+#else // defined(PACKIO_STANDALONE_ASIO)
+namespace boost::system {
+template <>
+struct is_error_code_enum<packio::error> : std::true_type {
+};
 } // boost::system
+#endif // defined(PACKIO_STANDALONE_ASIO)
 
 #endif // PACKIO_ERROR_CODE_H

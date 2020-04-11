@@ -10,7 +10,6 @@
 
 #include <memory>
 #include <queue>
-#include <boost/asio.hpp>
 #include <msgpack.hpp>
 
 #include "error_code.h"
@@ -86,12 +85,12 @@ private:
         }
 
         unpacker->reserve_buffer(buffer_reserve_size_);
-        auto buffer = boost::asio::buffer(
+        auto buffer = packio::asio::buffer(
             unpacker->buffer(), unpacker->buffer_capacity());
         socket_.async_read_some(
             buffer,
             [self = shared_from_this(), unpacker = std::move(unpacker)](
-                boost::system::error_code ec, size_t length) mutable {
+                packio::err::error_code ec, size_t length) mutable {
                 if (ec) {
                     PACKIO_WARN("read error: {}", ec.message());
                     self->close_connection();
@@ -106,7 +105,7 @@ private:
                     // to schedule the next read immediately
                     // this will allow parallel call handling
                     // in multi-threaded environments
-                    boost::asio::post(
+                    packio::asio::post(
                         self->get_executor(), [self, call = std::move(call)] {
                             self->dispatch(call.get());
                         });
@@ -126,7 +125,7 @@ private:
 
         auto completion_handler =
             [type = call->type, id = call->id, self = shared_from_this()](
-                boost::system::error_code ec, msgpack::object_handle result) {
+                packio::err::error_code ec, msgpack::object_handle result) {
                 if (type == msgpack_rpc_type::request) {
                     PACKIO_TRACE("result: {}", ec.message());
                     self->async_send_result(id, ec, std::move(result));
@@ -190,7 +189,7 @@ private:
 
     void async_send_result(
         id_type id,
-        boost::system::error_code ec,
+        packio::err::error_code ec,
         msgpack::object_handle result_handle)
     {
         // abort R/W on error
@@ -237,11 +236,11 @@ private:
             using internal::buffer;
 
             auto buf = buffer(std::get<buffer_type>(*message_ptr));
-            boost::asio::async_write(
+            packio::asio::async_write(
                 socket_,
                 buf,
                 [self = std::move(self), message_ptr = std::move(message_ptr)](
-                    boost::system::error_code ec, size_t length) {
+                    packio::err::error_code ec, size_t length) {
                     self->wstrand_.next();
 
                     if (ec) {
@@ -258,7 +257,7 @@ private:
 
     void close_connection()
     {
-        boost::system::error_code ec;
+        packio::err::error_code ec;
         socket_.close(ec);
         if (ec) {
             PACKIO_WARN("close error: {}", ec.message());

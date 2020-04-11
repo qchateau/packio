@@ -15,7 +15,6 @@
 #include <string_view>
 #include <tuple>
 
-#include <boost/asio.hpp>
 #include <msgpack.hpp>
 
 #include "error_code.h"
@@ -238,12 +237,12 @@ private:
                     return;
                 }
 
-                boost::asio::co_spawn(
+                packio::asio::co_spawn(
                     executor,
                     [args = args.as<value_args>(),
                      handler = std::move(handler),
                      coro = std::forward<C>(
-                         coro)]() mutable -> boost::asio::awaitable<void> {
+                         coro)]() mutable -> packio::asio::awaitable<void> {
                         try {
                             if constexpr (std::is_void_v<result_type>) {
                                 co_await std::apply(coro, args);

@@ -22,7 +22,7 @@ matrix:
       env:
         - CONAN_APPLE_CLANG_VERSIONS=11.0
 
-    # Test supported boost versions
+    # Test supported boost and asio versions
     - <<: *linux
       env:
         - CONAN_GCC_VERSIONS=7
@@ -38,6 +38,16 @@ matrix:
         - CONAN_GCC_VERSIONS=7
         - CONAN_DOCKER_IMAGE=conanio/gcc7
         - CONAN_OPTIONS=boost=1.72.0
+    - <<: *linux
+      env:
+        - CONAN_GCC_VERSIONS=7
+        - CONAN_DOCKER_IMAGE=conanio/gcc7
+        - CONAN_OPTIONS=asio=1.13.0,packio:standalone_asio=True
+    - <<: *linux
+      env:
+        - CONAN_GCC_VERSIONS=7
+        - CONAN_DOCKER_IMAGE=conanio/gcc7
+        - CONAN_OPTIONS=asio=1.14.0,packio:standalone_asio=True
 
     # Test supported linux compilers
     - <<: *linux

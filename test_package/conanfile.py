@@ -9,12 +9,14 @@ class PackioConan(ConanFile):
     requires = ["gtest/1.10.0"]
     options = {
         "boost": "ANY",
+        "asio": "ANY",
         "loglevel": [None, "trace", "debug", "info", "warn", "error"],
         "rtti": [True, False],
-        "coroutines": [True, False]
+        "coroutines": [True, False],
     }
     default_options = {
         "boost": None,
+        "asio": None,
         "loglevel": None,
         "rtti": True,
         "coroutines": False
@@ -23,6 +25,8 @@ class PackioConan(ConanFile):
     def requirements(self):
         if self.options.boost:
             self.requires("boost/{}".format(self.options.boost))
+        if self.options.asio:
+            self.requires("asio/{}".format(self.options.asio))
         if self.options.loglevel:
             self.requires("spdlog/1.4.2")
 
@@ -35,6 +39,8 @@ class PackioConan(ConanFile):
             defs["PACKIO_NO_RTTI"] = "1"
         if self.options.coroutines:
             defs["PACKIO_COROUTINES"] = "1"
+        if self.options.asio:
+            defs["PACKIO_STANDALONE_ASIO"] = "1"
         cmake.configure(defs=defs)
         cmake.build()
 

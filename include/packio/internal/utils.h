@@ -10,9 +10,9 @@
 #include <type_traits>
 #include <vector>
 
-#include <boost/asio.hpp>
 #include <msgpack.hpp>
 
+#include "config.h"
 #include "log.h"
 
 namespace packio {
@@ -50,7 +50,7 @@ template <typename>
 struct is_awaitable : std::false_type {
 };
 template <typename... Args>
-struct is_awaitable<boost::asio::awaitable<Args...>> : std::true_type {
+struct is_awaitable<packio::asio::awaitable<Args...>> : std::true_type {
 };
 
 template <typename, typename = void>
@@ -87,18 +87,18 @@ struct decay_tuple<std::tuple<Args...>> {
 template <typename T>
 using decay_tuple_t = typename decay_tuple<T>::type;
 
-inline boost::asio::const_buffer buffer(const msgpack::sbuffer& buf)
+inline packio::asio::const_buffer buffer(const msgpack::sbuffer& buf)
 {
-    return boost::asio::const_buffer(buf.data(), buf.size());
+    return packio::asio::const_buffer(buf.data(), buf.size());
 }
 
-inline std::vector<boost::asio::const_buffer> buffer(const msgpack::vrefbuffer& buf)
+inline std::vector<packio::asio::const_buffer> buffer(const msgpack::vrefbuffer& buf)
 {
-    std::vector<boost::asio::const_buffer> vec;
+    std::vector<packio::asio::const_buffer> vec;
     vec.reserve(buf.vector_size());
     const struct iovec* iov = buf.vector();
     for (std::size_t i = 0; i < buf.vector_size(); ++i) {
-        vec.push_back(boost::asio::const_buffer(iov->iov_base, iov->iov_len));
+        vec.push_back(packio::asio::const_buffer(iov->iov_base, iov->iov_len));
         ++iov;
     }
     return vec;
@@ -118,9 +118,9 @@ void set_no_delay(T&)
 }
 
 template <>
-inline void set_no_delay(boost::asio::ip::tcp::socket& socket)
+inline void set_no_delay(packio::asio::ip::tcp::socket& socket)
 {
-    socket.set_option(boost::asio::ip::tcp::no_delay{true});
+    socket.set_option(packio::asio::ip::tcp::no_delay{true});
 }
 
 struct incompatible_handler_t {
@@ -129,17 +129,17 @@ struct incompatible_handler_t {
 template <typename Handler>
 auto wrap_call_handler(Handler&& handler)
 {
-    if constexpr (std::is_invocable_v<Handler, boost::system::error_code, msgpack::object_handle>) {
+    if constexpr (std::is_invocable_v<Handler, packio::err::error_code, msgpack::object_handle>) {
         // handler takes the object handler as argument
         return std::forward<Handler>(handler);
     }
-    else if constexpr (std::is_invocable_v<Handler, boost::system::error_code, std::nullopt_t>) {
+    else if constexpr (std::is_invocable_v<Handler, packio::err::error_code, std::nullopt_t>) {
         // handler takes an optional to a type, try to convert
         using args = typename func_traits<Handler>::args_type;
         using opt_result_type = std::tuple_element_t<1, args>;
         using result_type = typename opt_result_type::value_type;
         return [handler = std::forward<Handler>(handler)](
-                   boost::system::error_code ec,
+                   packio::err::error_code ec,
                    msgpack::object_handle result) mutable {
             if (ec) {
                 handler(ec, std::nullopt);
@@ -155,11 +155,12 @@ auto wrap_call_handler(Handler&& handler)
             }
         };
     }
-    else if constexpr (std::is_invocable_v<Handler, boost::system::error_code>) {
+    else if constexpr (std::is_invocable_v<Handler, packio::err::error_code>) {
         // handler takes no argument, just call with the error code
         return [handler = std::forward<Handler>(handler)](
-                   boost::system::error_code ec,
-                   msgpack::object_handle) mutable { handler(ec); };
+                   packio::err::error_code ec, msgpack::object_handle) mutable {
+            handler(ec);
+        };
     }
     else {
         // handler cannot be used as a call handler

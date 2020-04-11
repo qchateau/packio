@@ -10,9 +10,9 @@
 #include "misc.h"
 
 using namespace std::chrono;
-using namespace boost::asio;
+using namespace packio::asio;
 using namespace packio;
-using boost::asio::use_future;
+using packio::asio::use_future;
 using std::this_thread::sleep_for;
 
 template <typename T>
@@ -44,16 +44,16 @@ using my_unordered_map = std::unordered_map<
 typedef ::testing::Types<
 #if defined(PACKIO_HAS_LOCAL_SOCKETS)
     std::pair<
-        client<boost::asio::local::stream_protocol::socket>,
-        server<boost::asio::local::stream_protocol::acceptor>>,
+        client<packio::asio::local::stream_protocol::socket>,
+        server<packio::asio::local::stream_protocol::acceptor>>,
 #endif // defined(PACKIO_HAS_LOCAL_SOCKETS)
-    std::pair<client<boost::asio::ip::tcp::socket>, server<boost::asio::ip::tcp::acceptor>>,
+    std::pair<client<packio::asio::ip::tcp::socket>, server<packio::asio::ip::tcp::acceptor>>,
     std::pair<
-        client<boost::asio::ip::tcp::socket>,
-        server<boost::asio::ip::tcp::acceptor, dispatcher<std::map, my_spinlock>>>,
+        client<packio::asio::ip::tcp::socket>,
+        server<packio::asio::ip::tcp::acceptor, dispatcher<std::map, my_spinlock>>>,
     std::pair<
-        client<boost::asio::ip::tcp::socket, my_unordered_map>,
-        server<boost::asio::ip::tcp::acceptor>>>
+        client<packio::asio::ip::tcp::socket, my_unordered_map>,
+        server<packio::asio::ip::tcp::acceptor>>>
     Implementations;
 
 template <class Impl>
@@ -92,7 +92,7 @@ protected:
         client_->socket().connect(ep);
     }
 
-    boost::asio::io_context io_;
+    packio::asio::io_context io_;
     std::shared_ptr<server_type> server_;
     std::shared_ptr<client_type> client_;
     std::thread runner_;
@@ -169,7 +169,7 @@ TYPED_TEST(Test, test_implicit_result_conversion)
         this->client_->async_call(
             "add",
             std::tuple{12, 21},
-            [&done](boost::system::error_code ec, std::optional<int> result) {
+            [&done](packio::err::error_code ec, std::optional<int> result) {
                 ASSERT_FALSE(ec);
                 ASSERT_EQ(33, *result);
                 done.set_value();
@@ -185,7 +185,7 @@ TYPED_TEST(Test, test_implicit_result_conversion)
         std::promise<void> done;
         auto future_done = done.get_future();
 
-        this->client_->async_call("void", [&done](boost::system::error_code ec) {
+        this->client_->async_call("void", [&done](packio::err::error_code ec) {
             ASSERT_FALSE(ec);
             done.set_value();
         });
@@ -203,8 +203,8 @@ TYPED_TEST(Test, test_implicit_result_conversion)
         this->client_->async_call(
             "add",
             std::tuple<std::string, std::string>{"hello", "you"},
-            [&done](boost::system::error_code ec, std::optional<int> result) {
-                ASSERT_EQ(::packio::error::call_error, ec);
+            [&done](packio::err::error_code ec, std::optional<int> result) {
+                ASSERT_EQ(packio::error::call_error, ec);
                 ASSERT_FALSE(result);
                 done.set_value();
             });
@@ -222,9 +222,8 @@ TYPED_TEST(Test, test_implicit_result_conversion)
         this->client_->async_call(
             "add",
             std::tuple{12, 21},
-            [&done](
-                boost::system::error_code ec, std::optional<std::string> result) {
-                ASSERT_EQ(::packio::error::bad_result_type, ec);
+            [&done](packio::err::error_code ec, std::optional<std::string> result) {
+                ASSERT_EQ(packio::error::bad_result_type, ec);
                 ASSERT_FALSE(result);
                 done.set_value();
             });
@@ -271,7 +270,7 @@ TYPED_TEST(Test, test_timeout)
             future.get();
             ASSERT_FALSE(true); // never reached
         }
-        catch (boost::system::system_error& err) {
+        catch (packio::err::system_error& err) {
             ASSERT_EQ(make_error_code(packio::error::cancelled), err.code());
         }
     };
@@ -494,7 +493,7 @@ TYPED_TEST(Test, test_dispatcher)
     this->server_->dispatcher()->remove("f001");
     ASSERT_THROW(
         this->client_->async_call("f001", use_future).get(),
-        boost::system::system_error);
+        packio::err::system_error);
 
     ASSERT_FALSE(this->server_->dispatcher()->has("f001"));
     ASSERT_TRUE(this->server_->dispatcher()->has("f002"));
@@ -521,7 +520,7 @@ TYPED_TEST(Test, test_end_of_work)
 
     auto ep = this->server_->acceptor().local_endpoint();
 
-    boost::asio::io_context io;
+    packio::asio::io_context io;
     auto client = std::make_shared<client_type>(socket_type{io});
     client->socket().connect(ep);
 
@@ -597,13 +596,13 @@ TYPED_TEST(Test, test_special_callables)
         void operator()(completion_handler complete) { complete(); };
     };
     struct notify_handler : public move_only {
-        void operator()(boost::system::error_code){};
+        void operator()(packio::err::error_code){};
     };
     struct call_handler : public move_only {
-        void operator()(boost::system::error_code, msgpack::object_handle){};
+        void operator()(packio::err::error_code, msgpack::object_handle){};
     };
     struct serve_handler : public move_only {
-        void operator()(boost::system::error_code, std::shared_ptr<session_type>){};
+        void operator()(packio::err::error_code, std::shared_ptr<session_type>){};
     };
 
     // this test just needs to compile
@@ -654,7 +653,7 @@ TYPED_TEST(Test, test_response_after_disconnect)
 
     this->client_->async_call("block", [&](auto, auto) {});
     auto complete_ptr = future.get();
-    this->client_->socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both);
+    this->client_->socket().shutdown(packio::asio::ip::tcp::socket::shutdown_both);
     (*complete_ptr)();
 }
 
@@ -749,9 +748,9 @@ TYPED_TEST(Test, test_errors)
 #if defined(PACKIO_HAS_CO_AWAIT)
 TYPED_TEST(Test, test_coroutine)
 {
-    using boost::asio::use_awaitable;
+    using packio::asio::use_awaitable;
 
-    boost::asio::steady_timer timer{this->io_};
+    packio::asio::steady_timer timer{this->io_};
     this->server_->async_serve_forever();
     this->connect();
     this->async_run();
@@ -759,7 +758,7 @@ TYPED_TEST(Test, test_coroutine)
     this->server_->dispatcher()->add_coro(
         "add",
         this->io_.get_executor(), // executor
-        [&](int a, int b) -> boost::asio::awaitable<int> {
+        [&](int a, int b) -> packio::asio::awaitable<int> {
             timer.expires_after(std::chrono::milliseconds{1});
             co_await timer.async_wait(use_awaitable);
             co_return a + b;
@@ -768,16 +767,16 @@ TYPED_TEST(Test, test_coroutine)
     this->server_->dispatcher()->add_coro(
         "add2",
         this->io_, // executor context
-        [&](int a, int b) -> boost::asio::awaitable<int> {
+        [&](int a, int b) -> packio::asio::awaitable<int> {
             timer.expires_after(std::chrono::milliseconds{1});
             co_await timer.async_wait(use_awaitable);
             co_return a + b;
         });
 
     std::promise<void> p;
-    boost::asio::co_spawn(
+    packio::asio::co_spawn(
         this->io_,
-        [&]() -> boost::asio::awaitable<void> {
+        [&]() -> packio::asio::awaitable<void> {
             // Call using an awaitable
             msgpack::object_handle res = co_await this->client_->async_call(
                 "add", std::tuple{12, 23}, use_awaitable);
@@ -789,7 +788,7 @@ TYPED_TEST(Test, test_coroutine)
 
             p.set_value();
         },
-        boost::asio::detached);
+        packio::asio::detached);
     ASSERT_EQ(
         p.get_future().wait_for(std::chrono::seconds{1}),
         std::future_status::ready);

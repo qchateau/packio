@@ -9,7 +9,7 @@
 //! Class @ref packio::server "server"
 
 #include <memory>
-#include <boost/asio.hpp>
+
 #include <msgpack.hpp>
 
 #include "dispatcher.h"
@@ -84,7 +84,7 @@ public:
         acceptor_.async_accept(
             [self = shared_from_this(),
              handler = std::forward<ServeHandler>(handler)](
-                boost::system::error_code ec, socket_type sock) mutable {
+                packio::err::error_code ec, socket_type sock) mutable {
                 std::shared_ptr<session_type> session;
                 if (ec) {
                     PACKIO_WARN("accept error: {}", ec.message());

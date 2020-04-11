@@ -13,14 +13,21 @@ else ()
     add_definitions(/D_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING=1)
 endif ()
 
+set(CMAKE_CXX_STANDARD 17)
+
+add_definitions(-DASIO_NO_DEPRECATED=1)
 add_definitions(-DBOOST_ASIO_NO_DEPRECATED=1)
+
+if (PACKIO_STANDALONE_ASIO)
+    add_definitions(-DPACKIO_STANDALONE_ASIO=1)
+endif ()
+
 if (PACKIO_LOGGING)
     string(TOUPPER "${PACKIO_LOGGING}" LOGLEVEL)
     add_definitions(-DPACKIO_LOGGING=1)
     add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${LOGLEVEL})
     message(STATUS "Building with logs: ${LOGLEVEL}")
 endif ()
-set(CMAKE_CXX_STANDARD 17)
 
 add_executable(basic basic.cpp)
 target_link_libraries(basic ${CONAN_LIBS})
