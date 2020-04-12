@@ -117,8 +117,7 @@ public:
     //! Must satisfy the @ref traits::NotifyHandler trait
     template <
         typename Buffer = msgpack::sbuffer,
-        PACKIO_COMPLETION_TOKEN_FOR(void(packio::err::error_code))
-            NotifyHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type),
+        typename NotifyHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type),
         typename... Args>
     auto async_notify(
         std::string_view name,
@@ -133,8 +132,7 @@ public:
     //! @overload
     template <
         typename Buffer = msgpack::sbuffer,
-        PACKIO_COMPLETION_TOKEN_FOR(void(packio::err::error_code))
-            NotifyHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type)>
+        typename NotifyHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type)>
     auto async_notify(
         std::string_view name,
         NotifyHandler&& handler PACKIO_DEFAULT_COMPLETION_TOKEN(executor_type))
@@ -155,8 +153,7 @@ public:
     //! Must satisfy the @ref traits::CallHandler trait
     template <
         typename Buffer = msgpack::sbuffer,
-        PACKIO_COMPLETION_TOKEN_FOR(void(packio::err::error_code, msgpack::object_handle))
-            CallHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type),
+        typename CallHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type),
         typename... Args>
     auto async_call(
         std::string_view name,
@@ -174,8 +171,7 @@ public:
     //! @overload
     template <
         typename Buffer = msgpack::sbuffer,
-        PACKIO_COMPLETION_TOKEN_FOR(void(packio::err::error_code, msgpack::object_handle))
-            CallHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type)>
+        typename CallHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type)>
     auto async_call(
         std::string_view name,
         CallHandler&& handler PACKIO_DEFAULT_COMPLETION_TOKEN(executor_type),
