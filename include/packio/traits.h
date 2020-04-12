@@ -10,7 +10,7 @@
 
 #include <type_traits>
 #include <utility>
-#include <boost/asio.hpp>
+
 #include <msgpack.hpp>
 
 #include "internal/config.h"
@@ -83,17 +83,17 @@ struct Trait : std::integral_constant<bool, condition> {
 //! NotifyHandler trait
 //!
 //! Handler used by @ref client::async_notify
-//! - Must be callable with a boost::system::error_code
+//! - Must be callable with an error_code
 template <typename T>
-struct NotifyHandler : Trait<std::is_invocable_v<T, boost::system::error_code>> {
+struct NotifyHandler : Trait<std::is_invocable_v<T, packio::err::error_code>> {
 };
 
 //! CallHandler trait
 //!
 //! Handler used by @ref client::async_call, must meet one of:
-//! - Must be callable with boost::system::error_code, msgpack::object_handle
-//! - Must be callable with boost::system::error_code
-//! - Must be callable with boost::system::error_code, std::optional<T>
+//! - Must be callable with error_code, msgpack::object_handle
+//! - Must be callable with error_code
+//! - Must be callable with error_code, std::optional<T>
 template <typename T>
 struct CallHandler : Trait<internal::is_valid_call_handler_v<T>> {
 };
@@ -102,10 +102,10 @@ struct CallHandler : Trait<internal::is_valid_call_handler_v<T>> {
 //!
 //! Handler used by @ref server::async_serve
 //! - Must be callable with
-//! boost::system::error_code, std::shared_ptr<@ref server::session_type "session_type">
+//! error_code, std::shared_ptr<@ref server::session_type "session_type">
 template <typename T, typename Session>
 struct ServeHandler
-    : Trait<std::is_invocable_v<T, boost::system::error_code, std::shared_ptr<Session>>> {
+    : Trait<std::is_invocable_v<T, packio::err::error_code, std::shared_ptr<Session>>> {
 };
 
 //! AsyncProcedure trait

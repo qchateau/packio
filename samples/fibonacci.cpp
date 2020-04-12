@@ -1,8 +1,8 @@
 #include <iostream>
-#include <boost/asio.hpp>
+
 #include <packio/packio.h>
 
-namespace ip = boost::asio::ip;
+namespace ip = packio::asio::ip;
 
 int main(int argc, char** argv)
 {
@@ -12,7 +12,7 @@ int main(int argc, char** argv)
     }
     const int n = std::atoi(argv[1]);
 
-    boost::asio::io_context io;
+    packio::asio::io_context io;
     ip::tcp::endpoint bind_ep{ip::make_address("127.0.0.1"), 0};
     auto server = packio::make_server(ip::tcp::acceptor{io, bind_ep});
     auto client = packio::make_client(ip::tcp::socket{io});
@@ -28,12 +28,12 @@ int main(int argc, char** argv)
                 "fibonacci",
                 std::tuple{n - 1},
                 [n, &client, complete = std::move(complete)](
-                    boost::system::error_code, std::optional<int> r1) mutable {
+                    packio::err::error_code, std::optional<int> r1) mutable {
                     client->async_call(
                         "fibonacci",
                         std::tuple{n - 2},
                         [r1, complete = std::move(complete)](
-                            boost::system::error_code,
+                            packio::err::error_code,
                             std::optional<int> r2) mutable {
                             complete(*r1 + *r2);
                         });
@@ -48,7 +48,7 @@ int main(int argc, char** argv)
     client->async_call(
         "fibonacci",
         std::tuple{n},
-        [&](boost::system::error_code, std::optional<int> r) {
+        [&](packio::err::error_code, std::optional<int> r) {
             result = *r;
             io.stop();
         });

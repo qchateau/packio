@@ -1,7 +1,7 @@
 
-## Header-only | msgpack-RPC | Boost.Asio | Coroutines
+## Header-only | msgpack-RPC | asio | Coroutines
 
-This library requires C++17 and is designed as an extension to Boost.Asio. It will let you build asynchronous servers or client for msgpack-RPC.
+This library requires C++17 and is designed as an extension to ``boost.asio``. It will let you build asynchronous servers or client for msgpack-RPC.
 
 The project is hosted on [GitHub](https://github.com/qchateau/packio/) and available on [Conan Center](https://conan.io/center/). Documentation is available on [GitHub Pages](https://qchateau.github.io/packio/).
 
@@ -9,7 +9,7 @@ The project is hosted on [GitHub](https://github.com/qchateau/packio/) and avail
 
 ```cpp
 // Declare a server and a client, sharing the same io_context
-boost::asio::io_context io;
+packio::asio::io_context io;
 ip::tcp::endpoint bind_ep{ip::make_address("127.0.0.1"), 0};
 auto server = packio::make_server(ip::tcp::acceptor{io, bind_ep});
 auto client = packio::make_client(ip::tcp::socket{io});
@@ -20,7 +20,7 @@ server->dispatcher()->add("add", [](int a, int b) { return a + b; });
 server->dispatcher()->add_async(
     "multiply", [](packio::completion_handler complete, int a, int b) {
         // Call the completion handler later
-        boost::asio::post(
+        packio::asio::post(
             io, [a, b, complete = std::move(complete)]() mutable {
                 complete(a * b);
             });
@@ -33,20 +33,20 @@ client->socket().connect(server.acceptor().local_endpoint());
 
 // Make an asynchronous call
 client->async_call("add", std::make_tuple(42, 24),
-    [&](boost::system::error_code, msgpack::object r) {
+    [&](packio::err::error_code, msgpack::object r) {
         std::cout << "The result is: " << r.as<int>() << std::endl;
     });
 
-// Use boost::asio::use_future
+// Use packio::asio::use_future
 std::future<msgpack::object_handle> add_future = client->async_call(
-    "add", std::tuple{12, 23}, boost::asio::use_future);
+    "add", std::tuple{12, 23}, packio::asio::use_future);
 std::cout << "The result is: " << add_future.get()->as<int>() << std::endl;
 
 // Use auto result type conversion
 client->async_call(
     "multiply",
     std::make_tuple(42, 24),
-    [&](boost::system::error_code, std::optional<int> r) {
+    [&](packio::err::error_code, std::optional<int> r) {
         std::cout << "The result is: " << *r << std::endl;
     });
 ```
@@ -54,8 +54,13 @@ client->async_call(
 ## Requirements
 
 - C++17
-- Boost.Asio >= 1.70.0
 - msgpack >= 3.2.1
+- boost.asio >= 1.70.0 or asio >= 1.13.0
+
+### Standalone or boost asio
+
+By default, ``packio`` uses ``boost.asio``. It is also compatible with standalone ``asio``. To use the standalone version, the preprocessor macro ``PACKIO_STANDALONE_ASIO=1` must be defined.
+If you are using the conan package, you must also use the option ``standalone_asio=True``.
 
 ## Tested compilers
 
@@ -80,7 +85,7 @@ conan install packio/1.2.0
 ## Coroutines
 
 ``packio`` is compatible with C++20 coroutines:
-- calls can use the ``boost::asio::use_awaitable`` completion token
+- calls can use the ``packio::asio::use_awaitable`` completion token
 - coroutines can be registered in the server
 
 Coroutines are tested for the following compilers:
@@ -93,10 +98,9 @@ Let's compute fibonacci's numbers recursively using ``packio`` and coroutines on
 
 ```cpp
 #include <iostream>
-#include <boost/asio.hpp>
 #include <packio/packio.h>
 
-namespace ip = boost::asio::ip;
+namespace ip = packio::asio::ip;
 
 int main(int argc, char** argv)
 {
@@ -106,21 +110,21 @@ int main(int argc, char** argv)
     }
     const int n = std::atoi(argv[1]);
 
-    boost::asio::io_context io;
+    packio::asio::io_context io;
     ip::tcp::endpoint bind_ep{ip::make_address("127.0.0.1"), 0};
     auto server = packio::make_server(ip::tcp::acceptor{io, bind_ep});
     auto client = packio::make_client(ip::tcp::socket{io});
 
     server->dispatcher()->add_coro(
-        "fibonacci", io, [&](int n) -> boost::asio::awaitable<int> {
+        "fibonacci", io, [&](int n) -> packio::asio::awaitable<int> {
             if (n <= 1) {
                 co_return n;
             }
 
             msgpack::object_handle r1 = co_await client->async_call(
-                "fibonacci", std::tuple{n - 1}, boost::asio::use_awaitable);
+                "fibonacci", std::tuple{n - 1}, packio::asio::use_awaitable);
             msgpack::object_handle r2 = co_await client->async_call(
-                "fibonacci", std::tuple{n - 2}, boost::asio::use_awaitable);
+                "fibonacci", std::tuple{n - 2}, packio::asio::use_awaitable);
 
             co_return r1->as<int>() + r2->as<int>();
         });
@@ -133,7 +137,7 @@ int main(int argc, char** argv)
     client->async_call(
         "fibonacci",
         std::tuple{n},
-        [&](boost::system::error_code, std::optional<int> r) {
+        [&](packio::err::error_code, std::optional<int> r) {
             result = *r;
             io.stop();
         });

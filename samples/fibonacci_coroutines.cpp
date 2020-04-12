@@ -1,8 +1,8 @@
 #include <iostream>
-#include <boost/asio.hpp>
+
 #include <packio/packio.h>
 
-namespace ip = boost::asio::ip;
+namespace ip = packio::asio::ip;
 
 int main(int argc, char** argv)
 {
@@ -12,21 +12,21 @@ int main(int argc, char** argv)
     }
     const int n = std::atoi(argv[1]);
 
-    boost::asio::io_context io;
+    packio::asio::io_context io;
     ip::tcp::endpoint bind_ep{ip::make_address("127.0.0.1"), 0};
     auto server = packio::make_server(ip::tcp::acceptor{io, bind_ep});
     auto client = packio::make_client(ip::tcp::socket{io});
 
     server->dispatcher()->add_coro(
-        "fibonacci", io, [&](int n) -> boost::asio::awaitable<int> {
+        "fibonacci", io, [&](int n) -> packio::asio::awaitable<int> {
             if (n <= 1) {
                 co_return n;
             }
 
             msgpack::object_handle r1 = co_await client->async_call(
-                "fibonacci", std::tuple{n - 1}, boost::asio::use_awaitable);
+                "fibonacci", std::tuple{n - 1}, packio::asio::use_awaitable);
             msgpack::object_handle r2 = co_await client->async_call(
-                "fibonacci", std::tuple{n - 2}, boost::asio::use_awaitable);
+                "fibonacci", std::tuple{n - 2}, packio::asio::use_awaitable);
 
             co_return r1->as<int>() + r2->as<int>();
         });
@@ -39,7 +39,7 @@ int main(int argc, char** argv)
     client->async_call(
         "fibonacci",
         std::tuple{n},
-        [&](boost::system::error_code, std::optional<int> r) {
+        [&](packio::err::error_code, std::optional<int> r) {
             result = *r;
             io.stop();
         });

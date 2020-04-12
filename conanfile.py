@@ -13,8 +13,20 @@ class PackioConan(ConanFile):
     no_copy_source = True
     requires = [
         "msgpack/3.2.1",
-        "boost/[>=1.70]",
+        "zlib/1.2.8"
     ]
+    options = {
+        "standalone_asio": [True, False]
+    }
+    default_options = {
+        "standalone_asio": False
+    }
+
+    def requirements(self):
+        if self.options.standalone_asio:
+            self.requires("asio/[>=1.13.0]")
+        else:
+            self.requires("boost/[>=1.70.0]")
 
     def package(self):
         self.copy("*.h")

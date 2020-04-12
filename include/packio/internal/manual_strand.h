@@ -6,8 +6,8 @@
 #define PACKIO_MANUAL_STRAND_H
 
 #include <queue>
-#include <boost/asio.hpp>
 
+#include "config.h"
 #include "unique_function.h"
 
 namespace packio {
@@ -22,7 +22,7 @@ public:
 
     void push(function_type function)
     {
-        boost::asio::dispatch(
+        packio::asio::dispatch(
             strand_, [this, function = std::move(function)]() mutable {
                 queue_.push(std::move(function));
 
@@ -35,7 +35,7 @@ public:
 
     void next()
     {
-        boost::asio::dispatch(strand_, [this] { execute(); });
+        packio::asio::dispatch(strand_, [this] { execute(); });
     }
 
 private:
@@ -51,7 +51,7 @@ private:
         function();
     }
 
-    boost::asio::strand<Executor> strand_;
+    packio::asio::strand<Executor> strand_;
     std::queue<function_type> queue_;
     bool executing_{false};
 };
