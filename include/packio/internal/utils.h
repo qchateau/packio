@@ -49,6 +49,7 @@ constexpr bool func_traits_v = func_traits<T>::value;
 template <typename>
 struct is_awaitable : std::false_type {
 };
+
 template <typename... Args>
 struct is_awaitable<packio::asio::awaitable<Args...>> : std::true_type {
 };
@@ -56,6 +57,7 @@ struct is_awaitable<packio::asio::awaitable<Args...>> : std::true_type {
 template <typename, typename = void>
 struct is_coroutine : std::false_type {
 };
+
 template <typename T>
 struct is_coroutine<T, std::enable_if_t<func_traits_v<T>>>
     : is_awaitable<typename func_traits<T>::result_type> {
@@ -168,11 +170,6 @@ auto wrap_call_handler(Handler&& handler)
         return incompatible_handler_t{};
     }
 }
-
-template <typename CallHandler>
-constexpr bool is_valid_call_handler_v = !std::is_same_v<
-    incompatible_handler_t,
-    std::decay_t<decltype(wrap_call_handler(std::declval<CallHandler>()))>>;
 
 } // internal
 } // packio

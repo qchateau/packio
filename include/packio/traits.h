@@ -34,7 +34,6 @@ namespace packio {
 class completion_handler;
 
 namespace traits {
-
 namespace details {
 
 template <typename, typename = void>
@@ -54,25 +53,13 @@ struct AsyncProcedureImpl<T, std::enable_if_t<internal::func_traits_v<T>>> {
     }();
 };
 
-template <typename, typename = void>
-struct SyncProcedureImpl : std::false_type {
-};
+template <typename T>
+constexpr bool is_async_procedure_v = AsyncProcedureImpl<T>::value;
 
 template <typename T>
-struct SyncProcedureImpl<T, std::enable_if_t<internal::func_traits_v<T>>>
-    : std::true_type {
-};
-
-#if defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_DOCUMENTATION)
-template <typename, typename = void>
-struct CoroProcedureImpl : std::false_type {
-};
-
-template <typename T>
-struct CoroProcedureImpl<T, std::enable_if_t<internal::is_coroutine_v<T>>>
-    : std::true_type {
-};
-#endif // defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_DOCUMENTATION)
+constexpr bool is_call_handler_v = !std::is_same_v<
+    internal::incompatible_handler_t,
+    std::decay_t<decltype(internal::wrap_call_handler(std::declval<T>()))>>;
 
 } // details
 
@@ -95,7 +82,7 @@ struct NotifyHandler : Trait<std::is_invocable_v<T, packio::err::error_code>> {
 //! - Must be callable with error_code
 //! - Must be callable with error_code, std::optional<T>
 template <typename T>
-struct CallHandler : Trait<internal::is_valid_call_handler_v<T>> {
+struct CallHandler : Trait<details::is_call_handler_v<T>> {
 };
 
 //! ServeHandler trait
@@ -115,7 +102,7 @@ struct ServeHandler
 //! - No overload resolution can be performed.
 //! - The other arguments must be msgpack-able and will be used as the procedure's arguments.
 template <typename T>
-struct AsyncProcedure : Trait<details::AsyncProcedureImpl<T>::value> {
+struct AsyncProcedure : Trait<details::is_async_procedure_v<T>> {
 };
 
 //! SyncProcedure trait
@@ -125,7 +112,7 @@ struct AsyncProcedure : Trait<details::AsyncProcedureImpl<T>::value> {
 //! - No overload resolution can be performed.
 //! - The arguments must be msgpack-able and will be used as the procedure's arguments.
 template <typename T>
-struct SyncProcedure : Trait<details::SyncProcedureImpl<T>::value> {
+struct SyncProcedure : Trait<internal::func_traits_v<T>> {
 };
 
 #if defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_DOCUMENTATION)
@@ -136,7 +123,8 @@ struct SyncProcedure : Trait<details::SyncProcedureImpl<T>::value> {
 //! - No overload resolution can be performed.
 //! - The arguments must be msgpack-able and will be used as the procedure's arguments.
 template <typename T>
-struct CoroProcedure : Trait<details::CoroProcedureImpl<T>::value> {
+struct CoroProcedure
+    : Trait<internal::is_coroutine_v<T> && internal::func_traits_v<T>> {
 };
 #endif // defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_DOCUMENTATION)
 
