@@ -75,27 +75,16 @@ public:
     //! @param handler Handler called when a connection is accepted.
     //! The handler is responsible for calling server_session::start.
     //! Must satisfy the @ref traits::ServeHandler trait
-    template <typename ServeHandler>
-    void async_serve(ServeHandler&& handler)
+    template <PACKIO_COMPLETION_TOKEN_FOR(
+        void(packio::err::error_code, std::shared_ptr<session_type>))
+                  ServeHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type)>
+    auto async_serve(
+        ServeHandler&& handler PACKIO_DEFAULT_COMPLETION_TOKEN(executor_type))
     {
-        PACKIO_STATIC_ASSERT_TTRAIT(ServeHandler, session_type);
-        PACKIO_TRACE("async_serve");
-
-        acceptor_.async_accept(
-            [self = shared_from_this(),
-             handler = std::forward<ServeHandler>(handler)](
-                packio::err::error_code ec, socket_type sock) mutable {
-                std::shared_ptr<session_type> session;
-                if (ec) {
-                    PACKIO_WARN("accept error: {}", ec.message());
-                }
-                else {
-                    internal::set_no_delay(sock);
-                    session = std::make_shared<session_type>(
-                        std::move(sock), self->dispatcher_ptr_);
-                }
-                handler(ec, std::move(session));
-            });
+        return packio::asio::async_initiate<
+            ServeHandler,
+            void(packio::err::error_code, std::shared_ptr<session_type>)>(
+            initiate_async_serve(this), handler);
     }
 
     //! Accept connections and automatically start the associated sessions forever
@@ -112,6 +101,44 @@ public:
     }
 
 private:
+    class initiate_async_serve {
+    public:
+        using executor_type = typename server::executor_type;
+
+        explicit initiate_async_serve(server* self) : self_(self) {}
+
+        executor_type get_executor() const noexcept
+        {
+            return self_->get_executor();
+        }
+
+        template <typename ServeHandler>
+        void operator()(ServeHandler&& handler)
+        {
+            PACKIO_STATIC_ASSERT_TTRAIT(ServeHandler, session_type);
+            PACKIO_TRACE("async_serve");
+
+            self_->acceptor_.async_accept(
+                [self = self_->shared_from_this(),
+                 handler = std::forward<ServeHandler>(handler)](
+                    packio::err::error_code ec, socket_type sock) mutable {
+                    std::shared_ptr<session_type> session;
+                    if (ec) {
+                        PACKIO_WARN("accept error: {}", ec.message());
+                    }
+                    else {
+                        internal::set_no_delay(sock);
+                        session = std::make_shared<session_type>(
+                            std::move(sock), self->dispatcher_ptr_);
+                    }
+                    handler(ec, std::move(session));
+                });
+        }
+
+    private:
+        server* self_;
+    };
+
     acceptor_type acceptor_;
     std::shared_ptr<dispatcher_type> dispatcher_ptr_;
 };

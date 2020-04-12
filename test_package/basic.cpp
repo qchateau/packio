@@ -751,9 +751,6 @@ TYPED_TEST(Test, test_coroutine)
     using packio::asio::use_awaitable;
 
     packio::asio::steady_timer timer{this->io_};
-    this->server_->async_serve_forever();
-    this->connect();
-    this->async_run();
 
     this->server_->dispatcher()->add_coro(
         "add",
@@ -772,6 +769,19 @@ TYPED_TEST(Test, test_coroutine)
             co_await timer.async_wait(use_awaitable);
             co_return a + b;
         });
+
+    packio::asio::co_spawn(
+        this->io_,
+        [&]() -> packio::asio::awaitable<void> {
+            while (true) {
+                auto session = co_await this->server_->async_serve(use_awaitable);
+                session->start();
+            }
+        },
+        packio::asio::detached);
+
+    this->async_run();
+    this->connect();
 
     std::promise<void> p;
     packio::asio::co_spawn(
