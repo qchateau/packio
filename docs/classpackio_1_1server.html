@@ -133,10 +133,10 @@ std::shared_ptr&lt; const <a class="el" href="classpackio_1_1server.html#a57a2a6
 <a class="el" href="classpackio_1_1server.html#a04594e9ee178269b5ae9a8b7f03967da">executor_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1server.html#a54d82502040ab9e63e7f31c00988fb12">get_executor</a> ()</td></tr>
 <tr class="memdesc:a54d82502040ab9e63e7f31c00988fb12"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the executor associated with the object. <br /></td></tr>
 <tr class="separator:a54d82502040ab9e63e7f31c00988fb12"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a14396b612582055f732ee338e278f218"><td class="memTemplParams" colspan="2">template&lt;typename ServeHandler &gt; </td></tr>
-<tr class="memitem:a14396b612582055f732ee338e278f218"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classpackio_1_1server.html#a14396b612582055f732ee338e278f218">async_serve</a> (ServeHandler &amp;&amp;handler)</td></tr>
-<tr class="memdesc:a14396b612582055f732ee338e278f218"><td class="mdescLeft">&#160;</td><td class="mdescRight">Accept one connection and initialize a session for it.  <a href="classpackio_1_1server.html#a14396b612582055f732ee338e278f218">More...</a><br /></td></tr>
-<tr class="separator:a14396b612582055f732ee338e278f218"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0703bbd27e5b81c59e250f4fbb3cf50b"><td class="memTemplParams" colspan="2">template&lt;typename ServeHandler  PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE&gt; </td></tr>
+<tr class="memitem:a0703bbd27e5b81c59e250f4fbb3cf50b"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classpackio_1_1server.html#a0703bbd27e5b81c59e250f4fbb3cf50b">async_serve</a> (ServeHandler &amp;&amp;handler PACKIO_DEFAULT_COMPLETION_TOKEN(<a class="el" href="classpackio_1_1server.html#a04594e9ee178269b5ae9a8b7f03967da">executor_type</a>))</td></tr>
+<tr class="memdesc:a0703bbd27e5b81c59e250f4fbb3cf50b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Accept one connection and initialize a session for it.  <a href="classpackio_1_1server.html#a0703bbd27e5b81c59e250f4fbb3cf50b">More...</a><br /></td></tr>
+<tr class="separator:a0703bbd27e5b81c59e250f4fbb3cf50b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a03b47a89b17d09fef03b1a4bc391c5f5"><td class="memItemLeft" align="right" valign="top"><a id="a03b47a89b17d09fef03b1a4bc391c5f5"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1server.html#a03b47a89b17d09fef03b1a4bc391c5f5">async_serve_forever</a> ()</td></tr>
 <tr class="memdesc:a03b47a89b17d09fef03b1a4bc391c5f5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Accept connections and automatically start the associated sessions forever. <br /></td></tr>
@@ -203,24 +203,24 @@ template&lt;typename Acceptor , typename Dispatcher  = dispatcher&lt;&gt;&gt; </
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
-<a id="a14396b612582055f732ee338e278f218"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a14396b612582055f732ee338e278f218">&#9670;&nbsp;</a></span>async_serve()</h2>
+<a id="a0703bbd27e5b81c59e250f4fbb3cf50b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0703bbd27e5b81c59e250f4fbb3cf50b">&#9670;&nbsp;</a></span>async_serve()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
 template&lt;typename Acceptor , typename Dispatcher  = dispatcher&lt;&gt;&gt; </div>
 <div class="memtemplate">
-template&lt;typename ServeHandler &gt; </div>
+template&lt;typename ServeHandler  PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">void <a class="el" href="classpackio_1_1server.html">packio::server</a>&lt; Acceptor, Dispatcher &gt;::async_serve </td>
+          <td class="memname">auto <a class="el" href="classpackio_1_1server.html">packio::server</a>&lt; Acceptor, Dispatcher &gt;::async_serve </td>
           <td>(</td>
-          <td class="paramtype">ServeHandler &amp;&amp;&#160;</td>
-          <td class="paramname"><em>handler</em></td><td>)</td>
+          <td class="paramtype">ServeHandler &amp;&amp;handler &#160;</td>
+          <td class="paramname"><em>PACKIO_DEFAULT_COMPLETION_TOKEN</em>executor_type</td><td>)</td>
           <td></td>
         </tr>
       </table>
