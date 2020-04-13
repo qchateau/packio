@@ -12,6 +12,7 @@
 
 #include <msgpack.hpp>
 
+#include "../error_code.h"
 #include "config.h"
 #include "log.h"
 

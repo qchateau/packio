@@ -128,24 +128,24 @@ std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hre
 <tr class="memitem:a7b057fa7411592cc0a1565b757c6151b"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1client.html#a7b057fa7411592cc0a1565b757c6151b">cancel</a> ()</td></tr>
 <tr class="memdesc:a7b057fa7411592cc0a1565b757c6151b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Cancel all pending calls.  <a href="classpackio_1_1client.html#a7b057fa7411592cc0a1565b757c6151b">More...</a><br /></td></tr>
 <tr class="separator:a7b057fa7411592cc0a1565b757c6151b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa00d3db39564b9aa55d433f71c9a9e8a"><td class="memTemplParams" colspan="2">template&lt;typename Buffer  = msgpack::sbuffer, typename NotifyHandler  = typename boost::asio::default_completion_token&lt;executor_type&gt;::type, typename... Args&gt; </td></tr>
-<tr class="memitem:aa00d3db39564b9aa55d433f71c9a9e8a"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classpackio_1_1client.html#aa00d3db39564b9aa55d433f71c9a9e8a">async_notify</a> (std::string_view name, const std::tuple&lt; Args... &gt; &amp;args, NotifyHandler &amp;&amp;handler=typename boost::asio::default_completion_token&lt; <a class="el" href="classpackio_1_1client.html#a0f2f08560e2ee10a7adbce5206d94a13">executor_type</a> &gt;::type())</td></tr>
-<tr class="memdesc:aa00d3db39564b9aa55d433f71c9a9e8a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send a notify request to the server with argument.  <a href="classpackio_1_1client.html#aa00d3db39564b9aa55d433f71c9a9e8a">More...</a><br /></td></tr>
-<tr class="separator:aa00d3db39564b9aa55d433f71c9a9e8a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a169e2a5e1b4791295930d27143610f64"><td class="memTemplParams" colspan="2"><a id="a169e2a5e1b4791295930d27143610f64"></a>
-template&lt;typename Buffer  = msgpack::sbuffer, typename NotifyHandler  = typename boost::asio::default_completion_token&lt;executor_type&gt;::type&gt; </td></tr>
-<tr class="memitem:a169e2a5e1b4791295930d27143610f64"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classpackio_1_1client.html#a169e2a5e1b4791295930d27143610f64">async_notify</a> (std::string_view name, NotifyHandler &amp;&amp;handler=typename boost::asio::default_completion_token&lt; <a class="el" href="classpackio_1_1client.html#a0f2f08560e2ee10a7adbce5206d94a13">executor_type</a> &gt;::type())</td></tr>
-<tr class="memdesc:a169e2a5e1b4791295930d27143610f64"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send a notify request to the server with no argument This is an overloaded member function, provided for convenience. It differs from the above function only in what argument(s) it accepts. <br /></td></tr>
-<tr class="separator:a169e2a5e1b4791295930d27143610f64"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa819daa01820c518746b6b8c4ae0cadb"><td class="memTemplParams" colspan="2">template&lt;typename Buffer  = msgpack::sbuffer, typename CallHandler  = typename boost::asio::default_completion_token&lt;executor_type&gt;::type, typename... Args&gt; </td></tr>
-<tr class="memitem:aa819daa01820c518746b6b8c4ae0cadb"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classpackio_1_1client.html#aa819daa01820c518746b6b8c4ae0cadb">async_call</a> (std::string_view name, const std::tuple&lt; Args... &gt; &amp;args, CallHandler &amp;&amp;handler=typename boost::asio::default_completion_token&lt; <a class="el" href="classpackio_1_1client.html#a0f2f08560e2ee10a7adbce5206d94a13">executor_type</a> &gt;::type(), std::optional&lt; std::reference_wrapper&lt; <a class="el" href="namespacepackio.html#a02aa56c39599b9cde75f298011dc87e8">id_type</a> &gt;&gt; call_id=std::nullopt)</td></tr>
-<tr class="memdesc:aa819daa01820c518746b6b8c4ae0cadb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Call a remote procedure.  <a href="classpackio_1_1client.html#aa819daa01820c518746b6b8c4ae0cadb">More...</a><br /></td></tr>
-<tr class="separator:aa819daa01820c518746b6b8c4ae0cadb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aea4a5411dac93da5199cee8e5ecac12a"><td class="memTemplParams" colspan="2"><a id="aea4a5411dac93da5199cee8e5ecac12a"></a>
-template&lt;typename Buffer  = msgpack::sbuffer, typename CallHandler  = typename boost::asio::default_completion_token&lt;executor_type&gt;::type&gt; </td></tr>
-<tr class="memitem:aea4a5411dac93da5199cee8e5ecac12a"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classpackio_1_1client.html#aea4a5411dac93da5199cee8e5ecac12a">async_call</a> (std::string_view name, CallHandler &amp;&amp;handler=typename boost::asio::default_completion_token&lt; <a class="el" href="classpackio_1_1client.html#a0f2f08560e2ee10a7adbce5206d94a13">executor_type</a> &gt;::type(), std::optional&lt; std::reference_wrapper&lt; <a class="el" href="namespacepackio.html#a02aa56c39599b9cde75f298011dc87e8">id_type</a> &gt;&gt; call_id=std::nullopt)</td></tr>
-<tr class="memdesc:aea4a5411dac93da5199cee8e5ecac12a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Call a remote procedure This is an overloaded member function, provided for convenience. It differs from the above function only in what argument(s) it accepts. <br /></td></tr>
-<tr class="separator:aea4a5411dac93da5199cee8e5ecac12a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac95f66e17622014663e9896eb7f990a2"><td class="memTemplParams" colspan="2">template&lt;typename Buffer  = msgpack::sbuffer, typename NotifyHandler  PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE, typename... Args&gt; </td></tr>
+<tr class="memitem:ac95f66e17622014663e9896eb7f990a2"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classpackio_1_1client.html#ac95f66e17622014663e9896eb7f990a2">async_notify</a> (std::string_view name, const std::tuple&lt; Args... &gt; &amp;args, NotifyHandler &amp;&amp;handler PACKIO_DEFAULT_COMPLETION_TOKEN(<a class="el" href="classpackio_1_1client.html#a0f2f08560e2ee10a7adbce5206d94a13">executor_type</a>))</td></tr>
+<tr class="memdesc:ac95f66e17622014663e9896eb7f990a2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send a notify request to the server with argument.  <a href="classpackio_1_1client.html#ac95f66e17622014663e9896eb7f990a2">More...</a><br /></td></tr>
+<tr class="separator:ac95f66e17622014663e9896eb7f990a2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab5a940bf575d9b447c1cf85f4863c6ae"><td class="memTemplParams" colspan="2"><a id="ab5a940bf575d9b447c1cf85f4863c6ae"></a>
+template&lt;typename Buffer  = msgpack::sbuffer, typename NotifyHandler  PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE&gt; </td></tr>
+<tr class="memitem:ab5a940bf575d9b447c1cf85f4863c6ae"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classpackio_1_1client.html#ab5a940bf575d9b447c1cf85f4863c6ae">async_notify</a> (std::string_view name, NotifyHandler &amp;&amp;handler PACKIO_DEFAULT_COMPLETION_TOKEN(<a class="el" href="classpackio_1_1client.html#a0f2f08560e2ee10a7adbce5206d94a13">executor_type</a>))</td></tr>
+<tr class="memdesc:ab5a940bf575d9b447c1cf85f4863c6ae"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send a notify request to the server with no argument This is an overloaded member function, provided for convenience. It differs from the above function only in what argument(s) it accepts. <br /></td></tr>
+<tr class="separator:ab5a940bf575d9b447c1cf85f4863c6ae"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a05f979924252b2c34d4b256a45ee0a7c"><td class="memTemplParams" colspan="2">template&lt;typename Buffer  = msgpack::sbuffer, typename CallHandler  PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE, typename... Args&gt; </td></tr>
+<tr class="memitem:a05f979924252b2c34d4b256a45ee0a7c"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classpackio_1_1client.html#a05f979924252b2c34d4b256a45ee0a7c">async_call</a> (std::string_view name, const std::tuple&lt; Args... &gt; &amp;args, CallHandler &amp;&amp;handler PACKIO_DEFAULT_COMPLETION_TOKEN(<a class="el" href="classpackio_1_1client.html#a0f2f08560e2ee10a7adbce5206d94a13">executor_type</a>), std::optional&lt; std::reference_wrapper&lt; <a class="el" href="namespacepackio.html#a02aa56c39599b9cde75f298011dc87e8">id_type</a> &gt;&gt; call_id=std::nullopt)</td></tr>
+<tr class="memdesc:a05f979924252b2c34d4b256a45ee0a7c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Call a remote procedure.  <a href="classpackio_1_1client.html#a05f979924252b2c34d4b256a45ee0a7c">More...</a><br /></td></tr>
+<tr class="separator:a05f979924252b2c34d4b256a45ee0a7c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1f33acae31c996e41c3db6cb76b0c413"><td class="memTemplParams" colspan="2"><a id="a1f33acae31c996e41c3db6cb76b0c413"></a>
+template&lt;typename Buffer  = msgpack::sbuffer, typename CallHandler  PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE&gt; </td></tr>
+<tr class="memitem:a1f33acae31c996e41c3db6cb76b0c413"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classpackio_1_1client.html#a1f33acae31c996e41c3db6cb76b0c413">async_call</a> (std::string_view name, CallHandler &amp;&amp;handler PACKIO_DEFAULT_COMPLETION_TOKEN(<a class="el" href="classpackio_1_1client.html#a0f2f08560e2ee10a7adbce5206d94a13">executor_type</a>), std::optional&lt; std::reference_wrapper&lt; <a class="el" href="namespacepackio.html#a02aa56c39599b9cde75f298011dc87e8">id_type</a> &gt;&gt; call_id=std::nullopt)</td></tr>
+<tr class="memdesc:a1f33acae31c996e41c3db6cb76b0c413"><td class="mdescLeft">&#160;</td><td class="mdescRight">Call a remote procedure This is an overloaded member function, provided for convenience. It differs from the above function only in what argument(s) it accepts. <br /></td></tr>
+<tr class="separator:a1f33acae31c996e41c3db6cb76b0c413"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-static-attribs"></a>
 Static Public Attributes</h2></td></tr>
@@ -204,15 +204,15 @@ template&lt;typename Socket , template&lt; class... &gt; class Map = std::map&gt
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
-<a id="aa819daa01820c518746b6b8c4ae0cadb"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa819daa01820c518746b6b8c4ae0cadb">&#9670;&nbsp;</a></span>async_call()</h2>
+<a id="a05f979924252b2c34d4b256a45ee0a7c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a05f979924252b2c34d4b256a45ee0a7c">&#9670;&nbsp;</a></span>async_call()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
 template&lt;typename Socket , template&lt; class... &gt; class Map = std::map&gt; </div>
 <div class="memtemplate">
-template&lt;typename Buffer  = msgpack::sbuffer, typename CallHandler  = typename boost::asio::default_completion_token&lt;executor_type&gt;::type, typename... Args&gt; </div>
+template&lt;typename Buffer  = msgpack::sbuffer, typename CallHandler  PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE, typename... Args&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -232,8 +232,8 @@ template&lt;typename Buffer  = msgpack::sbuffer, typename CallHandler  = typenam
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">CallHandler &amp;&amp;&#160;</td>
-          <td class="paramname"><em>handler</em> = <code>typename&#160;boost::asio::default_completion_token&lt;<a class="el" href="classpackio_1_1client.html#a0f2f08560e2ee10a7adbce5206d94a13">executor_type</a>&gt;::type()</code>, </td>
+          <td class="paramtype">CallHandler &amp;&amp;handler &#160;</td>
+          <td class="paramname"><em>PACKIO_DEFAULT_COMPLETION_TOKEN</em>executor_type, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -278,15 +278,15 @@ template&lt;typename Buffer  = msgpack::sbuffer, typename CallHandler  = typenam
 
 </div>
 </div>
-<a id="aa00d3db39564b9aa55d433f71c9a9e8a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa00d3db39564b9aa55d433f71c9a9e8a">&#9670;&nbsp;</a></span>async_notify()</h2>
+<a id="ac95f66e17622014663e9896eb7f990a2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac95f66e17622014663e9896eb7f990a2">&#9670;&nbsp;</a></span>async_notify()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
 template&lt;typename Socket , template&lt; class... &gt; class Map = std::map&gt; </div>
 <div class="memtemplate">
-template&lt;typename Buffer  = msgpack::sbuffer, typename NotifyHandler  = typename boost::asio::default_completion_token&lt;executor_type&gt;::type, typename... Args&gt; </div>
+template&lt;typename Buffer  = msgpack::sbuffer, typename NotifyHandler  PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE, typename... Args&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -306,8 +306,8 @@ template&lt;typename Buffer  = msgpack::sbuffer, typename NotifyHandler  = typen
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">NotifyHandler &amp;&amp;&#160;</td>
-          <td class="paramname"><em>handler</em> = <code>typename&#160;boost::asio::default_completion_token&lt;<a class="el" href="classpackio_1_1client.html#a0f2f08560e2ee10a7adbce5206d94a13">executor_type</a>&gt;::type()</code>&#160;</td>
+          <td class="paramtype">NotifyHandler &amp;&amp;handler &#160;</td>
+          <td class="paramname"><em>PACKIO_DEFAULT_COMPLETION_TOKEN</em>executor_type&#160;</td>
         </tr>
         <tr>
           <td></td>

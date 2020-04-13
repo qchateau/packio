@@ -80,7 +80,7 @@ $(function() {
 <div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160; </div>
 <div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160; </div>
 <div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;<span class="preprocessor">#include &lt;memory&gt;</span></div>
-<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="preprocessor">#include &lt;boost/asio.hpp&gt;</span></div>
+<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160; </div>
 <div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="preprocessor">#include &lt;msgpack.hpp&gt;</span></div>
 <div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160; </div>
 <div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="dispatcher_8h.html">dispatcher.h</a>&quot;</span></div>
@@ -127,74 +127,99 @@ $(function() {
 <div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160; </div>
 <div class="line"><a name="l00071"></a><span class="lineno"><a class="line" href="classpackio_1_1server.html#a54d82502040ab9e63e7f31c00988fb12">   71</a></span>&#160;    <a class="code" href="classpackio_1_1server.html#a04594e9ee178269b5ae9a8b7f03967da">executor_type</a> <a class="code" href="classpackio_1_1server.html#a54d82502040ab9e63e7f31c00988fb12">get_executor</a>() { <span class="keywordflow">return</span> <a class="code" href="classpackio_1_1server.html#a5be66852826d65711c095751a6b92b99">acceptor</a>().get_executor(); }</div>
 <div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160; </div>
-<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> ServeHandler&gt;</div>
-<div class="line"><a name="l00079"></a><span class="lineno"><a class="line" href="classpackio_1_1server.html#a14396b612582055f732ee338e278f218">   79</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classpackio_1_1server.html#a14396b612582055f732ee338e278f218">async_serve</a>(ServeHandler&amp;&amp; handler)</div>
-<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;    {</div>
-<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;        PACKIO_STATIC_ASSERT_TTRAIT(ServeHandler, <a class="code" href="classpackio_1_1server__session.html">session_type</a>);</div>
-<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;        PACKIO_TRACE(<span class="stringliteral">&quot;async_serve&quot;</span>);</div>
-<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160; </div>
-<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;        acceptor_.async_accept(</div>
-<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;            [<span class="keyword">self</span> = shared_from_this(),</div>
-<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;             handler = std::forward&lt;ServeHandler&gt;(handler)](</div>
-<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;                boost::system::error_code ec, <a class="code" href="classpackio_1_1server.html#ac42874f5c340ba691c88a6ea1d44c836">socket_type</a> sock) <span class="keyword">mutable</span> {</div>
-<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;                std::shared_ptr&lt;session_type&gt; session;</div>
-<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;                <span class="keywordflow">if</span> (ec) {</div>
-<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;                    PACKIO_WARN(<span class="stringliteral">&quot;accept error: {}&quot;</span>, ec.message());</div>
-<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;                }</div>
-<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;                <span class="keywordflow">else</span> {</div>
-<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;                    internal::set_no_delay(sock);</div>
-<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;                    session = std::make_shared&lt;session_type&gt;(</div>
-<div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;                        std::move(sock), self-&gt;dispatcher_ptr_);</div>
-<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;                }</div>
-<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160;                handler(ec, std::move(session));</div>
-<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;            });</div>
+<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> ServeHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type)&gt;</div>
+<div class="line"><a name="l00079"></a><span class="lineno"><a class="line" href="classpackio_1_1server.html#a0703bbd27e5b81c59e250f4fbb3cf50b">   79</a></span>&#160;    <span class="keyword">auto</span> <a class="code" href="classpackio_1_1server.html#a0703bbd27e5b81c59e250f4fbb3cf50b">async_serve</a>(</div>
+<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;        ServeHandler&amp;&amp; handler PACKIO_DEFAULT_COMPLETION_TOKEN(<a class="code" href="classpackio_1_1server.html#a04594e9ee178269b5ae9a8b7f03967da">executor_type</a>))</div>
+<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;    {</div>
+<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;        <span class="keywordflow">return</span> packio::asio::async_initiate&lt;</div>
+<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;            ServeHandler,</div>
+<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;            void(packio::err::error_code, std::shared_ptr&lt;session_type&gt;)&gt;(</div>
+<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;            initiate_async_serve(<span class="keyword">this</span>), handler);</div>
+<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;    }</div>
+<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160; </div>
+<div class="line"><a name="l00089"></a><span class="lineno"><a class="line" href="classpackio_1_1server.html#a03b47a89b17d09fef03b1a4bc391c5f5">   89</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classpackio_1_1server.html#a03b47a89b17d09fef03b1a4bc391c5f5">async_serve_forever</a>()</div>
+<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;    {</div>
+<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;        <a class="code" href="classpackio_1_1server.html#a0703bbd27e5b81c59e250f4fbb3cf50b">async_serve</a>([<span class="keyword">self</span> = shared_from_this()](<span class="keyword">auto</span> ec, <span class="keyword">auto</span> session) {</div>
+<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;            <span class="keywordflow">if</span> (ec) {</div>
+<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;                <span class="keywordflow">return</span>;</div>
+<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;            }</div>
+<div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160; </div>
+<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;            session-&gt;start();</div>
+<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160;            <span class="keyword">self</span>-&gt;async_serve_forever();</div>
+<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;        });</div>
 <div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;    }</div>
 <div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160; </div>
-<div class="line"><a name="l00102"></a><span class="lineno"><a class="line" href="classpackio_1_1server.html#a03b47a89b17d09fef03b1a4bc391c5f5">  102</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classpackio_1_1server.html#a03b47a89b17d09fef03b1a4bc391c5f5">async_serve_forever</a>()</div>
-<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160;    {</div>
-<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;        <a class="code" href="classpackio_1_1server.html#a14396b612582055f732ee338e278f218">async_serve</a>([<span class="keyword">self</span> = shared_from_this()](<span class="keyword">auto</span> ec, <span class="keyword">auto</span> session) {</div>
-<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;            <span class="keywordflow">if</span> (ec) {</div>
-<div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160;                <span class="keywordflow">return</span>;</div>
-<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160;            }</div>
-<div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160; </div>
-<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;            session-&gt;start();</div>
-<div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160;            <span class="keyword">self</span>-&gt;async_serve_forever();</div>
-<div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160;        });</div>
-<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;    }</div>
-<div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160; </div>
-<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;<span class="keyword">private</span>:</div>
-<div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160;    <a class="code" href="classpackio_1_1server.html#a4bcd39b0d3f5a297e476382b97402707">acceptor_type</a> acceptor_;</div>
-<div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160;    std::shared_ptr&lt;dispatcher_type&gt; dispatcher_ptr_;</div>
-<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160;};</div>
+<div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160;<span class="keyword">private</span>:</div>
+<div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160;    <span class="keyword">class </span>initiate_async_serve {</div>
+<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160;    <span class="keyword">public</span>:</div>
+<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;        <span class="keyword">using</span> <a class="code" href="classpackio_1_1server.html#a04594e9ee178269b5ae9a8b7f03967da">executor_type</a> = <span class="keyword">typename</span> <a class="code" href="classpackio_1_1server.html#a04594e9ee178269b5ae9a8b7f03967da">server::executor_type</a>;</div>
+<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160; </div>
+<div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160;        <span class="keyword">explicit</span> initiate_async_serve(<a class="code" href="classpackio_1_1server.html">server</a>* <span class="keyword">self</span>) : self_(self) {}</div>
+<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160; </div>
+<div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160;        <a class="code" href="classpackio_1_1server.html#a04594e9ee178269b5ae9a8b7f03967da">executor_type</a> <a class="code" href="classpackio_1_1server.html#a54d82502040ab9e63e7f31c00988fb12">get_executor</a>() const noexcept</div>
+<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;        {</div>
+<div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160;            <span class="keywordflow">return</span> self_-&gt;get_executor();</div>
+<div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160;        }</div>
+<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160; </div>
+<div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;        <span class="keyword">template</span> &lt;<span class="keyword">typename</span> ServeHandler&gt;</div>
+<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;        <span class="keywordtype">void</span> operator()(ServeHandler&amp;&amp; handler)</div>
+<div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160;        {</div>
+<div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160;            PACKIO_STATIC_ASSERT_TTRAIT(ServeHandler, session_type);</div>
+<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160;            PACKIO_TRACE(<span class="stringliteral">&quot;async_serve&quot;</span>);</div>
 <div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160; </div>
-<div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> Acceptor, <span class="keyword">typename</span> Dispatcher = dispatcher&lt;&gt;&gt;</div>
-<div class="line"><a name="l00123"></a><span class="lineno"><a class="line" href="namespacepackio.html#adb4190a7fda2259edbbe7684c2c5a766">  123</a></span>&#160;<span class="keyword">auto</span> <a class="code" href="namespacepackio.html#adb4190a7fda2259edbbe7684c2c5a766">make_server</a>(Acceptor&amp;&amp; acceptor)</div>
-<div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160;{</div>
-<div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160;    <span class="keywordflow">return</span> std::make_shared&lt;server&lt;Acceptor, Dispatcher&gt;&gt;(</div>
-<div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160;        std::forward&lt;Acceptor&gt;(acceptor));</div>
-<div class="line"><a name="l00127"></a><span class="lineno">  127</span>&#160;}</div>
-<div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160; </div>
-<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;} <span class="comment">// packio</span></div>
-<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160; </div>
-<div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160;<span class="preprocessor">#endif // PACKIO_SERVER_H</span></div>
+<div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160;            self_-&gt;acceptor_.async_accept(</div>
+<div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160;                [<span class="keyword">self</span> = self_-&gt;shared_from_this(),</div>
+<div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160;                 handler = std::forward&lt;ServeHandler&gt;(handler)](</div>
+<div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160;                    packio::err::error_code ec, <a class="code" href="classpackio_1_1server.html#ac42874f5c340ba691c88a6ea1d44c836">socket_type</a> sock) <span class="keyword">mutable</span> {</div>
+<div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160;                    std::shared_ptr&lt;session_type&gt; session;</div>
+<div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160;                    if (ec) {</div>
+<div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160;                        PACKIO_WARN(<span class="stringliteral">&quot;accept error: {}&quot;</span>, ec.message());</div>
+<div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160;                    }</div>
+<div class="line"><a name="l00127"></a><span class="lineno">  127</span>&#160;                    <span class="keywordflow">else</span> {</div>
+<div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160;                        internal::set_no_delay(sock);</div>
+<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;                        session = std::make_shared&lt;session_type&gt;(</div>
+<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160;                            std::move(sock), self-&gt;dispatcher_ptr_);</div>
+<div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160;                    }</div>
+<div class="line"><a name="l00132"></a><span class="lineno">  132</span>&#160;                    handler(ec, std::move(session));</div>
+<div class="line"><a name="l00133"></a><span class="lineno">  133</span>&#160;                });</div>
+<div class="line"><a name="l00134"></a><span class="lineno">  134</span>&#160;        }</div>
+<div class="line"><a name="l00135"></a><span class="lineno">  135</span>&#160; </div>
+<div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160;    <span class="keyword">private</span>:</div>
+<div class="line"><a name="l00137"></a><span class="lineno">  137</span>&#160;        <a class="code" href="classpackio_1_1server.html#a1d957e4e7f7bfa0ae7744815b2e92184">server</a>* self_;</div>
+<div class="line"><a name="l00138"></a><span class="lineno">  138</span>&#160;    };</div>
+<div class="line"><a name="l00139"></a><span class="lineno">  139</span>&#160; </div>
+<div class="line"><a name="l00140"></a><span class="lineno">  140</span>&#160;    acceptor_type acceptor_;</div>
+<div class="line"><a name="l00141"></a><span class="lineno">  141</span>&#160;    std::shared_ptr&lt;dispatcher_type&gt; dispatcher_ptr_;</div>
+<div class="line"><a name="l00142"></a><span class="lineno">  142</span>&#160;};</div>
+<div class="line"><a name="l00143"></a><span class="lineno">  143</span>&#160; </div>
+<div class="line"><a name="l00147"></a><span class="lineno">  147</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> Acceptor, <span class="keyword">typename</span> Dispatcher = dispatcher&lt;&gt;&gt;</div>
+<div class="line"><a name="l00148"></a><span class="lineno"><a class="line" href="namespacepackio.html#adb4190a7fda2259edbbe7684c2c5a766">  148</a></span>&#160;<span class="keyword">auto</span> <a class="code" href="namespacepackio.html#adb4190a7fda2259edbbe7684c2c5a766">make_server</a>(Acceptor&amp;&amp; acceptor)</div>
+<div class="line"><a name="l00149"></a><span class="lineno">  149</span>&#160;{</div>
+<div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160;    <span class="keywordflow">return</span> std::make_shared&lt;server&lt;Acceptor, Dispatcher&gt;&gt;(</div>
+<div class="line"><a name="l00151"></a><span class="lineno">  151</span>&#160;        std::forward&lt;Acceptor&gt;(acceptor));</div>
+<div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160;}</div>
+<div class="line"><a name="l00153"></a><span class="lineno">  153</span>&#160; </div>
+<div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160;} <span class="comment">// packio</span></div>
+<div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160; </div>
+<div class="line"><a name="l00156"></a><span class="lineno">  156</span>&#160;<span class="preprocessor">#endif // PACKIO_SERVER_H</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="aclasspackio_1_1server_html_ac42874f5c340ba691c88a6ea1d44c836"><div class="ttname"><a href="classpackio_1_1server.html#ac42874f5c340ba691c88a6ea1d44c836">packio::server::socket_type</a></div><div class="ttdeci">std::decay_t&lt; decltype(std::declval&lt; acceptor_type &gt;().accept())&gt; socket_type</div><div class="ttdoc">The connection socket type.</div><div class="ttdef"><b>Definition:</b> server.h:36</div></div>
 <div class="ttc" id="adispatcher_8h_html"><div class="ttname"><a href="dispatcher_8h.html">dispatcher.h</a></div></div>
 <div class="ttc" id="aclasspackio_1_1server_html"><div class="ttname"><a href="classpackio_1_1server.html">packio::server</a></div><div class="ttdoc">The server class.</div><div class="ttdef"><b>Definition:</b> server.h:28</div></div>
-<div class="ttc" id="aclasspackio_1_1dispatcher_html"><div class="ttname"><a href="classpackio_1_1dispatcher.html">packio::dispatcher</a></div><div class="ttdoc">The dispatcher class, used to store and dispatch procedures.</div><div class="ttdef"><b>Definition:</b> dispatcher.h:34</div></div>
+<div class="ttc" id="aclasspackio_1_1dispatcher_html"><div class="ttname"><a href="classpackio_1_1dispatcher.html">packio::dispatcher</a></div><div class="ttdoc">The dispatcher class, used to store and dispatch procedures.</div><div class="ttdef"><b>Definition:</b> dispatcher.h:33</div></div>
 <div class="ttc" id="aclasspackio_1_1server_html_a900e9e9a37cb109c4c330795e5f83639"><div class="ttname"><a href="classpackio_1_1server.html#a900e9e9a37cb109c4c330795e5f83639">packio::server::acceptor</a></div><div class="ttdeci">const acceptor_type &amp; acceptor() const</div><div class="ttdoc">Get the underlying acceptor, const.</div><div class="ttdef"><b>Definition:</b> server.h:60</div></div>
+<div class="ttc" id="aclasspackio_1_1server_html_a0703bbd27e5b81c59e250f4fbb3cf50b"><div class="ttname"><a href="classpackio_1_1server.html#a0703bbd27e5b81c59e250f4fbb3cf50b">packio::server::async_serve</a></div><div class="ttdeci">auto async_serve(ServeHandler &amp;&amp;handler PACKIO_DEFAULT_COMPLETION_TOKEN(executor_type))</div><div class="ttdoc">Accept one connection and initialize a session for it.</div><div class="ttdef"><b>Definition:</b> server.h:79</div></div>
 <div class="ttc" id="aclasspackio_1_1server_html_ac3cca245e7251e2f834407bbfe6e0aaa"><div class="ttname"><a href="classpackio_1_1server.html#ac3cca245e7251e2f834407bbfe6e0aaa">packio::server::protocol_type</a></div><div class="ttdeci">typename Acceptor::protocol_type protocol_type</div><div class="ttdoc">The protocol type.</div><div class="ttdef"><b>Definition:</b> server.h:31</div></div>
 <div class="ttc" id="aclasspackio_1_1server_html_a46991dfa12d830c2eb3c2ba078effafc"><div class="ttname"><a href="classpackio_1_1server.html#a46991dfa12d830c2eb3c2ba078effafc">packio::server::server</a></div><div class="ttdeci">server(acceptor_type acceptor)</div><div class="ttdoc">Simplified constructor: will allocate a new dispatcher automatically This is an overloaded member fun...</div><div class="ttdef"><b>Definition:</b> server.h:52</div></div>
 <div class="ttc" id="aclasspackio_1_1server_html_a343d3dab6de63fe6dee0c0765d781f2c"><div class="ttname"><a href="classpackio_1_1server.html#a343d3dab6de63fe6dee0c0765d781f2c">packio::server::dispatcher</a></div><div class="ttdeci">std::shared_ptr&lt; const dispatcher_type &gt; dispatcher() const</div><div class="ttdoc">Get the dispatcher, const.</div><div class="ttdef"><b>Definition:</b> server.h:65</div></div>
-<div class="ttc" id="aclasspackio_1_1server__session_html"><div class="ttname"><a href="classpackio_1_1server__session.html">packio::server_session</a></div><div class="ttdoc">The server_session class, created by the server.</div><div class="ttdef"><b>Definition:</b> server_session.h:27</div></div>
-<div class="ttc" id="anamespacepackio_html"><div class="ttname"><a href="namespacepackio.html">packio</a></div><div class="ttdef"><b>Definition:</b> client.h:31</div></div>
-<div class="ttc" id="anamespacepackio_html_adb4190a7fda2259edbbe7684c2c5a766"><div class="ttname"><a href="namespacepackio.html#adb4190a7fda2259edbbe7684c2c5a766">packio::make_server</a></div><div class="ttdeci">auto make_server(Acceptor &amp;&amp;acceptor)</div><div class="ttdoc">Create a server from an acceptor.</div><div class="ttdef"><b>Definition:</b> server.h:123</div></div>
+<div class="ttc" id="aclasspackio_1_1server__session_html"><div class="ttname"><a href="classpackio_1_1server__session.html">packio::server_session</a></div><div class="ttdoc">The server_session class, created by the server.</div><div class="ttdef"><b>Definition:</b> server_session.h:26</div></div>
+<div class="ttc" id="anamespacepackio_html"><div class="ttname"><a href="namespacepackio.html">packio</a></div><div class="ttdef"><b>Definition:</b> client.h:30</div></div>
+<div class="ttc" id="anamespacepackio_html_adb4190a7fda2259edbbe7684c2c5a766"><div class="ttname"><a href="namespacepackio.html#adb4190a7fda2259edbbe7684c2c5a766">packio::make_server</a></div><div class="ttdeci">auto make_server(Acceptor &amp;&amp;acceptor)</div><div class="ttdoc">Create a server from an acceptor.</div><div class="ttdef"><b>Definition:</b> server.h:148</div></div>
 <div class="ttc" id="aclasspackio_1_1server_html_a57a2a6a784736a55bec1f2e099f47a67"><div class="ttname"><a href="classpackio_1_1server.html#a57a2a6a784736a55bec1f2e099f47a67">packio::server::dispatcher_type</a></div><div class="ttdeci">Dispatcher dispatcher_type</div><div class="ttdoc">The dispatcher type.</div><div class="ttdef"><b>Definition:</b> server.h:32</div></div>
 <div class="ttc" id="aclasspackio_1_1server_html_a1d957e4e7f7bfa0ae7744815b2e92184"><div class="ttname"><a href="classpackio_1_1server.html#a1d957e4e7f7bfa0ae7744815b2e92184">packio::server::server</a></div><div class="ttdeci">server(acceptor_type acceptor, std::shared_ptr&lt; dispatcher_type &gt; dispatcher)</div><div class="ttdoc">The constructor.</div><div class="ttdef"><b>Definition:</b> server.h:45</div></div>
 <div class="ttc" id="aclasspackio_1_1server_html_a54d82502040ab9e63e7f31c00988fb12"><div class="ttname"><a href="classpackio_1_1server.html#a54d82502040ab9e63e7f31c00988fb12">packio::server::get_executor</a></div><div class="ttdeci">executor_type get_executor()</div><div class="ttdoc">Get the executor associated with the object.</div><div class="ttdef"><b>Definition:</b> server.h:71</div></div>
 <div class="ttc" id="aclasspackio_1_1server_html_a04594e9ee178269b5ae9a8b7f03967da"><div class="ttname"><a href="classpackio_1_1server.html#a04594e9ee178269b5ae9a8b7f03967da">packio::server::executor_type</a></div><div class="ttdeci">typename acceptor_type::executor_type executor_type</div><div class="ttdoc">The executor type.</div><div class="ttdef"><b>Definition:</b> server.h:34</div></div>
-<div class="ttc" id="aclasspackio_1_1server_html_a14396b612582055f732ee338e278f218"><div class="ttname"><a href="classpackio_1_1server.html#a14396b612582055f732ee338e278f218">packio::server::async_serve</a></div><div class="ttdeci">void async_serve(ServeHandler &amp;&amp;handler)</div><div class="ttdoc">Accept one connection and initialize a session for it.</div><div class="ttdef"><b>Definition:</b> server.h:79</div></div>
-<div class="ttc" id="aclasspackio_1_1server_html_a03b47a89b17d09fef03b1a4bc391c5f5"><div class="ttname"><a href="classpackio_1_1server.html#a03b47a89b17d09fef03b1a4bc391c5f5">packio::server::async_serve_forever</a></div><div class="ttdeci">void async_serve_forever()</div><div class="ttdoc">Accept connections and automatically start the associated sessions forever.</div><div class="ttdef"><b>Definition:</b> server.h:102</div></div>
+<div class="ttc" id="aclasspackio_1_1server_html_a03b47a89b17d09fef03b1a4bc391c5f5"><div class="ttname"><a href="classpackio_1_1server.html#a03b47a89b17d09fef03b1a4bc391c5f5">packio::server::async_serve_forever</a></div><div class="ttdeci">void async_serve_forever()</div><div class="ttdoc">Accept connections and automatically start the associated sessions forever.</div><div class="ttdef"><b>Definition:</b> server.h:89</div></div>
 <div class="ttc" id="aclasspackio_1_1server_html_a5be66852826d65711c095751a6b92b99"><div class="ttname"><a href="classpackio_1_1server.html#a5be66852826d65711c095751a6b92b99">packio::server::acceptor</a></div><div class="ttdeci">acceptor_type &amp; acceptor()</div><div class="ttdoc">Get the underlying acceptor.</div><div class="ttdef"><b>Definition:</b> server.h:58</div></div>
 <div class="ttc" id="atraits_8h_html"><div class="ttname"><a href="traits_8h.html">traits.h</a></div></div>
 <div class="ttc" id="aclasspackio_1_1server_html_a71c73a5ab56575e2fa3e05b39865a68e"><div class="ttname"><a href="classpackio_1_1server.html#a71c73a5ab56575e2fa3e05b39865a68e">packio::server::dispatcher</a></div><div class="ttdeci">std::shared_ptr&lt; dispatcher_type &gt; dispatcher()</div><div class="ttdoc">Get the dispatcher.</div><div class="ttdef"><b>Definition:</b> server.h:63</div></div>

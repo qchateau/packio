@@ -101,15 +101,15 @@ matrix:
     # Test no RTTI
     - <<: *linux
       env:
-        - CONAN_CLANG_VERSIONS=7.0
-        - CONAN_DOCKER_IMAGE=conanio/clang70
+        - CONAN_GCC_VERSIONS=7
+        - CONAN_DOCKER_IMAGE=conanio/gcc7
         - CONAN_OPTIONS=rtti=False
 
     # Test logs
     - <<: *linux
       env:
-        - CONAN_CLANG_VERSIONS=7.0
-        - CONAN_DOCKER_IMAGE=conanio/clang70
+        - CONAN_GCC_VERSIONS=7
+        - CONAN_DOCKER_IMAGE=conanio/gcc7
         - CONAN_OPTIONS=loglevel=trace
       script:
         - chmod +x .ci/run.sh

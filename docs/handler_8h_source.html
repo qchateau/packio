@@ -81,107 +81,106 @@ $(function() {
 <div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160; </div>
 <div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;<span class="preprocessor">#include &lt;functional&gt;</span></div>
 <div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160; </div>
-<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="preprocessor">#include &lt;boost/asio.hpp&gt;</span></div>
-<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="preprocessor">#include &lt;msgpack.hpp&gt;</span></div>
-<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160; </div>
-<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="error__code_8h.html">error_code.h</a>&quot;</span></div>
-<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="preprocessor">#include &quot;internal/config.h&quot;</span></div>
-<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="preprocessor">#include &quot;internal/utils.h&quot;</span></div>
-<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160; </div>
-<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="keyword">namespace </span><a class="code" href="namespacepackio.html">packio</a> {</div>
-<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160; </div>
-<div class="line"><a name="l00028"></a><span class="lineno"><a class="line" href="classpackio_1_1completion__handler.html">   28</a></span>&#160;<span class="keyword">class </span><a class="code" href="classpackio_1_1completion__handler.html">completion_handler</a> {</div>
-<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;<span class="keyword">public</span>:</div>
-<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;    <span class="keyword">using</span> function_type =</div>
-<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;        std::function&lt;void(boost::system::error_code, msgpack::object_handle)&gt;;</div>
-<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160; </div>
-<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> F&gt;</div>
-<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;    <a class="code" href="classpackio_1_1completion__handler.html">completion_handler</a>(F&amp;&amp; handler) : handler_{std::forward&lt;F&gt;(handler)}</div>
-<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;    {</div>
-<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;    }</div>
-<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160; </div>
-<div class="line"><a name="l00039"></a><span class="lineno"><a class="line" href="classpackio_1_1completion__handler.html#adfb61907d9efb108be79040140ebbcd9">   39</a></span>&#160;    <a class="code" href="classpackio_1_1completion__handler.html#adfb61907d9efb108be79040140ebbcd9">~completion_handler</a>()</div>
-<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;    {</div>
-<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;        <span class="keywordflow">if</span> (handler_) {</div>
-<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;            <a class="code" href="classpackio_1_1completion__handler.html#ac99c708ff2220893a4446cec9eaa59fc">set_error</a>(<span class="stringliteral">&quot;Call finished with no result&quot;</span>);</div>
-<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;        }</div>
-<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;    }</div>
-<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160; </div>
-<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;    <a class="code" href="classpackio_1_1completion__handler.html">completion_handler</a>(<span class="keyword">const</span> <a class="code" href="classpackio_1_1completion__handler.html">completion_handler</a>&amp;) = <span class="keyword">delete</span>;</div>
-<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;    <a class="code" href="classpackio_1_1completion__handler.html">completion_handler</a>&amp; operator=(<span class="keyword">const</span> <a class="code" href="classpackio_1_1completion__handler.html">completion_handler</a>&amp;) = <span class="keyword">delete</span>;</div>
-<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160; </div>
-<div class="line"><a name="l00050"></a><span class="lineno"><a class="line" href="classpackio_1_1completion__handler.html#aa8f78c4db0923a8debaaabf7e4df0471">   50</a></span>&#160;    <a class="code" href="classpackio_1_1completion__handler.html#aa8f78c4db0923a8debaaabf7e4df0471">completion_handler</a>(<a class="code" href="classpackio_1_1completion__handler.html">completion_handler</a>&amp;&amp; other)</div>
-<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;        : handler_{std::move(other.handler_)}</div>
-<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;    {</div>
-<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;        other.handler_ = <span class="keyword">nullptr</span>;</div>
-<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;    }</div>
-<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160; </div>
-<div class="line"><a name="l00057"></a><span class="lineno"><a class="line" href="classpackio_1_1completion__handler.html#aeedf3e5ac4eeb5a8976a82aaca769bb9">   57</a></span>&#160;    <a class="code" href="classpackio_1_1completion__handler.html">completion_handler</a>&amp; <a class="code" href="classpackio_1_1completion__handler.html#aeedf3e5ac4eeb5a8976a82aaca769bb9">operator=</a>(<a class="code" href="classpackio_1_1completion__handler.html">completion_handler</a>&amp;&amp; other)</div>
-<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;    {</div>
-<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;        <span class="keywordflow">if</span> (handler_) {</div>
-<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;            <a class="code" href="classpackio_1_1completion__handler.html#ac99c708ff2220893a4446cec9eaa59fc">set_error</a>(<span class="stringliteral">&quot;Call finished with no result&quot;</span>);</div>
-<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;        }</div>
-<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;        handler_ = std::move(other.handler_);</div>
-<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;        other.handler_ = <span class="keyword">nullptr</span>;</div>
-<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;        <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
-<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;    }</div>
-<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160; </div>
-<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a name="l00070"></a><span class="lineno"><a class="line" href="classpackio_1_1completion__handler.html#a62c027610298c8e4b4d6d6cec3ab58e2">   70</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classpackio_1_1completion__handler.html#a62c027610298c8e4b4d6d6cec3ab58e2">set_value</a>(T&amp;&amp; return_value)</div>
-<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;    {</div>
-<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;        complete(</div>
-<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;            <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a260ca9dd8a4577fc00b7bd5810298076">error::success</a>,</div>
-<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;            internal::make_msgpack_object(std::forward&lt;T&gt;(return_value)));</div>
-<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;    }</div>
-<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160; </div>
-<div class="line"><a name="l00079"></a><span class="lineno"><a class="line" href="classpackio_1_1completion__handler.html#a0802f6b6c5382f352dd196e1f600f2af">   79</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classpackio_1_1completion__handler.html#a0802f6b6c5382f352dd196e1f600f2af">set_value</a>() { complete(<a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a260ca9dd8a4577fc00b7bd5810298076">error::success</a>, {}); }</div>
-<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160; </div>
-<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a name="l00084"></a><span class="lineno"><a class="line" href="classpackio_1_1completion__handler.html#a19f6a250a6b0b5bc1d09b9b8948f5a9e">   84</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classpackio_1_1completion__handler.html#a19f6a250a6b0b5bc1d09b9b8948f5a9e">set_error</a>(T&amp;&amp; error_value)</div>
-<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;    {</div>
-<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;        complete(</div>
-<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;            <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809ad1ef7ee50ccddcdd2ed2ce9c69db96ae">error::error_during_call</a>,</div>
-<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;            internal::make_msgpack_object(std::forward&lt;T&gt;(error_value)));</div>
-<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;    }</div>
-<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160; </div>
-<div class="line"><a name="l00093"></a><span class="lineno"><a class="line" href="classpackio_1_1completion__handler.html#ac99c708ff2220893a4446cec9eaa59fc">   93</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classpackio_1_1completion__handler.html#ac99c708ff2220893a4446cec9eaa59fc">set_error</a>() { complete(<a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809ad1ef7ee50ccddcdd2ed2ce9c69db96ae">error::error_during_call</a>, {}); }</div>
-<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160; </div>
-<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a name="l00097"></a><span class="lineno"><a class="line" href="classpackio_1_1completion__handler.html#af8fc63fe1638048313ca2e081d1bfb7e">   97</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classpackio_1_1completion__handler.html#af8fc63fe1638048313ca2e081d1bfb7e">operator()</a>(T&amp;&amp; return_value)</div>
-<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;    {</div>
-<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;        <a class="code" href="classpackio_1_1completion__handler.html#a0802f6b6c5382f352dd196e1f600f2af">set_value</a>(std::forward&lt;T&gt;(return_value));</div>
-<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160;    }</div>
-<div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160; </div>
-<div class="line"><a name="l00103"></a><span class="lineno"><a class="line" href="classpackio_1_1completion__handler.html#ae88a9601765c0e6ee070a73ee70b60f9">  103</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classpackio_1_1completion__handler.html#ae88a9601765c0e6ee070a73ee70b60f9">operator()</a>() { <a class="code" href="classpackio_1_1completion__handler.html#a0802f6b6c5382f352dd196e1f600f2af">set_value</a>(); }</div>
-<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160; </div>
-<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;<span class="keyword">private</span>:</div>
-<div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160;    <span class="keywordtype">void</span> complete(<a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809">error</a> err, msgpack::object_handle result)</div>
-<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160;    {</div>
-<div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160;        handler_(make_error_code(err), std::move(result));</div>
-<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;        handler_ = <span class="keyword">nullptr</span>;</div>
-<div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160;    }</div>
-<div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160; </div>
-<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;    function_type handler_;</div>
-<div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;};</div>
-<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;} <span class="comment">// packio</span></div>
-<div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160; </div>
-<div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160;<span class="preprocessor">#endif // PACKIO_HANDLER_H</span></div>
+<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="preprocessor">#include &lt;msgpack.hpp&gt;</span></div>
+<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160; </div>
+<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="error__code_8h.html">error_code.h</a>&quot;</span></div>
+<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="preprocessor">#include &quot;internal/config.h&quot;</span></div>
+<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="preprocessor">#include &quot;internal/utils.h&quot;</span></div>
+<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160; </div>
+<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;<span class="keyword">namespace </span><a class="code" href="namespacepackio.html">packio</a> {</div>
+<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160; </div>
+<div class="line"><a name="l00027"></a><span class="lineno"><a class="line" href="classpackio_1_1completion__handler.html">   27</a></span>&#160;<span class="keyword">class </span><a class="code" href="classpackio_1_1completion__handler.html">completion_handler</a> {</div>
+<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;<span class="keyword">public</span>:</div>
+<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;    <span class="keyword">using</span> function_type =</div>
+<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;        std::function&lt;void(packio::err::error_code, msgpack::object_handle)&gt;;</div>
+<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160; </div>
+<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> F&gt;</div>
+<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;    <a class="code" href="classpackio_1_1completion__handler.html">completion_handler</a>(F&amp;&amp; handler) : handler_{std::forward&lt;F&gt;(handler)}</div>
+<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;    {</div>
+<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;    }</div>
+<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160; </div>
+<div class="line"><a name="l00038"></a><span class="lineno"><a class="line" href="classpackio_1_1completion__handler.html#adfb61907d9efb108be79040140ebbcd9">   38</a></span>&#160;    <a class="code" href="classpackio_1_1completion__handler.html#adfb61907d9efb108be79040140ebbcd9">~completion_handler</a>()</div>
+<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;    {</div>
+<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;        <span class="keywordflow">if</span> (handler_) {</div>
+<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;            <a class="code" href="classpackio_1_1completion__handler.html#ac99c708ff2220893a4446cec9eaa59fc">set_error</a>(<span class="stringliteral">&quot;Call finished with no result&quot;</span>);</div>
+<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;        }</div>
+<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;    }</div>
+<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160; </div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;    <a class="code" href="classpackio_1_1completion__handler.html">completion_handler</a>(<span class="keyword">const</span> <a class="code" href="classpackio_1_1completion__handler.html">completion_handler</a>&amp;) = <span class="keyword">delete</span>;</div>
+<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;    <a class="code" href="classpackio_1_1completion__handler.html">completion_handler</a>&amp; operator=(<span class="keyword">const</span> <a class="code" href="classpackio_1_1completion__handler.html">completion_handler</a>&amp;) = <span class="keyword">delete</span>;</div>
+<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160; </div>
+<div class="line"><a name="l00049"></a><span class="lineno"><a class="line" href="classpackio_1_1completion__handler.html#aa8f78c4db0923a8debaaabf7e4df0471">   49</a></span>&#160;    <a class="code" href="classpackio_1_1completion__handler.html#aa8f78c4db0923a8debaaabf7e4df0471">completion_handler</a>(<a class="code" href="classpackio_1_1completion__handler.html">completion_handler</a>&amp;&amp; other)</div>
+<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;        : handler_{std::move(other.handler_)}</div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;    {</div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;        other.handler_ = <span class="keyword">nullptr</span>;</div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;    }</div>
+<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160; </div>
+<div class="line"><a name="l00056"></a><span class="lineno"><a class="line" href="classpackio_1_1completion__handler.html#aeedf3e5ac4eeb5a8976a82aaca769bb9">   56</a></span>&#160;    <a class="code" href="classpackio_1_1completion__handler.html">completion_handler</a>&amp; <a class="code" href="classpackio_1_1completion__handler.html#aeedf3e5ac4eeb5a8976a82aaca769bb9">operator=</a>(<a class="code" href="classpackio_1_1completion__handler.html">completion_handler</a>&amp;&amp; other)</div>
+<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;    {</div>
+<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;        <span class="keywordflow">if</span> (handler_) {</div>
+<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;            <a class="code" href="classpackio_1_1completion__handler.html#ac99c708ff2220893a4446cec9eaa59fc">set_error</a>(<span class="stringliteral">&quot;Call finished with no result&quot;</span>);</div>
+<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;        }</div>
+<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;        handler_ = std::move(other.handler_);</div>
+<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;        other.handler_ = <span class="keyword">nullptr</span>;</div>
+<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;        <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;    }</div>
+<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160; </div>
+<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a name="l00069"></a><span class="lineno"><a class="line" href="classpackio_1_1completion__handler.html#a62c027610298c8e4b4d6d6cec3ab58e2">   69</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classpackio_1_1completion__handler.html#a62c027610298c8e4b4d6d6cec3ab58e2">set_value</a>(T&amp;&amp; return_value)</div>
+<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;    {</div>
+<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;        complete(</div>
+<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;            <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a260ca9dd8a4577fc00b7bd5810298076">error::success</a>,</div>
+<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;            internal::make_msgpack_object(std::forward&lt;T&gt;(return_value)));</div>
+<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;    }</div>
+<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160; </div>
+<div class="line"><a name="l00078"></a><span class="lineno"><a class="line" href="classpackio_1_1completion__handler.html#a0802f6b6c5382f352dd196e1f600f2af">   78</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classpackio_1_1completion__handler.html#a0802f6b6c5382f352dd196e1f600f2af">set_value</a>() { complete(<a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a260ca9dd8a4577fc00b7bd5810298076">error::success</a>, {}); }</div>
+<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160; </div>
+<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a name="l00083"></a><span class="lineno"><a class="line" href="classpackio_1_1completion__handler.html#a19f6a250a6b0b5bc1d09b9b8948f5a9e">   83</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classpackio_1_1completion__handler.html#a19f6a250a6b0b5bc1d09b9b8948f5a9e">set_error</a>(T&amp;&amp; error_value)</div>
+<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;    {</div>
+<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;        complete(</div>
+<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;            <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809ad1ef7ee50ccddcdd2ed2ce9c69db96ae">error::error_during_call</a>,</div>
+<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;            internal::make_msgpack_object(std::forward&lt;T&gt;(error_value)));</div>
+<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;    }</div>
+<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160; </div>
+<div class="line"><a name="l00092"></a><span class="lineno"><a class="line" href="classpackio_1_1completion__handler.html#ac99c708ff2220893a4446cec9eaa59fc">   92</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classpackio_1_1completion__handler.html#ac99c708ff2220893a4446cec9eaa59fc">set_error</a>() { complete(<a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809ad1ef7ee50ccddcdd2ed2ce9c69db96ae">error::error_during_call</a>, {}); }</div>
+<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160; </div>
+<div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a name="l00096"></a><span class="lineno"><a class="line" href="classpackio_1_1completion__handler.html#af8fc63fe1638048313ca2e081d1bfb7e">   96</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classpackio_1_1completion__handler.html#af8fc63fe1638048313ca2e081d1bfb7e">operator()</a>(T&amp;&amp; return_value)</div>
+<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160;    {</div>
+<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;        <a class="code" href="classpackio_1_1completion__handler.html#a0802f6b6c5382f352dd196e1f600f2af">set_value</a>(std::forward&lt;T&gt;(return_value));</div>
+<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;    }</div>
+<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160; </div>
+<div class="line"><a name="l00102"></a><span class="lineno"><a class="line" href="classpackio_1_1completion__handler.html#ae88a9601765c0e6ee070a73ee70b60f9">  102</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classpackio_1_1completion__handler.html#ae88a9601765c0e6ee070a73ee70b60f9">operator()</a>() { <a class="code" href="classpackio_1_1completion__handler.html#a0802f6b6c5382f352dd196e1f600f2af">set_value</a>(); }</div>
+<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160; </div>
+<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;<span class="keyword">private</span>:</div>
+<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;    <span class="keywordtype">void</span> complete(<a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809">error</a> err, msgpack::object_handle result)</div>
+<div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160;    {</div>
+<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160;        handler_(make_error_code(err), std::move(result));</div>
+<div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160;        handler_ = <span class="keyword">nullptr</span>;</div>
+<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;    }</div>
+<div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160; </div>
+<div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160;    function_type handler_;</div>
+<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;};</div>
+<div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;} <span class="comment">// packio</span></div>
+<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160; </div>
+<div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160;<span class="preprocessor">#endif // PACKIO_HANDLER_H</span></div>
 </div><!-- fragment --></div><!-- contents -->
-<div class="ttc" id="aclasspackio_1_1completion__handler_html_aeedf3e5ac4eeb5a8976a82aaca769bb9"><div class="ttname"><a href="classpackio_1_1completion__handler.html#aeedf3e5ac4eeb5a8976a82aaca769bb9">packio::completion_handler::operator=</a></div><div class="ttdeci">completion_handler &amp; operator=(completion_handler &amp;&amp;other)</div><div class="ttdoc">Move assignment operator.</div><div class="ttdef"><b>Definition:</b> handler.h:57</div></div>
-<div class="ttc" id="aclasspackio_1_1completion__handler_html_ae88a9601765c0e6ee070a73ee70b60f9"><div class="ttname"><a href="classpackio_1_1completion__handler.html#ae88a9601765c0e6ee070a73ee70b60f9">packio::completion_handler::operator()</a></div><div class="ttdeci">void operator()()</div><div class="ttdoc">Same as set_value.</div><div class="ttdef"><b>Definition:</b> handler.h:103</div></div>
-<div class="ttc" id="aclasspackio_1_1completion__handler_html_a0802f6b6c5382f352dd196e1f600f2af"><div class="ttname"><a href="classpackio_1_1completion__handler.html#a0802f6b6c5382f352dd196e1f600f2af">packio::completion_handler::set_value</a></div><div class="ttdeci">void set_value()</div><div class="ttdoc">Notify successful completion of the procedure with no return value This is an overloaded member funct...</div><div class="ttdef"><b>Definition:</b> handler.h:79</div></div>
-<div class="ttc" id="aclasspackio_1_1completion__handler_html"><div class="ttname"><a href="classpackio_1_1completion__handler.html">packio::completion_handler</a></div><div class="ttdoc">The completion_handler class.</div><div class="ttdef"><b>Definition:</b> handler.h:28</div></div>
+<div class="ttc" id="aclasspackio_1_1completion__handler_html_aeedf3e5ac4eeb5a8976a82aaca769bb9"><div class="ttname"><a href="classpackio_1_1completion__handler.html#aeedf3e5ac4eeb5a8976a82aaca769bb9">packio::completion_handler::operator=</a></div><div class="ttdeci">completion_handler &amp; operator=(completion_handler &amp;&amp;other)</div><div class="ttdoc">Move assignment operator.</div><div class="ttdef"><b>Definition:</b> handler.h:56</div></div>
+<div class="ttc" id="aclasspackio_1_1completion__handler_html_ae88a9601765c0e6ee070a73ee70b60f9"><div class="ttname"><a href="classpackio_1_1completion__handler.html#ae88a9601765c0e6ee070a73ee70b60f9">packio::completion_handler::operator()</a></div><div class="ttdeci">void operator()()</div><div class="ttdoc">Same as set_value.</div><div class="ttdef"><b>Definition:</b> handler.h:102</div></div>
+<div class="ttc" id="aclasspackio_1_1completion__handler_html_a0802f6b6c5382f352dd196e1f600f2af"><div class="ttname"><a href="classpackio_1_1completion__handler.html#a0802f6b6c5382f352dd196e1f600f2af">packio::completion_handler::set_value</a></div><div class="ttdeci">void set_value()</div><div class="ttdoc">Notify successful completion of the procedure with no return value This is an overloaded member funct...</div><div class="ttdef"><b>Definition:</b> handler.h:78</div></div>
+<div class="ttc" id="aclasspackio_1_1completion__handler_html"><div class="ttname"><a href="classpackio_1_1completion__handler.html">packio::completion_handler</a></div><div class="ttdoc">The completion_handler class.</div><div class="ttdef"><b>Definition:</b> handler.h:27</div></div>
 <div class="ttc" id="aerror__code_8h_html"><div class="ttname"><a href="error__code_8h.html">error_code.h</a></div></div>
-<div class="ttc" id="aclasspackio_1_1completion__handler_html_adfb61907d9efb108be79040140ebbcd9"><div class="ttname"><a href="classpackio_1_1completion__handler.html#adfb61907d9efb108be79040140ebbcd9">packio::completion_handler::~completion_handler</a></div><div class="ttdeci">~completion_handler()</div><div class="ttdoc">The destructor will notify an error if the completion_handler has not been used.</div><div class="ttdef"><b>Definition:</b> handler.h:39</div></div>
-<div class="ttc" id="aclasspackio_1_1completion__handler_html_aa8f78c4db0923a8debaaabf7e4df0471"><div class="ttname"><a href="classpackio_1_1completion__handler.html#aa8f78c4db0923a8debaaabf7e4df0471">packio::completion_handler::completion_handler</a></div><div class="ttdeci">completion_handler(completion_handler &amp;&amp;other)</div><div class="ttdoc">Move constructor.</div><div class="ttdef"><b>Definition:</b> handler.h:50</div></div>
+<div class="ttc" id="aclasspackio_1_1completion__handler_html_adfb61907d9efb108be79040140ebbcd9"><div class="ttname"><a href="classpackio_1_1completion__handler.html#adfb61907d9efb108be79040140ebbcd9">packio::completion_handler::~completion_handler</a></div><div class="ttdeci">~completion_handler()</div><div class="ttdoc">The destructor will notify an error if the completion_handler has not been used.</div><div class="ttdef"><b>Definition:</b> handler.h:38</div></div>
+<div class="ttc" id="aclasspackio_1_1completion__handler_html_aa8f78c4db0923a8debaaabf7e4df0471"><div class="ttname"><a href="classpackio_1_1completion__handler.html#aa8f78c4db0923a8debaaabf7e4df0471">packio::completion_handler::completion_handler</a></div><div class="ttdeci">completion_handler(completion_handler &amp;&amp;other)</div><div class="ttdoc">Move constructor.</div><div class="ttdef"><b>Definition:</b> handler.h:49</div></div>
 <div class="ttc" id="anamespacepackio_html_ad0fad01adc607b1ef672314d1ed01809a260ca9dd8a4577fc00b7bd5810298076"><div class="ttname"><a href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a260ca9dd8a4577fc00b7bd5810298076">packio::error::success</a></div><div class="ttdeci">@ success</div><div class="ttdoc">Success.</div></div>
 <div class="ttc" id="anamespacepackio_html_ad0fad01adc607b1ef672314d1ed01809ad1ef7ee50ccddcdd2ed2ce9c69db96ae"><div class="ttname"><a href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809ad1ef7ee50ccddcdd2ed2ce9c69db96ae">packio::error::error_during_call</a></div><div class="ttdeci">@ error_during_call</div><div class="ttdoc">An error happened during the call, server-side error.</div></div>
-<div class="ttc" id="anamespacepackio_html"><div class="ttname"><a href="namespacepackio.html">packio</a></div><div class="ttdef"><b>Definition:</b> client.h:31</div></div>
-<div class="ttc" id="aclasspackio_1_1completion__handler_html_a62c027610298c8e4b4d6d6cec3ab58e2"><div class="ttname"><a href="classpackio_1_1completion__handler.html#a62c027610298c8e4b4d6d6cec3ab58e2">packio::completion_handler::set_value</a></div><div class="ttdeci">void set_value(T &amp;&amp;return_value)</div><div class="ttdoc">Notify successful completion of the procedure and set the return value.</div><div class="ttdef"><b>Definition:</b> handler.h:70</div></div>
-<div class="ttc" id="aclasspackio_1_1completion__handler_html_ac99c708ff2220893a4446cec9eaa59fc"><div class="ttname"><a href="classpackio_1_1completion__handler.html#ac99c708ff2220893a4446cec9eaa59fc">packio::completion_handler::set_error</a></div><div class="ttdeci">void set_error()</div><div class="ttdoc">Notify erroneous completion of the procedure without an error value This is an overloaded member func...</div><div class="ttdef"><b>Definition:</b> handler.h:93</div></div>
-<div class="ttc" id="aclasspackio_1_1completion__handler_html_a19f6a250a6b0b5bc1d09b9b8948f5a9e"><div class="ttname"><a href="classpackio_1_1completion__handler.html#a19f6a250a6b0b5bc1d09b9b8948f5a9e">packio::completion_handler::set_error</a></div><div class="ttdeci">void set_error(T &amp;&amp;error_value)</div><div class="ttdoc">Notify erroneous completion of the procedure with an associated error.</div><div class="ttdef"><b>Definition:</b> handler.h:84</div></div>
-<div class="ttc" id="aclasspackio_1_1completion__handler_html_af8fc63fe1638048313ca2e081d1bfb7e"><div class="ttname"><a href="classpackio_1_1completion__handler.html#af8fc63fe1638048313ca2e081d1bfb7e">packio::completion_handler::operator()</a></div><div class="ttdeci">void operator()(T &amp;&amp;return_value)</div><div class="ttdoc">Same as set_value.</div><div class="ttdef"><b>Definition:</b> handler.h:97</div></div>
-<div class="ttc" id="anamespacepackio_html_ad0fad01adc607b1ef672314d1ed01809"><div class="ttname"><a href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809">packio::error</a></div><div class="ttdeci">error</div><div class="ttdoc">The error codes enumeration.</div><div class="ttdef"><b>Definition:</b> error_code.h:19</div></div>
+<div class="ttc" id="anamespacepackio_html"><div class="ttname"><a href="namespacepackio.html">packio</a></div><div class="ttdef"><b>Definition:</b> client.h:30</div></div>
+<div class="ttc" id="aclasspackio_1_1completion__handler_html_a62c027610298c8e4b4d6d6cec3ab58e2"><div class="ttname"><a href="classpackio_1_1completion__handler.html#a62c027610298c8e4b4d6d6cec3ab58e2">packio::completion_handler::set_value</a></div><div class="ttdeci">void set_value(T &amp;&amp;return_value)</div><div class="ttdoc">Notify successful completion of the procedure and set the return value.</div><div class="ttdef"><b>Definition:</b> handler.h:69</div></div>
+<div class="ttc" id="aclasspackio_1_1completion__handler_html_ac99c708ff2220893a4446cec9eaa59fc"><div class="ttname"><a href="classpackio_1_1completion__handler.html#ac99c708ff2220893a4446cec9eaa59fc">packio::completion_handler::set_error</a></div><div class="ttdeci">void set_error()</div><div class="ttdoc">Notify erroneous completion of the procedure without an error value This is an overloaded member func...</div><div class="ttdef"><b>Definition:</b> handler.h:92</div></div>
+<div class="ttc" id="aclasspackio_1_1completion__handler_html_a19f6a250a6b0b5bc1d09b9b8948f5a9e"><div class="ttname"><a href="classpackio_1_1completion__handler.html#a19f6a250a6b0b5bc1d09b9b8948f5a9e">packio::completion_handler::set_error</a></div><div class="ttdeci">void set_error(T &amp;&amp;error_value)</div><div class="ttdoc">Notify erroneous completion of the procedure with an associated error.</div><div class="ttdef"><b>Definition:</b> handler.h:83</div></div>
+<div class="ttc" id="aclasspackio_1_1completion__handler_html_af8fc63fe1638048313ca2e081d1bfb7e"><div class="ttname"><a href="classpackio_1_1completion__handler.html#af8fc63fe1638048313ca2e081d1bfb7e">packio::completion_handler::operator()</a></div><div class="ttdeci">void operator()(T &amp;&amp;return_value)</div><div class="ttdoc">Same as set_value.</div><div class="ttdef"><b>Definition:</b> handler.h:96</div></div>
+<div class="ttc" id="anamespacepackio_html_ad0fad01adc607b1ef672314d1ed01809"><div class="ttname"><a href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809">packio::error</a></div><div class="ttdeci">error</div><div class="ttdoc">The error codes enumeration.</div><div class="ttdef"><b>Definition:</b> error_code.h:18</div></div>
 <!-- HTML footer for doxygen 1.8.13-->
 <!-- start footer part -->
 </body>

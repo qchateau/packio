@@ -7,7 +7,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=9" />
     <meta name="generator" content="Doxygen 1.8.17" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>packio: Header-only | msgpack-RPC | Boost.Asio</title>
+    <title>packio: Header-only | msgpack-RPC | asio | coroutines</title>
     <link href="tabs.css" rel="stylesheet" type="text/css" />
     <script type="text/javascript" src="jquery.js"></script>
     <script type="text/javascript" src="dynsections.js"></script>
@@ -64,14 +64,14 @@ $(function() {
 
 <div class="PageDoc"><div class="header">
   <div class="headertitle">
-<div class="title">Header-only | msgpack-RPC | Boost.Asio </div>  </div>
+<div class="title">Header-only | msgpack-RPC | asio | coroutines </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p>This library requires C++17 and is designed as an extension to Boost.Asio. It will let you build asynchronous servers or client for msgpack-RPC.</p>
+<div class="textblock"><p>This library requires C++17 and is designed as an extension to <code>boost.asio</code>. It will let you build asynchronous servers or client for msgpack-RPC.</p>
 <p>The project is hosted on <a href="https://github.com/qchateau/packio/">GitHub</a> and available on <a href="https://conan.io/center/">Conan Center</a>. Documentation is available on <a href="https://qchateau.github.io/packio/">GitHub Pages</a>.</p>
 <h1>Primer</h1>
 <div class="fragment"><div class="line"><span class="comment">// Declare a server and a client, sharing the same io_context</span></div>
-<div class="line">boost::asio::io_context io;</div>
+<div class="line">packio::asio::io_context io;</div>
 <div class="line">ip::tcp::endpoint bind_ep{ip::make_address(<span class="stringliteral">&quot;127.0.0.1&quot;</span>), 0};</div>
 <div class="line"><span class="keyword">auto</span> server = <a class="code" href="namespacepackio.html#adb4190a7fda2259edbbe7684c2c5a766">packio::make_server</a>(ip::tcp::acceptor{io, bind_ep});</div>
 <div class="line"><span class="keyword">auto</span> client = <a class="code" href="namespacepackio.html#ae41a42d5103a615a810d6e42d68906da">packio::make_client</a>(ip::tcp::socket{io});</div>
@@ -82,7 +82,7 @@ $(function() {
 <div class="line">server-&gt;dispatcher()-&gt;add_async(</div>
 <div class="line">    <span class="stringliteral">&quot;multiply&quot;</span>, [](<a class="code" href="classpackio_1_1completion__handler.html">packio::completion_handler</a> complete, <span class="keywordtype">int</span> a, <span class="keywordtype">int</span> b) {</div>
 <div class="line">        <span class="comment">// Call the completion handler later</span></div>
-<div class="line">        boost::asio::post(</div>
+<div class="line">        packio::asio::post(</div>
 <div class="line">            io, [a, b, complete = std::move(complete)]() <span class="keyword">mutable</span> {</div>
 <div class="line">                complete(a * b);</div>
 <div class="line">            });</div>
@@ -95,28 +95,30 @@ $(function() {
 <div class="line"> </div>
 <div class="line"><span class="comment">// Make an asynchronous call</span></div>
 <div class="line">client-&gt;async_call(<span class="stringliteral">&quot;add&quot;</span>, std::make_tuple(42, 24),</div>
-<div class="line">    [&amp;](boost::system::error_code, msgpack::object r) {</div>
+<div class="line">    [&amp;](packio::err::error_code, msgpack::object r) {</div>
 <div class="line">        std::cout &lt;&lt; <span class="stringliteral">&quot;The result is: &quot;</span> &lt;&lt; r.as&lt;<span class="keywordtype">int</span>&gt;() &lt;&lt; std::endl;</div>
 <div class="line">    });</div>
 <div class="line"> </div>
-<div class="line"><span class="comment">// Use boost::asio::use_future</span></div>
+<div class="line"><span class="comment">// Use packio::asio::use_future</span></div>
 <div class="line">std::future&lt;msgpack::object_handle&gt; add_future = client-&gt;async_call(</div>
-<div class="line">    <span class="stringliteral">&quot;add&quot;</span>, std::tuple{12, 23}, boost::asio::use_future);</div>
+<div class="line">    <span class="stringliteral">&quot;add&quot;</span>, std::tuple{12, 23}, packio::asio::use_future);</div>
 <div class="line">std::cout &lt;&lt; <span class="stringliteral">&quot;The result is: &quot;</span> &lt;&lt; add_future.get()-&gt;as&lt;<span class="keywordtype">int</span>&gt;() &lt;&lt; std::endl;</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Use auto result type conversion</span></div>
 <div class="line">client-&gt;async_call(</div>
 <div class="line">    <span class="stringliteral">&quot;multiply&quot;</span>,</div>
 <div class="line">    std::make_tuple(42, 24),</div>
-<div class="line">    [&amp;](boost::system::error_code, std::optional&lt;int&gt; r) {</div>
+<div class="line">    [&amp;](packio::err::error_code, std::optional&lt;int&gt; r) {</div>
 <div class="line">        std::cout &lt;&lt; <span class="stringliteral">&quot;The result is: &quot;</span> &lt;&lt; *r &lt;&lt; std::endl;</div>
 <div class="line">    });</div>
 </div><!-- fragment --><h1>Requirements</h1>
 <ul>
 <li>C++17</li>
-<li>Boost.Asio &gt;= 1.72.0</li>
 <li>msgpack &gt;= 3.2.1</li>
+<li>boost.asio &gt;= 1.70.0 or asio &gt;= 1.13.0</li>
 </ul>
+<h2>Standalone or boost asio</h2>
+<p>By default, <code>packio</code> uses <code>boost.asio</code>. It is also compatible with standalone <code>asio</code>. To use the standalone version, the preprocessor macro <code>PACKIO_STANDALONE_ASIO=1` must be defined. If you are using the conan package, you must also use the option</code>standalone_asio=True``.</p>
 <h1>Tested compilers</h1>
 <ul>
 <li>gcc-7</li>
@@ -135,7 +137,7 @@ $(function() {
 <div class="fragment"><div class="line">conan install packio/1.2.0</div>
 </div><!-- fragment --><h1>Coroutines</h1>
 <p><code>packio</code> is compatible with C++20 coroutines:</p><ul>
-<li>calls can use the <code>boost::asio::use_awaitable</code> completion token</li>
+<li>calls can use the <code>packio::asio::use_awaitable</code> completion token</li>
 <li>coroutines can be registered in the server</li>
 </ul>
 <p>Coroutines are tested for the following compilers:</p><ul>
@@ -145,10 +147,9 @@ $(function() {
 <h1>Bonus</h1>
 <p>Let's compute fibonacci's numbers recursively using <code>packio</code> and coroutines on a single thread.</p>
 <div class="fragment"><div class="line"><span class="preprocessor">#include &lt;iostream&gt;</span></div>
-<div class="line"><span class="preprocessor">#include &lt;boost/asio.hpp&gt;</span></div>
 <div class="line"><span class="preprocessor">#include &lt;<a class="code" href="packio_8h.html">packio/packio.h</a>&gt;</span></div>
 <div class="line"> </div>
-<div class="line"><span class="keyword">namespace </span>ip = boost::asio::ip;</div>
+<div class="line"><span class="keyword">namespace </span>ip = packio::asio::ip;</div>
 <div class="line"> </div>
 <div class="line"><span class="keywordtype">int</span> main(<span class="keywordtype">int</span> argc, <span class="keywordtype">char</span>** argv)</div>
 <div class="line">{</div>
@@ -158,21 +159,21 @@ $(function() {
 <div class="line">    }</div>
 <div class="line">    <span class="keyword">const</span> <span class="keywordtype">int</span> n = std::atoi(argv[1]);</div>
 <div class="line"> </div>
-<div class="line">    boost::asio::io_context io;</div>
+<div class="line">    packio::asio::io_context io;</div>
 <div class="line">    ip::tcp::endpoint bind_ep{ip::make_address(<span class="stringliteral">&quot;127.0.0.1&quot;</span>), 0};</div>
 <div class="line">    <span class="keyword">auto</span> server = <a class="code" href="namespacepackio.html#adb4190a7fda2259edbbe7684c2c5a766">packio::make_server</a>(ip::tcp::acceptor{io, bind_ep});</div>
 <div class="line">    <span class="keyword">auto</span> client = <a class="code" href="namespacepackio.html#ae41a42d5103a615a810d6e42d68906da">packio::make_client</a>(ip::tcp::socket{io});</div>
 <div class="line"> </div>
 <div class="line">    server-&gt;dispatcher()-&gt;add_coro(</div>
-<div class="line">        <span class="stringliteral">&quot;fibonacci&quot;</span>, io, [&amp;](<span class="keywordtype">int</span> n) -&gt; boost::asio::awaitable&lt;int&gt; {</div>
+<div class="line">        <span class="stringliteral">&quot;fibonacci&quot;</span>, io, [&amp;](<span class="keywordtype">int</span> n) -&gt; packio::asio::awaitable&lt;int&gt; {</div>
 <div class="line">            <span class="keywordflow">if</span> (n &lt;= 1) {</div>
 <div class="line">                co_return n;</div>
 <div class="line">            }</div>
 <div class="line"> </div>
 <div class="line">            msgpack::object_handle r1 = co_await client-&gt;async_call(</div>
-<div class="line">                <span class="stringliteral">&quot;fibonacci&quot;</span>, std::tuple{n - 1}, boost::asio::use_awaitable);</div>
+<div class="line">                <span class="stringliteral">&quot;fibonacci&quot;</span>, std::tuple{n - 1}, packio::asio::use_awaitable);</div>
 <div class="line">            msgpack::object_handle r2 = co_await client-&gt;async_call(</div>
-<div class="line">                <span class="stringliteral">&quot;fibonacci&quot;</span>, std::tuple{n - 2}, boost::asio::use_awaitable);</div>
+<div class="line">                <span class="stringliteral">&quot;fibonacci&quot;</span>, std::tuple{n - 2}, packio::asio::use_awaitable);</div>
 <div class="line"> </div>
 <div class="line">            co_return r1-&gt;as&lt;<span class="keywordtype">int</span>&gt;() + r2-&gt;as&lt;<span class="keywordtype">int</span>&gt;();</div>
 <div class="line">        });</div>
@@ -185,7 +186,7 @@ $(function() {
 <div class="line">    client-&gt;async_call(</div>
 <div class="line">        <span class="stringliteral">&quot;fibonacci&quot;</span>,</div>
 <div class="line">        std::tuple{n},</div>
-<div class="line">        [&amp;](boost::system::error_code, std::optional&lt;int&gt; r) {</div>
+<div class="line">        [&amp;](packio::err::error_code, std::optional&lt;int&gt; r) {</div>
 <div class="line">            result = *r;</div>
 <div class="line">            io.stop();</div>
 <div class="line">        });</div>
@@ -198,9 +199,9 @@ $(function() {
 <div class="line">}</div>
 </div><!-- fragment --> </div></div><!-- PageDoc -->
 </div><!-- contents -->
-<div class="ttc" id="anamespacepackio_html_ae41a42d5103a615a810d6e42d68906da"><div class="ttname"><a href="namespacepackio.html#ae41a42d5103a615a810d6e42d68906da">packio::make_client</a></div><div class="ttdeci">auto make_client(Socket &amp;&amp;socket)</div><div class="ttdoc">Create a client from a socket.</div><div class="ttdef"><b>Definition:</b> client.h:491</div></div>
-<div class="ttc" id="aclasspackio_1_1completion__handler_html"><div class="ttname"><a href="classpackio_1_1completion__handler.html">packio::completion_handler</a></div><div class="ttdoc">The completion_handler class.</div><div class="ttdef"><b>Definition:</b> handler.h:28</div></div>
-<div class="ttc" id="anamespacepackio_html_adb4190a7fda2259edbbe7684c2c5a766"><div class="ttname"><a href="namespacepackio.html#adb4190a7fda2259edbbe7684c2c5a766">packio::make_server</a></div><div class="ttdeci">auto make_server(Acceptor &amp;&amp;acceptor)</div><div class="ttdoc">Create a server from an acceptor.</div><div class="ttdef"><b>Definition:</b> server.h:123</div></div>
+<div class="ttc" id="anamespacepackio_html_ae41a42d5103a615a810d6e42d68906da"><div class="ttname"><a href="namespacepackio.html#ae41a42d5103a615a810d6e42d68906da">packio::make_client</a></div><div class="ttdeci">auto make_client(Socket &amp;&amp;socket)</div><div class="ttdoc">Create a client from a socket.</div><div class="ttdef"><b>Definition:</b> client.h:482</div></div>
+<div class="ttc" id="aclasspackio_1_1completion__handler_html"><div class="ttname"><a href="classpackio_1_1completion__handler.html">packio::completion_handler</a></div><div class="ttdoc">The completion_handler class.</div><div class="ttdef"><b>Definition:</b> handler.h:27</div></div>
+<div class="ttc" id="anamespacepackio_html_adb4190a7fda2259edbbe7684c2c5a766"><div class="ttname"><a href="namespacepackio.html#adb4190a7fda2259edbbe7684c2c5a766">packio::make_server</a></div><div class="ttdeci">auto make_server(Acceptor &amp;&amp;acceptor)</div><div class="ttdoc">Create a server from an acceptor.</div><div class="ttdef"><b>Definition:</b> server.h:148</div></div>
 <div class="ttc" id="apackio_8h_html"><div class="ttname"><a href="packio_8h.html">packio.h</a></div></div>
 <!-- HTML footer for doxygen 1.8.13-->
 <!-- start footer part -->
