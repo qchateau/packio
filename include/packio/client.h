@@ -252,6 +252,14 @@ private:
                     if (ec && ec != packio::asio::error::operation_aborted) {
                         PACKIO_WARN("read error: {}", ec.message());
                         self->reading_ = false;
+
+                        // cancel all pending calls
+                        while (!self->pending_.empty()) {
+                            self->async_call_handler(
+                                self->pending_.begin()->first,
+                                internal::make_msgpack_object(ec.message()),
+                                ec);
+                        }
                         return;
                     }
 

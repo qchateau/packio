@@ -12,7 +12,6 @@
 using namespace std::chrono;
 using namespace packio::asio;
 using namespace packio;
-using packio::asio::use_future;
 using std::this_thread::sleep_for;
 
 template <typename T>
@@ -104,6 +103,28 @@ TYPED_TEST(Test, test_connect)
 {
     this->connect();
     ASSERT_TRUE(this->client_->socket().is_open());
+}
+
+TYPED_TEST(Test, test_server_crash)
+{
+    using server_type = std::decay_t<decltype(*this->server_)>;
+    using session_type = std::decay_t<typename server_type::session_type>;
+
+    std::shared_ptr<session_type> session_ptr;
+    this->server_->async_serve([&](auto ec, auto session) {
+        ASSERT_FALSE(ec);
+        session->start();
+        session_ptr = session;
+    });
+    this->server_->dispatcher()->add(
+        "close", [&]() { session_ptr->socket().close(); });
+
+    this->connect();
+    this->async_run();
+
+    auto f = this->client_->async_call("close", use_future);
+    ASSERT_EQ(std::future_status::ready, f.wait_for(std::chrono::seconds{1}));
+    ASSERT_THROW(f.get(), std::exception);
 }
 
 TYPED_TEST(Test, test_typical_usage)
