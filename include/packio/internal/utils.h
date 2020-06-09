@@ -126,52 +126,6 @@ inline void set_no_delay(packio::asio::ip::tcp::socket& socket)
     socket.set_option(packio::asio::ip::tcp::no_delay{true});
 }
 
-struct incompatible_handler_t {
-};
-
-template <typename Handler>
-auto wrap_call_handler(Handler&& handler)
-{
-    if constexpr (std::is_invocable_v<Handler, packio::err::error_code, msgpack::object_handle>) {
-        // handler takes the object handler as argument
-        return std::forward<Handler>(handler);
-    }
-    else if constexpr (std::is_invocable_v<Handler, packio::err::error_code, std::nullopt_t>) {
-        // handler takes an optional to a type, try to convert
-        using args = typename func_traits<Handler>::args_type;
-        using opt_result_type = std::tuple_element_t<1, args>;
-        using result_type = typename opt_result_type::value_type;
-        return [handler = std::forward<Handler>(handler)](
-                   packio::err::error_code ec,
-                   msgpack::object_handle result) mutable {
-            if (ec) {
-                handler(ec, std::nullopt);
-            }
-            else {
-                try {
-                    handler(ec, result->as<result_type>());
-                }
-                catch (msgpack::type_error&) {
-                    ec = make_error_code(error::bad_result_type);
-                    handler(ec, std::nullopt);
-                }
-            }
-        };
-    }
-    else if constexpr (std::is_invocable_v<Handler, packio::err::error_code>) {
-        // handler takes no argument, just call with the error code
-        return [handler = std::forward<Handler>(handler)](
-                   packio::err::error_code ec, msgpack::object_handle) mutable {
-            handler(ec);
-        };
-    }
-    else {
-        // handler cannot be used as a call handler
-        // return a special type to identify this using traits
-        return incompatible_handler_t{};
-    }
-}
-
 } // internal
 } // packio
 

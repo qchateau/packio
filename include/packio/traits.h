@@ -56,11 +56,6 @@ struct AsyncProcedureImpl<T, std::enable_if_t<internal::func_traits_v<T>>> {
 template <typename T>
 constexpr bool is_async_procedure_v = AsyncProcedureImpl<T>::value;
 
-template <typename T>
-constexpr bool is_call_handler_v = !std::is_same_v<
-    internal::incompatible_handler_t,
-    std::decay_t<decltype(internal::wrap_call_handler(std::declval<T>()))>>;
-
 } // details
 
 template <bool condition>
@@ -77,12 +72,29 @@ struct NotifyHandler : Trait<std::is_invocable_v<T, packio::err::error_code>> {
 
 //! CallHandler trait
 //!
-//! Handler used by @ref client::async_call, must meet one of:
+//! Handler used by @ref client::async_call
 //! - Must be callable with error_code, msgpack::object_handle
-//! - Must be callable with error_code
-//! - Must be callable with error_code, std::optional<T>
 template <typename T>
-struct CallHandler : Trait<details::is_call_handler_v<T>> {
+struct CallHandler
+    : Trait<std::is_invocable_v<T, packio::err::error_code, msgpack::object_handle>> {
+};
+
+//! AsCallHandler
+//!
+//! Handler wrapped by @ref as<T>
+//! - Must be callable with error_code, std::optional<T>
+template <typename T, typename Result>
+struct AsCallHandler
+    : Trait<std::is_invocable_v<T, packio::err::error_code, std::optional<Result>>> {
+};
+
+//! AsVoidCallHandler
+//!
+//! Handler wrapped by @ref as<void>
+//! - Must be callable with error_code
+template <typename T>
+struct AsVoidCallHandler
+    : Trait<std::is_invocable_v<T, packio::err::error_code>> {
 };
 
 //! ServeHandler trait

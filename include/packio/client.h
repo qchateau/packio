@@ -437,8 +437,7 @@ private:
                 self_->call_strand_,
                 [self = self_->shared_from_this(),
                  call_id,
-                 handler = internal::wrap_call_handler(
-                     std::forward<CallHandler>(handler)),
+                 handler = std::forward<CallHandler>(handler),
                  packer_buf = std::move(packer_buf)]() mutable {
                     // we must emplace the id and handler before sending data
                     // otherwise we might drop a fast response

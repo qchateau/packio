@@ -50,9 +50,9 @@ int main(int, char**)
     client->async_call(
         "multiply",
         std::tuple{42, 24},
-        [&](packio::err::error_code, std::optional<int> r) {
+        packio::as<int>([&](packio::err::error_code, std::optional<int> r) {
             multiply_result.set_value(*r);
-        });
+        }));
     std::cout << "42 * 24 = " << multiply_result.get_future().get() << std::endl;
 
     io.stop();

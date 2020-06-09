@@ -16,6 +16,7 @@ using std::this_thread::sleep_for;
 
 template <typename T>
 struct my_allocator : public std::allocator<T> {
+    using std::allocator<T>::allocator;
 };
 
 class my_spinlock {
@@ -173,7 +174,7 @@ TYPED_TEST(Test, test_typical_usage)
     }
 }
 
-TYPED_TEST(Test, test_implicit_result_conversion)
+TYPED_TEST(Test, test_as)
 {
     this->server_->async_serve_forever();
     this->connect();
@@ -182,7 +183,7 @@ TYPED_TEST(Test, test_implicit_result_conversion)
     this->server_->dispatcher()->add("add", [](int a, int b) { return a + b; });
     this->server_->dispatcher()->add("void", [] {});
 
-    // one argument, valid
+    // test valid call
     {
         std::promise<void> done;
         auto future_done = done.get_future();
@@ -190,33 +191,35 @@ TYPED_TEST(Test, test_implicit_result_conversion)
         this->client_->async_call(
             "add",
             std::tuple{12, 21},
-            [&done](packio::err::error_code ec, std::optional<int> result) {
-                ASSERT_FALSE(ec);
-                ASSERT_EQ(33, *result);
-                done.set_value();
-            });
+            packio::as<int>(
+                [&done](packio::err::error_code ec, std::optional<int> result) {
+                    ASSERT_FALSE(ec);
+                    ASSERT_EQ(33, *result);
+                    done.set_value();
+                }));
 
         ASSERT_EQ(
             std::future_status::ready,
             future_done.wait_for(std::chrono::seconds{1}));
     }
 
-    // no argument, valid
+    // test as<void> valid call
     {
         std::promise<void> done;
         auto future_done = done.get_future();
 
-        this->client_->async_call("void", [&done](packio::err::error_code ec) {
-            ASSERT_FALSE(ec);
-            done.set_value();
-        });
+        this->client_->async_call(
+            "void", packio::as<void>([&done](packio::err::error_code ec) {
+                ASSERT_FALSE(ec);
+                done.set_value();
+            }));
 
         ASSERT_EQ(
             std::future_status::ready,
             future_done.wait_for(std::chrono::seconds{1}));
     }
 
-    // one argument, bad call
+    // test invalid call
     {
         std::promise<void> done;
         auto future_done = done.get_future();
@@ -224,18 +227,19 @@ TYPED_TEST(Test, test_implicit_result_conversion)
         this->client_->async_call(
             "add",
             std::tuple<std::string, std::string>{"hello", "you"},
-            [&done](packio::err::error_code ec, std::optional<int> result) {
-                ASSERT_EQ(packio::error::call_error, ec);
-                ASSERT_FALSE(result);
-                done.set_value();
-            });
+            packio::as<int>(
+                [&done](packio::err::error_code ec, std::optional<int> result) {
+                    ASSERT_EQ(::packio::error::call_error, ec);
+                    ASSERT_FALSE(result);
+                    done.set_value();
+                }));
 
         ASSERT_EQ(
             std::future_status::ready,
             future_done.wait_for(std::chrono::seconds{1}));
     }
 
-    // one argument, invalid type
+    // test invalid return type
     {
         std::promise<void> done;
         auto future_done = done.get_future();
@@ -243,11 +247,31 @@ TYPED_TEST(Test, test_implicit_result_conversion)
         this->client_->async_call(
             "add",
             std::tuple{12, 21},
-            [&done](packio::err::error_code ec, std::optional<std::string> result) {
-                ASSERT_EQ(packio::error::bad_result_type, ec);
+            packio::as<std::string>([&done](
+                                        packio::err::error_code ec,
+                                        std::optional<std::string> result) {
+                ASSERT_EQ(::packio::error::bad_result_type, ec);
                 ASSERT_FALSE(result);
                 done.set_value();
-            });
+            }));
+
+        ASSERT_EQ(
+            std::future_status::ready,
+            future_done.wait_for(std::chrono::seconds{1}));
+    }
+
+    // test as<void> invalid return type
+    {
+        std::promise<void> done;
+        auto future_done = done.get_future();
+
+        this->client_->async_call(
+            "add",
+            std::tuple{12, 21},
+            packio::as<void>([&done](packio::err::error_code ec) {
+                ASSERT_EQ(::packio::error::bad_result_type, ec);
+                done.set_value();
+            }));
 
         ASSERT_EQ(
             std::future_status::ready,
@@ -604,6 +628,8 @@ TYPED_TEST(Test, test_special_callables)
     using session_type = typename decltype(
         this->server_)::element_type::session_type;
     struct move_only {
+        move_only() = default;
+
         move_only(const move_only&) = delete;
         move_only& operator=(const move_only&) = delete;
 

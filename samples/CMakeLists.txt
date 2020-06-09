@@ -19,6 +19,7 @@ add_definitions(-DASIO_NO_DEPRECATED=1)
 add_definitions(-DBOOST_ASIO_NO_DEPRECATED=1)
 
 if (PACKIO_STANDALONE_ASIO)
+    message(STATUS "Using standalone asio")
     add_definitions(-DPACKIO_STANDALONE_ASIO=1)
 endif ()
 

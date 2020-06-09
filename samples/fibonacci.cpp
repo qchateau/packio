@@ -27,17 +27,18 @@ int main(int argc, char** argv)
             client->async_call(
                 "fibonacci",
                 std::tuple{n - 1},
-                [n, &client, complete = std::move(complete)](
-                    packio::err::error_code, std::optional<int> r1) mutable {
+                packio::as<int>([n, &client, complete = std::move(complete)](
+                                    packio::err::error_code,
+                                    std::optional<int> r1) mutable {
                     client->async_call(
                         "fibonacci",
                         std::tuple{n - 2},
-                        [r1, complete = std::move(complete)](
-                            packio::err::error_code,
-                            std::optional<int> r2) mutable {
+                        packio::as<int>([r1, complete = std::move(complete)](
+                                            packio::err::error_code,
+                                            std::optional<int> r2) mutable {
                             complete(*r1 + *r2);
-                        });
-                });
+                        }));
+                }));
         });
 
     client->socket().connect(server->acceptor().local_endpoint());
@@ -48,10 +49,10 @@ int main(int argc, char** argv)
     client->async_call(
         "fibonacci",
         std::tuple{n},
-        [&](packio::err::error_code, std::optional<int> r) {
+        packio::as<int>([&](packio::err::error_code, std::optional<int> r) {
             result = *r;
             io.stop();
-        });
+        }));
 
     io.run();
 

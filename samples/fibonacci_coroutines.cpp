@@ -39,10 +39,10 @@ int main(int argc, char** argv)
     client->async_call(
         "fibonacci",
         std::tuple{n},
-        [&](packio::err::error_code, std::optional<int> r) {
+        packio::as<int>([&](packio::err::error_code, std::optional<int> r) {
             result = *r;
             io.stop();
-        });
+        }));
 
     io.run();
 
