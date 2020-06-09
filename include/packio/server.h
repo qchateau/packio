@@ -75,7 +75,9 @@ public:
     //! @param handler Handler called when a connection is accepted.
     //! The handler is responsible for calling server_session::start.
     //! Must satisfy the @ref traits::ServeHandler trait
-    template <typename ServeHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type)>
+    template <PACKIO_COMPLETION_TOKEN_FOR(
+        void(packio::err::error_code, std::shared_ptr<session_type>))
+                  ServeHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type)>
     auto async_serve(
         ServeHandler&& handler PACKIO_DEFAULT_COMPLETION_TOKEN(executor_type))
     {
