@@ -149,8 +149,8 @@ public:
     //! @param name Remote procedure name to call
     //! @param args Tuple of arguments to pass to the remote procedure
     //! @param handler Handler called with the return value
-    //! @param call_id Output parameter that will receive the call ID
     //! Must satisfy the @ref traits::CallHandler trait
+    //! @param call_id Output parameter that will receive the call ID
     template <
         typename Buffer = msgpack::sbuffer,
         typename CallHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type),
