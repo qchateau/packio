@@ -1,4 +1,3 @@
-#include "msgpack/v3/object_decl.hpp"
 #include <iostream>
 
 #include <packio/packio.h>

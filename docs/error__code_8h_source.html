@@ -85,70 +85,80 @@ $(function() {
 <div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160; </div>
 <div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;<span class="keyword">namespace </span><a class="code" href="namespacepackio.html">packio</a> {</div>
 <div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160; </div>
-<div class="line"><a name="l00018"></a><span class="lineno"><a class="line" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809">   18</a></span>&#160;<span class="keyword">enum class</span> <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809">error</a> {</div>
-<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;    <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a260ca9dd8a4577fc00b7bd5810298076">success</a> = 0, </div>
-<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;    <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809ad1ef7ee50ccddcdd2ed2ce9c69db96ae">error_during_call</a>, </div>
-<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;    <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809ae63ab84fdc5d63927652dac21ec411ac">unknown_procedure</a>, </div>
-<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160;    <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a38881e0a24039dc2621e1d6f86cb71f7">cancelled</a>, </div>
-<div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;    <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a71ecb7c2f853a21a83ebdc5a392c57b6">call_error</a>, </div>
-<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;    <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a3421ef6eef824d84f3ff3170d051ef80">bad_result_type</a> </div>
-<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;};</div>
+<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="preprocessor">#if defined(PACKIO_STANDALONE_ASIO)</span></div>
+<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="keyword">using</span> error_code = std::error_code;</div>
+<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;<span class="keyword">using</span> system_error = std::system_error;</div>
+<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="keyword">using</span> error_category = std::error_category;</div>
+<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;<span class="preprocessor">#else // defined(PACKIO_STANDALONE_ASIO)</span></div>
+<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160;<span class="keyword">using</span> error_code = boost::system::error_code;</div>
+<div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;<span class="keyword">using</span> system_error = boost::system::system_error;</div>
+<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;<span class="keyword">using</span> error_category = boost::system::error_category;</div>
+<div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;<span class="preprocessor">#endif // defined(PACKIO_STANDALONE_ASIO)</span></div>
 <div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160; </div>
-<div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;<span class="keyword">struct </span>error_category : packio::err::error_category {</div>
-<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">char</span>* name() const noexcept<span class="keyword"> override </span>{ <span class="keywordflow">return</span> <span class="stringliteral">&quot;packio&quot;</span>; }</div>
-<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;    std::string message(<span class="keywordtype">int</span> ev)<span class="keyword"> const override</span></div>
-<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;<span class="keyword">    </span>{</div>
-<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;        <span class="keywordflow">switch</span> (<span class="keyword">static_cast&lt;</span><a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809">error</a><span class="keyword">&gt;</span>(ev)) {</div>
-<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;        <span class="keywordflow">case</span> <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a260ca9dd8a4577fc00b7bd5810298076">error::success</a>:</div>
-<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;            <span class="keywordflow">return</span> <span class="stringliteral">&quot;Success&quot;</span>;</div>
-<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;        <span class="keywordflow">case</span> <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809ad1ef7ee50ccddcdd2ed2ce9c69db96ae">error::error_during_call</a>:</div>
-<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;            <span class="keywordflow">return</span> <span class="stringliteral">&quot;Error during call&quot;</span>;</div>
-<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;        <span class="keywordflow">case</span> <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809ae63ab84fdc5d63927652dac21ec411ac">error::unknown_procedure</a>:</div>
-<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;            <span class="keywordflow">return</span> <span class="stringliteral">&quot;Unknown function&quot;</span>;</div>
-<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;        <span class="keywordflow">case</span> <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a38881e0a24039dc2621e1d6f86cb71f7">error::cancelled</a>:</div>
-<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;            <span class="keywordflow">return</span> <span class="stringliteral">&quot;Cancelled&quot;</span>;</div>
-<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;        <span class="keywordflow">case</span> <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a71ecb7c2f853a21a83ebdc5a392c57b6">error::call_error</a>:</div>
-<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;            <span class="keywordflow">return</span> <span class="stringliteral">&quot;Call error&quot;</span>;</div>
-<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;        <span class="keywordflow">case</span> <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a3421ef6eef824d84f3ff3170d051ef80">error::bad_result_type</a>:</div>
-<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;            <span class="keywordflow">return</span> <span class="stringliteral">&quot;Bad result type&quot;</span>;</div>
-<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;        <span class="keywordflow">default</span>:</div>
-<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;            <span class="keywordflow">return</span> <span class="stringliteral">&quot;Unrecognized error&quot;</span>;</div>
-<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;        }</div>
-<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;    }</div>
-<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;};</div>
-<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160; </div>
-<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;<span class="keyword">inline</span> packio::err::error_code make_error_code(<a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809">error</a> e)</div>
-<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;{</div>
-<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;    <span class="keyword">static</span> error_category category;</div>
-<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;    <span class="keywordflow">return</span> {<span class="keyword">static_cast&lt;</span><span class="keywordtype">int</span><span class="keyword">&gt;</span>(e), category};</div>
-<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;}</div>
-<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160; </div>
-<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;} <span class="comment">// packio</span></div>
-<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160; </div>
-<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;<span class="preprocessor">#if defined(PACKIO_STANDALONE_ASIO)</span></div>
-<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;<span class="keyword">namespace </span>std {</div>
-<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;<span class="keyword">template</span> &lt;&gt;</div>
-<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;<span class="keyword">struct </span>is_error_code_enum&lt;<a class="code" href="namespacepackio.html">packio</a>::<a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809">error</a>&gt; : std::true_type {</div>
-<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;};</div>
-<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;} <span class="comment">// std</span></div>
-<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;<span class="preprocessor">#else // defined(PACKIO_STANDALONE_ASIO)</span></div>
-<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;<span class="keyword">namespace </span>boost::system {</div>
-<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;<span class="keyword">template</span> &lt;&gt;</div>
-<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;<span class="keyword">struct </span>is_error_code_enum&lt;<a class="code" href="namespacepackio.html">packio</a>::<a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809">error</a>&gt; : std::true_type {</div>
-<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;};</div>
-<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;} <span class="comment">// boost::system</span></div>
-<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;<span class="preprocessor">#endif // defined(PACKIO_STANDALONE_ASIO)</span></div>
-<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160; </div>
-<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;<span class="preprocessor">#endif // PACKIO_ERROR_CODE_H</span></div>
+<div class="line"><a name="l00028"></a><span class="lineno"><a class="line" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809">   28</a></span>&#160;<span class="keyword">enum class</span> <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809">error</a> {</div>
+<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;    <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a260ca9dd8a4577fc00b7bd5810298076">success</a> = 0, </div>
+<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;    <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809ad1ef7ee50ccddcdd2ed2ce9c69db96ae">error_during_call</a>, </div>
+<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;    <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809ae63ab84fdc5d63927652dac21ec411ac">unknown_procedure</a>, </div>
+<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;    <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a38881e0a24039dc2621e1d6f86cb71f7">cancelled</a>, </div>
+<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;    <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a71ecb7c2f853a21a83ebdc5a392c57b6">call_error</a>, </div>
+<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;    <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a3421ef6eef824d84f3ff3170d051ef80">bad_result_type</a> </div>
+<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;};</div>
+<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160; </div>
+<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;<span class="keyword">struct </span>packio_error_category : error_category {</div>
+<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">char</span>* name() const noexcept<span class="keyword"> override </span>{ <span class="keywordflow">return</span> <span class="stringliteral">&quot;packio&quot;</span>; }</div>
+<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;    std::string message(<span class="keywordtype">int</span> ev)<span class="keyword"> const override</span></div>
+<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;<span class="keyword">    </span>{</div>
+<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;        <span class="keywordflow">switch</span> (<span class="keyword">static_cast&lt;</span><a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809">error</a><span class="keyword">&gt;</span>(ev)) {</div>
+<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;        <span class="keywordflow">case</span> <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a260ca9dd8a4577fc00b7bd5810298076">error::success</a>:</div>
+<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;            <span class="keywordflow">return</span> <span class="stringliteral">&quot;Success&quot;</span>;</div>
+<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;        <span class="keywordflow">case</span> <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809ad1ef7ee50ccddcdd2ed2ce9c69db96ae">error::error_during_call</a>:</div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;            <span class="keywordflow">return</span> <span class="stringliteral">&quot;Error during call&quot;</span>;</div>
+<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;        <span class="keywordflow">case</span> <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809ae63ab84fdc5d63927652dac21ec411ac">error::unknown_procedure</a>:</div>
+<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;            <span class="keywordflow">return</span> <span class="stringliteral">&quot;Unknown function&quot;</span>;</div>
+<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;        <span class="keywordflow">case</span> <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a38881e0a24039dc2621e1d6f86cb71f7">error::cancelled</a>:</div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;            <span class="keywordflow">return</span> <span class="stringliteral">&quot;Cancelled&quot;</span>;</div>
+<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;        <span class="keywordflow">case</span> <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a71ecb7c2f853a21a83ebdc5a392c57b6">error::call_error</a>:</div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;            <span class="keywordflow">return</span> <span class="stringliteral">&quot;Call error&quot;</span>;</div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;        <span class="keywordflow">case</span> <a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a3421ef6eef824d84f3ff3170d051ef80">error::bad_result_type</a>:</div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;            <span class="keywordflow">return</span> <span class="stringliteral">&quot;Bad result type&quot;</span>;</div>
+<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;        <span class="keywordflow">default</span>:</div>
+<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;            <span class="keywordflow">return</span> <span class="stringliteral">&quot;Unrecognized error&quot;</span>;</div>
+<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;        }</div>
+<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;    }</div>
+<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;};</div>
+<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160; </div>
+<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;<span class="keyword">inline</span> error_code make_error_code(<a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809">error</a> e)</div>
+<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;{</div>
+<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;    <span class="keyword">static</span> <span class="keyword">const</span> packio_error_category category{};</div>
+<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;    <span class="keywordflow">return</span> {<span class="keyword">static_cast&lt;</span>std::underlying_type&lt;error&gt;::type<span class="keyword">&gt;</span>(e), category};</div>
+<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;}</div>
+<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160; </div>
+<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;} <span class="comment">// packio</span></div>
+<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160; </div>
+<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;<span class="preprocessor">#if defined(PACKIO_STANDALONE_ASIO)</span></div>
+<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;<span class="keyword">namespace </span>std {</div>
+<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;<span class="keyword">template</span> &lt;&gt;</div>
+<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;<span class="keyword">struct </span>is_error_code_enum&lt;::<a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809">packio::error</a>&gt; : std::true_type {</div>
+<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;};</div>
+<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;} <span class="comment">// std</span></div>
+<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;<span class="preprocessor">#else // defined(PACKIO_STANDALONE_ASIO)</span></div>
+<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;<span class="keyword">namespace </span>boost::system {</div>
+<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;<span class="keyword">template</span> &lt;&gt;</div>
+<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;<span class="keyword">struct </span>is_error_code_enum&lt;::<a class="code" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809">packio::error</a>&gt; : std::true_type {</div>
+<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;};</div>
+<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;} <span class="comment">// boost::system</span></div>
+<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;<span class="preprocessor">#endif // defined(PACKIO_STANDALONE_ASIO)</span></div>
+<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160; </div>
+<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;<span class="preprocessor">#endif // PACKIO_ERROR_CODE_H</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="anamespacepackio_html_ad0fad01adc607b1ef672314d1ed01809a38881e0a24039dc2621e1d6f86cb71f7"><div class="ttname"><a href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a38881e0a24039dc2621e1d6f86cb71f7">packio::error::cancelled</a></div><div class="ttdeci">@ cancelled</div><div class="ttdoc">The operation has been cancelled.</div></div>
 <div class="ttc" id="anamespacepackio_html_ad0fad01adc607b1ef672314d1ed01809a3421ef6eef824d84f3ff3170d051ef80"><div class="ttname"><a href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a3421ef6eef824d84f3ff3170d051ef80">packio::error::bad_result_type</a></div><div class="ttdeci">@ bad_result_type</div><div class="ttdoc">The result type is not as expected.</div></div>
 <div class="ttc" id="anamespacepackio_html_ad0fad01adc607b1ef672314d1ed01809a71ecb7c2f853a21a83ebdc5a392c57b6"><div class="ttname"><a href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a71ecb7c2f853a21a83ebdc5a392c57b6">packio::error::call_error</a></div><div class="ttdeci">@ call_error</div><div class="ttdoc">An error happened during the call.</div></div>
 <div class="ttc" id="anamespacepackio_html_ad0fad01adc607b1ef672314d1ed01809a260ca9dd8a4577fc00b7bd5810298076"><div class="ttname"><a href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a260ca9dd8a4577fc00b7bd5810298076">packio::error::success</a></div><div class="ttdeci">@ success</div><div class="ttdoc">Success.</div></div>
 <div class="ttc" id="anamespacepackio_html_ad0fad01adc607b1ef672314d1ed01809ad1ef7ee50ccddcdd2ed2ce9c69db96ae"><div class="ttname"><a href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809ad1ef7ee50ccddcdd2ed2ce9c69db96ae">packio::error::error_during_call</a></div><div class="ttdeci">@ error_during_call</div><div class="ttdoc">An error happened during the call, server-side error.</div></div>
-<div class="ttc" id="anamespacepackio_html"><div class="ttname"><a href="namespacepackio.html">packio</a></div><div class="ttdef"><b>Definition:</b> client.h:30</div></div>
+<div class="ttc" id="anamespacepackio_html"><div class="ttname"><a href="namespacepackio.html">packio</a></div><div class="ttdef"><b>Definition:</b> as.h:16</div></div>
 <div class="ttc" id="anamespacepackio_html_ad0fad01adc607b1ef672314d1ed01809ae63ab84fdc5d63927652dac21ec411ac"><div class="ttname"><a href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809ae63ab84fdc5d63927652dac21ec411ac">packio::error::unknown_procedure</a></div><div class="ttdeci">@ unknown_procedure</div><div class="ttdoc">The procedure name is unknown, server-side error.</div></div>
-<div class="ttc" id="anamespacepackio_html_ad0fad01adc607b1ef672314d1ed01809"><div class="ttname"><a href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809">packio::error</a></div><div class="ttdeci">error</div><div class="ttdoc">The error codes enumeration.</div><div class="ttdef"><b>Definition:</b> error_code.h:18</div></div>
+<div class="ttc" id="anamespacepackio_html_ad0fad01adc607b1ef672314d1ed01809"><div class="ttname"><a href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809">packio::error</a></div><div class="ttdeci">error</div><div class="ttdoc">The error codes enumeration.</div><div class="ttdef"><b>Definition:</b> error_code.h:28</div></div>
 <!-- HTML footer for doxygen 1.8.13-->
 <!-- start footer part -->
 </body>
