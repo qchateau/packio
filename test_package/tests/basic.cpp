@@ -1,104 +1,9 @@
-#include <atomic>
-#include <chrono>
-#include <future>
-#include <unordered_map>
-
-#include <gtest/gtest.h>
-
-#include <packio/packio.h>
-
-#include "misc.h"
+#include "tests.h"
 
 using namespace std::chrono;
 using namespace packio::asio;
 using namespace packio;
 using std::this_thread::sleep_for;
-
-template <typename T>
-struct my_allocator : public std::allocator<T> {
-    using std::allocator<T>::allocator;
-};
-
-class my_spinlock {
-public:
-    void lock()
-    {
-        while (locked_.exchange(true)) {
-        }
-    }
-
-    void unlock() { locked_ = false; }
-
-private:
-    std::atomic<bool> locked_{false};
-};
-
-template <typename Key, typename T>
-using my_unordered_map = std::unordered_map<
-    Key,
-    T,
-    std::hash<Key>,
-    std::equal_to<Key>,
-    my_allocator<std::pair<const Key, T>>>;
-
-typedef ::testing::Types<
-#if defined(PACKIO_HAS_LOCAL_SOCKETS)
-    std::pair<
-        client<packio::asio::local::stream_protocol::socket>,
-        server<packio::asio::local::stream_protocol::acceptor>>,
-#endif // defined(PACKIO_HAS_LOCAL_SOCKETS)
-    std::pair<client<packio::asio::ip::tcp::socket>, server<packio::asio::ip::tcp::acceptor>>,
-    std::pair<
-        client<packio::asio::ip::tcp::socket>,
-        server<packio::asio::ip::tcp::acceptor, dispatcher<std::map, my_spinlock>>>,
-    std::pair<
-        client<packio::asio::ip::tcp::socket, my_unordered_map>,
-        server<packio::asio::ip::tcp::acceptor>>>
-    Implementations;
-
-template <class Impl>
-class Test : public ::testing::Test {
-protected:
-    using client_type = typename Impl::first_type;
-    using server_type = typename Impl::second_type;
-    using protocol_type = typename client_type::protocol_type;
-    using endpoint_type = typename protocol_type::endpoint;
-    using socket_type = typename protocol_type::socket;
-    using acceptor_type = typename protocol_type::acceptor;
-
-    Test()
-        : server_{std::make_shared<server_type>(
-            acceptor_type(io_, get_endpoint<endpoint_type>()))},
-          client_{std::make_shared<client_type>(socket_type{io_})}
-    {
-    }
-
-    ~Test()
-    {
-        io_.stop();
-        if (runner_.joinable()) {
-            runner_.join();
-        }
-    }
-
-    void async_run()
-    {
-        runner_ = std::thread{[this] { io_.run(); }};
-    }
-
-    void connect()
-    {
-        auto ep = server_->acceptor().local_endpoint();
-        client_->socket().connect(ep);
-    }
-
-    packio::asio::io_context io_;
-    std::shared_ptr<server_type> server_;
-    std::shared_ptr<client_type> client_;
-    std::thread runner_;
-};
-
-TYPED_TEST_SUITE(Test, Implementations);
 
 TYPED_TEST(Test, test_connect)
 {
@@ -792,7 +697,7 @@ TYPED_TEST(Test, test_errors)
     assert_error_message("Incompatible arguments", "add_sync", 1, 2, 3);
 }
 
-#if defined(PACKIO_HAS_CO_AWAIT)
+#if defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_FORCE_COROUTINES)
 TYPED_TEST(Test, test_coroutine)
 {
     using packio::asio::use_awaitable;
@@ -850,14 +755,4 @@ TYPED_TEST(Test, test_coroutine)
         p.get_future().wait_for(std::chrono::seconds{1}),
         std::future_status::ready);
 }
-#endif // defined(PACKIO_HAS_CO_AWAIT)
-
-int main(int argc, char** argv)
-{
-#if defined(PACKIO_LOGGING)
-    ::spdlog::default_logger()->set_level(
-        static_cast<::spdlog::level::level_enum>(SPDLOG_ACTIVE_LEVEL));
-#endif
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
+#endif // defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_FORCE_COROUTINES)

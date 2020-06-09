@@ -53,7 +53,7 @@ client->async_call(
 
 ## Requirements
 
-- C++17
+- C++17 or C++20
 - msgpack >= 3.2.1
 - boost.asio >= 1.70.0 or asio >= 1.13.0
 
@@ -67,11 +67,13 @@ If you are using the conan package, you must also use the option ``standalone_as
 - gcc-7
 - gcc-8
 - gcc-9
+- gcc-10
 - clang-5
 - clang-6
 - clang-7
 - clang-8
 - clang-9
+- clang-10
 - Apple clang-10
 - Apple clang-11
 - Visual Studio 2019 Version 16

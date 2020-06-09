@@ -10,17 +10,20 @@ class PackioConan(ConanFile):
     options = {
         "boost": "ANY",
         "asio": "ANY",
-        "loglevel": [None, "trace", "debug", "info", "warn", "error"],
-        "rtti": [True, False],
         "coroutines": [True, False],
+        "loglevel": [None, "trace", "debug", "info", "warn", "error"],
+        "cppstd": ["17", "20"],
     }
     default_options = {
         "boost": None,
         "asio": None,
+        "coroutines": False,
         "loglevel": None,
-        "rtti": True,
-        "coroutines": False
+        "cppstd": "17",
     }
+
+    def configure(self):
+        self.options["gtest"].build_gmock = False
 
     def requirements(self):
         if self.options.boost:
@@ -35,17 +38,21 @@ class PackioConan(ConanFile):
         defs = dict()
         if self.options.loglevel:
             defs["PACKIO_LOGGING"] = self.options.loglevel
-        if not self.options.rtti:
-            defs["PACKIO_NO_RTTI"] = "1"
-        if self.options.coroutines:
-            defs["PACKIO_COROUTINES"] = "1"
         if self.options.asio:
             defs["PACKIO_STANDALONE_ASIO"] = "1"
+        if self.options.coroutines:
+            defs["PACKIO_COROUTINES"] = "1"
+        # dont use the compiler setting, it breaks pre-built binaries
+        defs["CMAKE_CXX_STANDARD"] = self.options.cppstd
+
         cmake.configure(defs=defs)
         cmake.build()
 
     def test(self):
         if not tools.cross_building(self.settings):
             os.chdir("bin")
-            self.run(".{}basic".format(os.sep))
-            self.run(".{}mt".format(os.sep))
+            self.run(os.path.abspath("tests"))
+            if os.path.exists(os.path.abspath("basic")):
+                self.run(os.path.abspath("basic"))
+            if os.path.exists(os.path.abspath("fibonacci")):
+                self.run(os.path.abspath("fibonacci") + " 5")

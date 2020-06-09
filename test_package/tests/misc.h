@@ -1,5 +1,4 @@
-#ifndef PACKIO_TESTS_MISC_H
-#define PACKIO_TESTS_MISC_H
+#pragma once
 
 #include <atomic>
 #include <chrono>
@@ -8,8 +7,6 @@
 #include <gtest/gtest.h>
 
 #include <packio/packio.h>
-
-namespace packio {
 
 template <typename endpoint>
 endpoint get_endpoint();
@@ -78,6 +75,29 @@ private:
     int remaining_;
 };
 
-} // packio
+template <typename T>
+struct my_allocator : public std::allocator<T> {
+    using std::allocator<T>::allocator;
+};
 
-#endif // PACKIO_TESTS_MISC_H
+class my_spinlock {
+public:
+    void lock()
+    {
+        while (locked_.exchange(true)) {
+        }
+    }
+
+    void unlock() { locked_ = false; }
+
+private:
+    std::atomic<bool> locked_{false};
+};
+
+template <typename Key, typename T>
+using my_unordered_map = std::unordered_map<
+    Key,
+    T,
+    std::hash<Key>,
+    std::equal_to<Key>,
+    my_allocator<std::pair<const Key, T>>>;

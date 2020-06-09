@@ -11,16 +11,9 @@ class PackioConan(ConanFile):
     topics = ("rpc", "msgpack", "cpp17")
     exports_sources = "include/*"
     no_copy_source = True
-    requires = [
-        "msgpack/3.2.1",
-        "zlib/1.2.8"
-    ]
-    options = {
-        "standalone_asio": [True, False]
-    }
-    default_options = {
-        "standalone_asio": False
-    }
+    requires = ["msgpack/3.2.1"]
+    options = {"standalone_asio": [True, False]}
+    default_options = {"standalone_asio": False}
 
     def requirements(self):
         if self.options.standalone_asio:
