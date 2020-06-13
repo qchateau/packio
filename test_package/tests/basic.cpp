@@ -1,103 +1,8 @@
-#include <atomic>
-#include <chrono>
-#include <future>
-#include <unordered_map>
+#include "tests.h"
 
-#include <gtest/gtest.h>
-
-#include <packio/packio.h>
-
-#include "misc.h"
-
-using namespace std::chrono;
-using namespace packio::asio;
+using namespace std::chrono_literals;
+using namespace packio::net;
 using namespace packio;
-using std::this_thread::sleep_for;
-
-template <typename T>
-struct my_allocator : public std::allocator<T> {
-};
-
-class my_spinlock {
-public:
-    void lock()
-    {
-        while (locked_.exchange(true)) {
-        }
-    }
-
-    void unlock() { locked_ = false; }
-
-private:
-    std::atomic<bool> locked_{false};
-};
-
-template <typename Key, typename T>
-using my_unordered_map = std::unordered_map<
-    Key,
-    T,
-    std::hash<Key>,
-    std::equal_to<Key>,
-    my_allocator<std::pair<const Key, T>>>;
-
-typedef ::testing::Types<
-#if defined(PACKIO_HAS_LOCAL_SOCKETS)
-    std::pair<
-        client<packio::asio::local::stream_protocol::socket>,
-        server<packio::asio::local::stream_protocol::acceptor>>,
-#endif // defined(PACKIO_HAS_LOCAL_SOCKETS)
-    std::pair<client<packio::asio::ip::tcp::socket>, server<packio::asio::ip::tcp::acceptor>>,
-    std::pair<
-        client<packio::asio::ip::tcp::socket>,
-        server<packio::asio::ip::tcp::acceptor, dispatcher<std::map, my_spinlock>>>,
-    std::pair<
-        client<packio::asio::ip::tcp::socket, my_unordered_map>,
-        server<packio::asio::ip::tcp::acceptor>>>
-    Implementations;
-
-template <class Impl>
-class Test : public ::testing::Test {
-protected:
-    using client_type = typename Impl::first_type;
-    using server_type = typename Impl::second_type;
-    using protocol_type = typename client_type::protocol_type;
-    using endpoint_type = typename protocol_type::endpoint;
-    using socket_type = typename protocol_type::socket;
-    using acceptor_type = typename protocol_type::acceptor;
-
-    Test()
-        : server_{std::make_shared<server_type>(
-            acceptor_type(io_, get_endpoint<endpoint_type>()))},
-          client_{std::make_shared<client_type>(socket_type{io_})}
-    {
-    }
-
-    ~Test()
-    {
-        io_.stop();
-        if (runner_.joinable()) {
-            runner_.join();
-        }
-    }
-
-    void async_run()
-    {
-        runner_ = std::thread{[this] { io_.run(); }};
-    }
-
-    void connect()
-    {
-        auto ep = server_->acceptor().local_endpoint();
-        client_->socket().connect(ep);
-    }
-
-    packio::asio::io_context io_;
-    std::shared_ptr<server_type> server_;
-    std::shared_ptr<client_type> client_;
-    std::thread runner_;
-};
-
-TYPED_TEST_SUITE(Test, Implementations);
 
 TYPED_TEST(Test, test_connect)
 {
@@ -140,7 +45,7 @@ TYPED_TEST(Test, test_typical_usage)
         this->async_run();
 
         ASSERT_TRUE(this->client_->socket().is_open());
-        ASSERT_TRUE(connected.wait_for(std::chrono::seconds{1}));
+        ASSERT_TRUE(connected.wait_for(1s));
     }
 
     std::atomic<int> call_arg_received{0};
@@ -156,9 +61,9 @@ TYPED_TEST(Test, test_typical_usage)
         call_latch.reset(1);
 
         auto f = this->client_->async_notify("echo", std::tuple{42}, use_future);
-        ASSERT_EQ(std::future_status::ready, f.wait_for(std::chrono::seconds{1}));
+        ASSERT_EQ(std::future_status::ready, f.wait_for(1s));
         ASSERT_NO_THROW(f.get());
-        ASSERT_TRUE(call_latch.wait_for(std::chrono::seconds{1}));
+        ASSERT_TRUE(call_latch.wait_for(1s));
         ASSERT_EQ(42, call_arg_received.load());
     }
 
@@ -167,13 +72,13 @@ TYPED_TEST(Test, test_typical_usage)
         call_arg_received = 0;
 
         auto f = this->client_->async_call("echo", std::tuple{42}, use_future);
-        ASSERT_EQ(std::future_status::ready, f.wait_for(std::chrono::seconds{1}));
+        ASSERT_EQ(std::future_status::ready, f.wait_for(1s));
         ASSERT_EQ(42, f.get()->template as<int>());
         ASSERT_EQ(42, call_arg_received.load());
     }
 }
 
-TYPED_TEST(Test, test_implicit_result_conversion)
+TYPED_TEST(Test, test_as)
 {
     this->server_->async_serve_forever();
     this->connect();
@@ -182,7 +87,7 @@ TYPED_TEST(Test, test_implicit_result_conversion)
     this->server_->dispatcher()->add("add", [](int a, int b) { return a + b; });
     this->server_->dispatcher()->add("void", [] {});
 
-    // one argument, valid
+    // test valid call
     {
         std::promise<void> done;
         auto future_done = done.get_future();
@@ -190,33 +95,29 @@ TYPED_TEST(Test, test_implicit_result_conversion)
         this->client_->async_call(
             "add",
             std::tuple{12, 21},
-            [&done](packio::err::error_code ec, std::optional<int> result) {
+            as<int>([&done](error_code ec, std::optional<int> result) {
                 ASSERT_FALSE(ec);
                 ASSERT_EQ(33, *result);
                 done.set_value();
-            });
+            }));
 
-        ASSERT_EQ(
-            std::future_status::ready,
-            future_done.wait_for(std::chrono::seconds{1}));
+        ASSERT_EQ(std::future_status::ready, future_done.wait_for(1s));
     }
 
-    // no argument, valid
+    // test as<void> valid call
     {
         std::promise<void> done;
         auto future_done = done.get_future();
 
-        this->client_->async_call("void", [&done](packio::err::error_code ec) {
-            ASSERT_FALSE(ec);
-            done.set_value();
-        });
+        this->client_->async_call("void", as<void>([&done](error_code ec) {
+                                      ASSERT_FALSE(ec);
+                                      done.set_value();
+                                  }));
 
-        ASSERT_EQ(
-            std::future_status::ready,
-            future_done.wait_for(std::chrono::seconds{1}));
+        ASSERT_EQ(std::future_status::ready, future_done.wait_for(1s));
     }
 
-    // one argument, bad call
+    // test invalid call
     {
         std::promise<void> done;
         auto future_done = done.get_future();
@@ -224,18 +125,16 @@ TYPED_TEST(Test, test_implicit_result_conversion)
         this->client_->async_call(
             "add",
             std::tuple<std::string, std::string>{"hello", "you"},
-            [&done](packio::err::error_code ec, std::optional<int> result) {
-                ASSERT_EQ(packio::error::call_error, ec);
+            as<int>([&done](error_code ec, std::optional<int> result) {
+                ASSERT_EQ(::packio::error::call_error, ec);
                 ASSERT_FALSE(result);
                 done.set_value();
-            });
+            }));
 
-        ASSERT_EQ(
-            std::future_status::ready,
-            future_done.wait_for(std::chrono::seconds{1}));
+        ASSERT_EQ(std::future_status::ready, future_done.wait_for(1s));
     }
 
-    // one argument, invalid type
+    // test invalid return type
     {
         std::promise<void> done;
         auto future_done = done.get_future();
@@ -243,15 +142,28 @@ TYPED_TEST(Test, test_implicit_result_conversion)
         this->client_->async_call(
             "add",
             std::tuple{12, 21},
-            [&done](packio::err::error_code ec, std::optional<std::string> result) {
-                ASSERT_EQ(packio::error::bad_result_type, ec);
-                ASSERT_FALSE(result);
-                done.set_value();
-            });
+            as<std::string>(
+                [&done](error_code ec, std::optional<std::string> result) {
+                    ASSERT_EQ(::packio::error::bad_result_type, ec);
+                    ASSERT_FALSE(result);
+                    done.set_value();
+                }));
 
-        ASSERT_EQ(
-            std::future_status::ready,
-            future_done.wait_for(std::chrono::seconds{1}));
+        ASSERT_EQ(std::future_status::ready, future_done.wait_for(1s));
+    }
+
+    // test as<void> invalid return type
+    {
+        std::promise<void> done;
+        auto future_done = done.get_future();
+
+        this->client_->async_call(
+            "add", std::tuple{12, 21}, as<void>([&done](error_code ec) {
+                ASSERT_EQ(::packio::error::bad_result_type, ec);
+                done.set_value();
+            }));
+
+        ASSERT_EQ(std::future_status::ready, future_done.wait_for(1s));
     }
 }
 
@@ -280,19 +192,16 @@ TYPED_TEST(Test, test_timeout)
         });
 
     const auto assert_blocks = [](auto& future) {
-        ASSERT_EQ(
-            std::future_status::timeout,
-            future.wait_for(std::chrono::milliseconds{100}));
+        ASSERT_EQ(std::future_status::timeout, future.wait_for(100ms));
     };
     const auto assert_cancelled = [](auto& future) {
-        ASSERT_EQ(
-            std::future_status::ready, future.wait_for(std::chrono::seconds{1}));
+        ASSERT_EQ(std::future_status::ready, future.wait_for(1s));
         try {
             future.get();
             ASSERT_FALSE(true); // never reached
         }
-        catch (packio::err::system_error& err) {
-            ASSERT_EQ(make_error_code(packio::error::cancelled), err.code());
+        catch (system_error& err) {
+            ASSERT_EQ(make_error_code(::packio::error::cancelled), err.code());
         }
     };
 
@@ -513,8 +422,7 @@ TYPED_TEST(Test, test_dispatcher)
 
     this->server_->dispatcher()->remove("f001");
     ASSERT_THROW(
-        this->client_->async_call("f001", use_future).get(),
-        packio::err::system_error);
+        this->client_->async_call("f001", use_future).get(), system_error);
 
     ASSERT_FALSE(this->server_->dispatcher()->has("f001"));
     ASSERT_TRUE(this->server_->dispatcher()->has("f002"));
@@ -541,26 +449,26 @@ TYPED_TEST(Test, test_end_of_work)
 
     auto ep = this->server_->acceptor().local_endpoint();
 
-    packio::asio::io_context io;
+    io_context io;
     auto client = std::make_shared<client_type>(socket_type{io});
     client->socket().connect(ep);
 
     // client runs out of work if there is no pending calls
-    io.run_for(std::chrono::seconds{1});
+    io.run_for(1s);
     ASSERT_TRUE(io.stopped());
 
     // client runs out of work after a notify
     io.restart();
     client->async_notify("func", [](auto) {});
     ASSERT_FALSE(io.stopped());
-    io.run_for(std::chrono::seconds{1});
+    io.run_for(1s);
     ASSERT_TRUE(io.stopped());
 
     // client runs out of work after a call
     io.restart();
     client->async_call("func", [](auto, auto) {});
     ASSERT_FALSE(io.stopped());
-    io.run_for(std::chrono::seconds{1});
+    io.run_for(1s);
     ASSERT_TRUE(io.stopped());
 
     // client runs out of work after a cancelled call
@@ -575,10 +483,10 @@ TYPED_TEST(Test, test_end_of_work)
             cancelled_count++;
         },
         id);
-    io.run_for(std::chrono::milliseconds{10});
+    io.run_for(10ms);
     ASSERT_FALSE(io.stopped());
     client->cancel(id);
-    io.run_for(std::chrono::seconds{1});
+    io.run_for(1s);
     ASSERT_TRUE(io.stopped());
 
     // client runs out of work after multiple cancelled calls
@@ -591,10 +499,10 @@ TYPED_TEST(Test, test_end_of_work)
         ASSERT_TRUE(ec);
         cancelled_count++;
     });
-    io.run_for(std::chrono::milliseconds{10});
+    io.run_for(10ms);
     ASSERT_FALSE(io.stopped());
     client->cancel();
-    io.run_for(std::chrono::seconds{1});
+    io.run_for(1s);
     ASSERT_TRUE(io.stopped());
     ASSERT_EQ(3, cancelled_count);
 }
@@ -604,6 +512,8 @@ TYPED_TEST(Test, test_special_callables)
     using session_type = typename decltype(
         this->server_)::element_type::session_type;
     struct move_only {
+        move_only() = default;
+
         move_only(const move_only&) = delete;
         move_only& operator=(const move_only&) = delete;
 
@@ -617,13 +527,13 @@ TYPED_TEST(Test, test_special_callables)
         void operator()(completion_handler complete) { complete(); };
     };
     struct notify_handler : public move_only {
-        void operator()(packio::err::error_code){};
+        void operator()(error_code){};
     };
     struct call_handler : public move_only {
-        void operator()(packio::err::error_code, msgpack::object_handle){};
+        void operator()(error_code, msgpack::object_handle){};
     };
     struct serve_handler : public move_only {
-        void operator()(packio::err::error_code, std::shared_ptr<session_type>){};
+        void operator()(error_code, std::shared_ptr<session_type>){};
     };
 
     // this test just needs to compile
@@ -674,7 +584,7 @@ TYPED_TEST(Test, test_response_after_disconnect)
 
     this->client_->async_call("block", [&](auto, auto) {});
     auto complete_ptr = future.get();
-    this->client_->socket().shutdown(packio::asio::ip::tcp::socket::shutdown_both);
+    this->client_->socket().shutdown(ip::tcp::socket::shutdown_both);
     (*complete_ptr)();
 }
 
@@ -715,7 +625,7 @@ TYPED_TEST(Test, test_shared_dispatcher)
     this->client_->async_notify("inc", [](auto ec) { ASSERT_FALSE(ec); });
     client2->async_notify("inc", [](auto ec) { ASSERT_FALSE(ec); });
 
-    ASSERT_TRUE(l.wait_for(std::chrono::seconds{1}));
+    ASSERT_TRUE(l.wait_for(1s));
 }
 
 TYPED_TEST(Test, test_errors)
@@ -766,18 +676,16 @@ TYPED_TEST(Test, test_errors)
     assert_error_message("Incompatible arguments", "add_sync", 1, 2, 3);
 }
 
-#if defined(PACKIO_HAS_CO_AWAIT)
+#if defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_FORCE_COROUTINES)
 TYPED_TEST(Test, test_coroutine)
 {
-    using packio::asio::use_awaitable;
-
-    packio::asio::steady_timer timer{this->io_};
+    steady_timer timer{this->io_};
 
     this->server_->dispatcher()->add_coro(
         "add",
         this->io_.get_executor(), // executor
-        [&](int a, int b) -> packio::asio::awaitable<int> {
-            timer.expires_after(std::chrono::milliseconds{1});
+        [&](int a, int b) -> awaitable<int> {
+            timer.expires_after(1ms);
             co_await timer.async_wait(use_awaitable);
             co_return a + b;
         });
@@ -785,29 +693,29 @@ TYPED_TEST(Test, test_coroutine)
     this->server_->dispatcher()->add_coro(
         "add2",
         this->io_, // executor context
-        [&](int a, int b) -> packio::asio::awaitable<int> {
-            timer.expires_after(std::chrono::milliseconds{1});
+        [&](int a, int b) -> awaitable<int> {
+            timer.expires_after(1ms);
             co_await timer.async_wait(use_awaitable);
             co_return a + b;
         });
 
-    packio::asio::co_spawn(
+    co_spawn(
         this->io_,
-        [&]() -> packio::asio::awaitable<void> {
+        [&]() -> awaitable<void> {
             while (true) {
                 auto session = co_await this->server_->async_serve(use_awaitable);
                 session->start();
             }
         },
-        packio::asio::detached);
+        detached);
 
     this->async_run();
     this->connect();
 
     std::promise<void> p;
-    packio::asio::co_spawn(
+    co_spawn(
         this->io_,
-        [&]() -> packio::asio::awaitable<void> {
+        [&]() -> awaitable<void> {
             // Call using an awaitable
             msgpack::object_handle res = co_await this->client_->async_call(
                 "add", std::tuple{12, 23}, use_awaitable);
@@ -819,19 +727,7 @@ TYPED_TEST(Test, test_coroutine)
 
             p.set_value();
         },
-        packio::asio::detached);
-    ASSERT_EQ(
-        p.get_future().wait_for(std::chrono::seconds{1}),
-        std::future_status::ready);
+        detached);
+    ASSERT_EQ(p.get_future().wait_for(1s), std::future_status::ready);
 }
-#endif // defined(PACKIO_HAS_CO_AWAIT)
-
-int main(int argc, char** argv)
-{
-#if defined(PACKIO_LOGGING)
-    ::spdlog::default_logger()->set_level(
-        static_cast<::spdlog::level::level_enum>(SPDLOG_ACTIVE_LEVEL));
-#endif
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
+#endif // defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_FORCE_COROUTINES)

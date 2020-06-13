@@ -115,6 +115,14 @@ Enumerations</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
+<tr class="memitem:a98ec735bfe5e3655f1e398f9f8c122bc"><td class="memTemplParams" colspan="2">template&lt;typename Result , typename AsCallHandler &gt; </td></tr>
+<tr class="memitem:a98ec735bfe5e3655f1e398f9f8c122bc"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacepackio.html#a98ec735bfe5e3655f1e398f9f8c122bc">as</a> (AsCallHandler &amp;&amp;handler, std::enable_if_t&lt;!std::is_void_v&lt; Result &gt;, void * &gt;=nullptr)</td></tr>
+<tr class="memdesc:a98ec735bfe5e3655f1e398f9f8c122bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function used to wrap a typed call handler.  <a href="namespacepackio.html#a98ec735bfe5e3655f1e398f9f8c122bc">More...</a><br /></td></tr>
+<tr class="separator:a98ec735bfe5e3655f1e398f9f8c122bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a96d591f155009301646e3827cc3e4f14"><td class="memTemplParams" colspan="2">template&lt;typename Result , typename AsVoidCallHandler &gt; </td></tr>
+<tr class="memitem:a96d591f155009301646e3827cc3e4f14"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacepackio.html#a96d591f155009301646e3827cc3e4f14">as</a> (AsVoidCallHandler &amp;&amp;handler, std::enable_if_t&lt; std::is_void_v&lt; Result &gt;, void * &gt;=nullptr)</td></tr>
+<tr class="memdesc:a96d591f155009301646e3827cc3e4f14"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function used to wrap a call handler that expects a void result.  <a href="namespacepackio.html#a96d591f155009301646e3827cc3e4f14">More...</a><br /></td></tr>
+<tr class="separator:a96d591f155009301646e3827cc3e4f14"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae41a42d5103a615a810d6e42d68906da"><td class="memTemplParams" colspan="2">template&lt;typename Socket , template&lt; class... &gt; class Map = std::map&gt; </td></tr>
 <tr class="memitem:ae41a42d5103a615a810d6e42d68906da"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacepackio.html#ae41a42d5103a615a810d6e42d68906da">make_client</a> (Socket &amp;&amp;socket)</td></tr>
 <tr class="memdesc:ae41a42d5103a615a810d6e42d68906da"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a client from a socket.  <a href="namespacepackio.html#ae41a42d5103a615a810d6e42d68906da">More...</a><br /></td></tr>
@@ -166,6 +174,84 @@ Functions</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
+<a id="a98ec735bfe5e3655f1e398f9f8c122bc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a98ec735bfe5e3655f1e398f9f8c122bc">&#9670;&nbsp;</a></span>as() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Result , typename AsCallHandler &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">auto packio::as </td>
+          <td>(</td>
+          <td class="paramtype">AsCallHandler &amp;&amp;&#160;</td>
+          <td class="paramname"><em>handler</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::enable_if_t&lt;!std::is_void_v&lt; Result &gt;, void * &gt;&#160;</td>
+          <td class="paramname"> = <code>nullptr</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Function used to wrap a typed call handler. </p>
+<p>This function is used to provide a call handler that expects a specific return type. If the procedure call succeeds but the returned type is not what is expected, the handler will be called with <a class="el" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a3421ef6eef824d84f3ff3170d051ef80">error::bad_result_type</a>. The optional given as second argument will have a value only if the error code is <a class="el" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a260ca9dd8a4577fc00b7bd5810298076">error::success</a>.</p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">Result</td><td>The expected return type for the procedure </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">handler</td><td>Call handler to wrap. Must satisfy <a class="el" href="structpackio_1_1traits_1_1AsCallHandler.html">traits::AsCallHandler</a> </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a96d591f155009301646e3827cc3e4f14"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a96d591f155009301646e3827cc3e4f14">&#9670;&nbsp;</a></span>as() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Result , typename AsVoidCallHandler &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">auto packio::as </td>
+          <td>(</td>
+          <td class="paramtype">AsVoidCallHandler &amp;&amp;&#160;</td>
+          <td class="paramname"><em>handler</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::enable_if_t&lt; std::is_void_v&lt; Result &gt;, void * &gt;&#160;</td>
+          <td class="paramname"> = <code>nullptr</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Function used to wrap a call handler that expects a void result. </p>
+<p>This is an overloaded member function, provided for convenience. It differs from the above function only in what argument(s) it accepts. The only point of this wrapper is to verify that the remote procedure returned void. If the remote procedure returns any other type, this wrapper will set the error code to <a class="el" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a3421ef6eef824d84f3ff3170d051ef80">error::bad_result_type</a>. </p>
+
+</div>
+</div>
 <a id="ae41a42d5103a615a810d6e42d68906da"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ae41a42d5103a615a810d6e42d68906da">&#9670;&nbsp;</a></span>make_client()</h2>
 

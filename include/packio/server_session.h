@@ -85,12 +85,12 @@ private:
         }
 
         unpacker->reserve_buffer(buffer_reserve_size_);
-        auto buffer = packio::asio::buffer(
+        auto buffer = net::buffer(
             unpacker->buffer(), unpacker->buffer_capacity());
         socket_.async_read_some(
             buffer,
             [self = shared_from_this(), unpacker = std::move(unpacker)](
-                packio::err::error_code ec, size_t length) mutable {
+                error_code ec, size_t length) mutable {
                 if (ec) {
                     PACKIO_WARN("read error: {}", ec.message());
                     self->close_connection();
@@ -105,7 +105,7 @@ private:
                     // to schedule the next read immediately
                     // this will allow parallel call handling
                     // in multi-threaded environments
-                    packio::asio::post(
+                    net::post(
                         self->get_executor(), [self, call = std::move(call)] {
                             self->dispatch(call.get());
                         });
@@ -125,7 +125,7 @@ private:
 
         auto completion_handler =
             [type = call->type, id = call->id, self = shared_from_this()](
-                packio::err::error_code ec, msgpack::object_handle result) {
+                error_code ec, msgpack::object_handle result) {
                 if (type == msgpack_rpc_type::request) {
                     PACKIO_TRACE("result: {}", ec.message());
                     self->async_send_result(id, ec, std::move(result));
@@ -187,10 +187,7 @@ private:
         }
     }
 
-    void async_send_result(
-        id_type id,
-        packio::err::error_code ec,
-        msgpack::object_handle result_handle)
+    void async_send_result(id_type id, error_code ec, msgpack::object_handle result_handle)
     {
         // abort R/W on error
         if (!socket_.is_open()) {
@@ -236,11 +233,11 @@ private:
             using internal::buffer;
 
             auto buf = buffer(std::get<buffer_type>(*message_ptr));
-            packio::asio::async_write(
+            net::async_write(
                 socket_,
                 buf,
                 [self = std::move(self), message_ptr = std::move(message_ptr)](
-                    packio::err::error_code ec, size_t length) {
+                    error_code ec, size_t length) {
                     self->wstrand_.next();
 
                     if (ec) {
@@ -257,7 +254,7 @@ private:
 
     void close_connection()
     {
-        packio::err::error_code ec;
+        error_code ec;
         socket_.close(ec);
         if (ec) {
             PACKIO_WARN("close error: {}", ec.message());

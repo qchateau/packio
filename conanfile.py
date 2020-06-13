@@ -3,24 +3,17 @@ from conans import ConanFile
 
 class PackioConan(ConanFile):
     name = "packio"
-    version = "1.2.0"
+    version = "1.3.0"
     license = "MPL-2.0"
     author = "Quentin Chateau <quentin.chateau@gmail.com>"
     url = "https://github.com/qchateau/packio"
     description = "C++ implementation of msgpack-RPC"
-    topics = ("rpc", "msgpack", "cpp17")
+    topics = ("rpc", "msgpack", "cpp17", "cpp20", "coroutine")
     exports_sources = "include/*"
     no_copy_source = True
-    requires = [
-        "msgpack/3.2.1",
-        "zlib/1.2.8"
-    ]
-    options = {
-        "standalone_asio": [True, False]
-    }
-    default_options = {
-        "standalone_asio": False
-    }
+    requires = ["msgpack/3.2.1"]
+    options = {"standalone_asio": [True, False]}
+    default_options = {"standalone_asio": False}
 
     def requirements(self):
         if self.options.standalone_asio:

@@ -237,12 +237,12 @@ private:
                     return;
                 }
 
-                packio::asio::co_spawn(
+                net::co_spawn(
                     executor,
                     [args = args.as<value_args>(),
                      handler = std::move(handler),
                      coro = std::forward<C>(
-                         coro)]() mutable -> packio::asio::awaitable<void> {
+                         coro)]() mutable -> net::awaitable<void> {
                         try {
                             if constexpr (std::is_void_v<result_type>) {
                                 co_await std::apply(coro, args);

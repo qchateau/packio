@@ -6,31 +6,35 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
 
-set(CMAKE_CXX_STANDARD 17)
+message(STATUS "CMAKE_CXX_STANDARD ${CMAKE_CXX_STANDARD}")
+
+# Fix warning with conan
+set(ignoreme ${CMAKE_EXPORT_NO_PACKAGE_REGISTRY})
+
+set(SOURCES
+    tests/main.cpp
+    tests/basic.cpp
+    tests/mt.cpp
+)
+set(CORO_SOURCES
+    tests/coroutines.cpp
+)
 
 add_definitions(-DASIO_NO_DEPRECATED=1)
 add_definitions(-DBOOST_ASIO_NO_DEPRECATED=1)
 
 if (UNIX)
-    add_compile_options(-Wall -Wextra -Werror)
+    # no-unused-parameter because boost has warnings with -fno-rtti
+    add_compile_options(-Wall -Wextra -Werror -fno-rtti -Wno-unused-parameter)
+    add_definitions(-DASIO_NO_TYPEID=1)
 else ()
-    add_compile_options(/W4 /WX /Zc:__cplusplus /bigobj)
+    add_compile_options(/W4 /WX /Zc:__cplusplus /bigobj /GR-)
     add_definitions(/D_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING=1)
 endif ()
 
 if (PACKIO_STANDALONE_ASIO)
+    message(STATUS "Using standalone asio")
     add_definitions(-DPACKIO_STANDALONE_ASIO=1)
-endif ()
-
-if (PACKIO_NO_RTTI)
-    message(STATUS "Disabling RTTI")
-    if (UNIX)
-        add_compile_options(-fno-rtti)
-        # no-unused-parameter because boost has warnings with -fno-rtti
-        add_compile_options(-Wno-unused-parameter)
-    else ()
-        add_compile_options(/GR-)
-    endif ()
 endif ()
 
 if (PACKIO_LOGGING)
@@ -41,17 +45,25 @@ if (PACKIO_LOGGING)
 endif ()
 
 if (PACKIO_COROUTINES)
-    message(STATUS "Building with coroutines")
     if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
         add_compile_options(-fcoroutines-ts)
     elseif (MSVC)
         add_compile_options(/await)
-    else ()
-        message(FATAL_ERROR "Compiler '${CMAKE_CXX_COMPILER_ID}' not supported for coroutines")
     endif ()
+
+    message(STATUS "Building with coroutines")
+    list(APPEND SOURCES ${CORO_SOURCES})
+
+    message(STATUS "Building samples")
+    set(SAMPLES ON)
 endif ()
 
-add_executable(basic basic.cpp)
-target_link_libraries(basic ${CONAN_LIBS})
-add_executable(mt mt.cpp)
-target_link_libraries(mt ${CONAN_LIBS})
+add_executable(tests ${SOURCES})
+target_link_libraries(tests ${CONAN_LIBS})
+
+if (SAMPLES)
+    add_executable(basic samples/basic.cpp)
+    target_link_libraries(basic ${CONAN_LIBS})
+    add_executable(fibonacci samples/fibonacci.cpp)
+    target_link_libraries(fibonacci ${CONAN_LIBS})
+endif ()

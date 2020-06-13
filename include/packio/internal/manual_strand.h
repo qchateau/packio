@@ -22,20 +22,19 @@ public:
 
     void push(function_type function)
     {
-        packio::asio::dispatch(
-            strand_, [this, function = std::move(function)]() mutable {
-                queue_.push(std::move(function));
+        net::dispatch(strand_, [this, function = std::move(function)]() mutable {
+            queue_.push(std::move(function));
 
-                if (!executing_) {
-                    executing_ = true;
-                    execute();
-                }
-            });
+            if (!executing_) {
+                executing_ = true;
+                execute();
+            }
+        });
     }
 
     void next()
     {
-        packio::asio::dispatch(strand_, [this] { execute(); });
+        net::dispatch(strand_, [this] { execute(); });
     }
 
 private:
@@ -51,7 +50,7 @@ private:
         function();
     }
 
-    packio::asio::strand<Executor> strand_;
+    net::strand<Executor> strand_;
     std::queue<function_type> queue_;
     bool executing_{false};
 };

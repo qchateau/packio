@@ -14,6 +14,16 @@
 
 namespace packio {
 
+#if defined(PACKIO_STANDALONE_ASIO)
+using error_code = std::error_code;
+using system_error = std::system_error;
+using error_category = std::error_category;
+#else // defined(PACKIO_STANDALONE_ASIO)
+using error_code = boost::system::error_code;
+using system_error = boost::system::system_error;
+using error_category = boost::system::error_category;
+#endif // defined(PACKIO_STANDALONE_ASIO)
+
 //! The error codes enumeration
 enum class error {
     success = 0, //!< Success
@@ -24,7 +34,7 @@ enum class error {
     bad_result_type //!< The result type is not as expected
 };
 
-struct error_category : packio::err::error_category {
+struct packio_error_category : error_category {
     const char* name() const noexcept override { return "packio"; }
     std::string message(int ev) const override
     {
@@ -47,10 +57,10 @@ struct error_category : packio::err::error_category {
     }
 };
 
-inline packio::err::error_code make_error_code(error e)
+inline error_code make_error_code(error e)
 {
-    static error_category category;
-    return {static_cast<int>(e), category};
+    static const packio_error_category category{};
+    return {static_cast<std::underlying_type<error>::type>(e), category};
 }
 
 } // packio
@@ -58,13 +68,13 @@ inline packio::err::error_code make_error_code(error e)
 #if defined(PACKIO_STANDALONE_ASIO)
 namespace std {
 template <>
-struct is_error_code_enum<packio::error> : std::true_type {
+struct is_error_code_enum<::packio::error> : std::true_type {
 };
 } // std
 #else // defined(PACKIO_STANDALONE_ASIO)
 namespace boost::system {
 template <>
-struct is_error_code_enum<packio::error> : std::true_type {
+struct is_error_code_enum<::packio::error> : std::true_type {
 };
 } // boost::system
 #endif // defined(PACKIO_STANDALONE_ASIO)

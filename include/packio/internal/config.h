@@ -14,13 +14,10 @@
 namespace packio {
 
 #if defined(PACKIO_STANDALONE_ASIO)
-namespace asio = ::asio;
-namespace err = ::asio;
+namespace net = ::asio;
 #else // defined(PACKIO_STANDALONE_ASIO)
-namespace asio = ::boost::asio;
-namespace err = ::boost::system;
+namespace net = ::boost::asio;
 #endif // defined(PACKIO_STANDALONE_ASIO)
-
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT) || defined(ASIO_HAS_CO_AWAIT)
 #define PACKIO_HAS_CO_AWAIT 1
@@ -48,6 +45,14 @@ namespace err = ::boost::system;
 #else // defined(BOOST_ASIO_DEFAULT_COMPLETION_TOKEN_TYPE)
 #define PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(e)
 #endif // defined(BOOST_ASIO_DEFAULT_COMPLETION_TOKEN_TYPE)
+
+#if defined(BOOST_ASIO_COMPLETION_TOKEN_FOR)
+#define PACKIO_COMPLETION_TOKEN_FOR(s) BOOST_ASIO_COMPLETION_TOKEN_FOR(s)
+#elif defined(ASIO_COMPLETION_TOKEN_FOR)
+#define PACKIO_COMPLETION_TOKEN_FOR(s) ASIO_COMPLETION_TOKEN_FOR(s)
+#else // defined(BOOST_ASIO_COMPLETION_TOKEN_FOR)
+#define PACKIO_COMPLETION_TOKEN_FOR(s) typename
+#endif // defined (BOOST_ASIO_COMPLETION_TOKEN_FOR)
 
 } // packio
 

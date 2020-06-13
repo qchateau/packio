@@ -8,6 +8,7 @@
 //! @namespace packio
 //! The packio namespace
 
+#include "as.h"
 #include "client.h"
 #include "dispatcher.h"
 #include "error_code.h"

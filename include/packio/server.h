@@ -75,13 +75,14 @@ public:
     //! @param handler Handler called when a connection is accepted.
     //! The handler is responsible for calling server_session::start.
     //! Must satisfy the @ref traits::ServeHandler trait
-    template <typename ServeHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type)>
+    template <PACKIO_COMPLETION_TOKEN_FOR(void(error_code, std::shared_ptr<session_type>))
+                  ServeHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type)>
     auto async_serve(
         ServeHandler&& handler PACKIO_DEFAULT_COMPLETION_TOKEN(executor_type))
     {
-        return packio::asio::async_initiate<
+        return net::async_initiate<
             ServeHandler,
-            void(packio::err::error_code, std::shared_ptr<session_type>)>(
+            void(error_code, std::shared_ptr<session_type>)>(
             initiate_async_serve(this), handler);
     }
 
@@ -119,7 +120,7 @@ private:
             self_->acceptor_.async_accept(
                 [self = self_->shared_from_this(),
                  handler = std::forward<ServeHandler>(handler)](
-                    packio::err::error_code ec, socket_type sock) mutable {
+                    error_code ec, socket_type sock) mutable {
                     std::shared_ptr<session_type> session;
                     if (ec) {
                         PACKIO_WARN("accept error: {}", ec.message());
