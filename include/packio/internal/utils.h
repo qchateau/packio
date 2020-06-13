@@ -69,6 +69,17 @@ constexpr bool is_coroutine_v = is_coroutine<T>::value;
 #endif // defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_DOCUMENTATION)
 
 template <typename T>
+struct is_tuple : std::false_type {
+};
+
+template <typename... Args>
+struct is_tuple<std::tuple<Args...>> : std::true_type {
+};
+
+template <typename T>
+constexpr auto is_tuple_v = is_tuple<T>::value;
+
+template <typename T>
 struct shift_tuple;
 
 template <typename A, typename... Bs>

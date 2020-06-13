@@ -134,7 +134,8 @@ public:
     template <
         typename Buffer = msgpack::sbuffer,
         PACKIO_COMPLETION_TOKEN_FOR(void(packio::err::error_code))
-            NotifyHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type)>
+            NotifyHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type),
+        typename = std::enable_if_t<!internal::is_tuple_v<NotifyHandler>>>
     auto async_notify(
         std::string_view name,
         NotifyHandler&& handler PACKIO_DEFAULT_COMPLETION_TOKEN(executor_type))
@@ -175,7 +176,8 @@ public:
     template <
         typename Buffer = msgpack::sbuffer,
         PACKIO_COMPLETION_TOKEN_FOR(void(packio::err::error_code, msgpack::object_handle))
-            CallHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type)>
+            CallHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type),
+        typename = std::enable_if_t<!internal::is_tuple_v<CallHandler>>>
     auto async_call(
         std::string_view name,
         CallHandler&& handler PACKIO_DEFAULT_COMPLETION_TOKEN(executor_type),
