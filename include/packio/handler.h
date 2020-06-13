@@ -26,8 +26,7 @@ namespace packio {
 //! @ref set_error once.
 class completion_handler {
 public:
-    using function_type =
-        std::function<void(packio::err::error_code, msgpack::object_handle)>;
+    using function_type = std::function<void(error_code, msgpack::object_handle)>;
 
     template <typename F>
     completion_handler(F&& handler) : handler_{std::forward<F>(handler)}

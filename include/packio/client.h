@@ -79,7 +79,7 @@ public:
     //! @param id The call ID of the call to cancel
     void cancel(id_type id)
     {
-        packio::asio::dispatch(call_strand_, [self = shared_from_this(), id] {
+        net::dispatch(call_strand_, [self = shared_from_this(), id] {
             auto ec = make_error_code(error::cancelled);
             self->async_call_handler(
                 id, internal::make_msgpack_object(ec.message()), ec);
@@ -92,7 +92,7 @@ public:
     //! The associated handlers will be called with @ref error::cancelled
     void cancel()
     {
-        packio::asio::dispatch(call_strand_, [self = shared_from_this()] {
+        net::dispatch(call_strand_, [self = shared_from_this()] {
             auto ec = make_error_code(error::cancelled);
             while (!self->pending_.empty()) {
                 self->async_call_handler(
@@ -117,7 +117,7 @@ public:
     //! Must satisfy the @ref traits::NotifyHandler trait
     template <
         typename Buffer = msgpack::sbuffer,
-        PACKIO_COMPLETION_TOKEN_FOR(void(packio::err::error_code))
+        PACKIO_COMPLETION_TOKEN_FOR(void(error_code))
             NotifyHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type),
         typename... Args>
     auto async_notify(
@@ -125,7 +125,7 @@ public:
         const std::tuple<Args...>& args,
         NotifyHandler&& handler PACKIO_DEFAULT_COMPLETION_TOKEN(executor_type))
     {
-        return packio::asio::async_initiate<NotifyHandler, void(packio::err::error_code)>(
+        return net::async_initiate<NotifyHandler, void(error_code)>(
             initiate_async_notify<Buffer>(this), handler, name, args);
     }
 
@@ -133,7 +133,7 @@ public:
     //! @overload
     template <
         typename Buffer = msgpack::sbuffer,
-        PACKIO_COMPLETION_TOKEN_FOR(void(packio::err::error_code))
+        PACKIO_COMPLETION_TOKEN_FOR(void(error_code))
             NotifyHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type),
         typename = std::enable_if_t<!internal::is_tuple_v<NotifyHandler>>>
     auto async_notify(
@@ -156,7 +156,7 @@ public:
     //! @param call_id Output parameter that will receive the call ID
     template <
         typename Buffer = msgpack::sbuffer,
-        PACKIO_COMPLETION_TOKEN_FOR(void(packio::err::error_code, msgpack::object_handle))
+        PACKIO_COMPLETION_TOKEN_FOR(void(error_code, msgpack::object_handle))
             CallHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type),
         typename... Args>
     auto async_call(
@@ -165,9 +165,7 @@ public:
         CallHandler&& handler PACKIO_DEFAULT_COMPLETION_TOKEN(executor_type),
         std::optional<std::reference_wrapper<id_type>> call_id = std::nullopt)
     {
-        return packio::asio::async_initiate<
-            CallHandler,
-            void(packio::err::error_code, msgpack::object_handle)>(
+        return net::async_initiate<CallHandler, void(error_code, msgpack::object_handle)>(
             initiate_async_call<Buffer>(this), handler, name, args, call_id);
     }
 
@@ -175,7 +173,7 @@ public:
     //! @overload
     template <
         typename Buffer = msgpack::sbuffer,
-        PACKIO_COMPLETION_TOKEN_FOR(void(packio::err::error_code, msgpack::object_handle))
+        PACKIO_COMPLETION_TOKEN_FOR(void(error_code, msgpack::object_handle))
             CallHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type),
         typename = std::enable_if_t<!internal::is_tuple_v<CallHandler>>>
     auto async_call(
@@ -188,15 +186,15 @@ public:
     }
 
 private:
-    using async_call_handler_type = internal::unique_function<
-        void(packio::err::error_code, msgpack::object_handle)>;
+    using async_call_handler_type =
+        internal::unique_function<void(error_code, msgpack::object_handle)>;
 
     void maybe_stop_reading()
     {
         assert(call_strand_.running_in_this_thread());
         if (reading_ && pending_.empty()) {
             PACKIO_DEBUG("stop reading");
-            packio::err::error_code ec;
+            error_code ec;
             socket_.cancel(ec);
             if (ec) {
                 PACKIO_WARN("cancel failed: {}", ec.message());
@@ -216,13 +214,13 @@ private:
             internal::set_no_delay(socket_);
 
             auto buf = buffer(*buffer_ptr);
-            packio::asio::async_write(
+            net::async_write(
                 socket_,
                 buf,
                 [self = std::move(self),
                  buffer_ptr = std::move(buffer_ptr),
                  handler = std::forward<WriteHandler>(handler)](
-                    packio::err::error_code ec, size_t length) mutable {
+                    error_code ec, size_t length) mutable {
                     self->wstrand_.next();
                     handler(ec, length);
                 });
@@ -232,7 +230,7 @@ private:
     void async_read(std::unique_ptr<msgpack::unpacker> unpacker)
     {
         unpacker->reserve_buffer(buffer_reserve_size_);
-        auto buffer = packio::asio::buffer(
+        auto buffer = net::buffer(
             unpacker->buffer(), unpacker->buffer_capacity());
 
         assert(call_strand_.running_in_this_thread());
@@ -240,10 +238,10 @@ private:
         PACKIO_TRACE("reading ... {} call(s) pending", pending_.size());
         socket_.async_read_some(
             buffer,
-            packio::asio::bind_executor(
+            net::bind_executor(
                 call_strand_,
                 [self = shared_from_this(), unpacker = std::move(unpacker)](
-                    packio::err::error_code ec, size_t length) mutable {
+                    error_code ec, size_t length) mutable {
                     PACKIO_TRACE("read: {}", length);
                     unpacker->buffer_consumed(length);
 
@@ -255,7 +253,7 @@ private:
                     // stop if there is an error or there is no more pending calls
                     assert(self->call_strand_.running_in_this_thread());
 
-                    if (ec && ec != packio::asio::error::operation_aborted) {
+                    if (ec && ec != net::error::operation_aborted) {
                         PACKIO_WARN("read error: {}", ec.message());
                         self->reading_ = false;
 
@@ -279,7 +277,7 @@ private:
                 }));
     }
 
-    void process_response(msgpack::object_handle response, packio::err::error_code ec)
+    void process_response(msgpack::object_handle response, error_code ec)
     {
         if (!verify_reponse(response.get())) {
             PACKIO_ERROR("received unexpected response");
@@ -301,12 +299,9 @@ private:
         }
     }
 
-    void async_call_handler(
-        id_type id,
-        msgpack::object_handle result,
-        packio::err::error_code ec)
+    void async_call_handler(id_type id, msgpack::object_handle result, error_code ec)
     {
-        packio::asio::dispatch(
+        net::dispatch(
             call_strand_, [this, ec, id, result = std::move(result)]() mutable {
                 PACKIO_DEBUG("calling handler for id: {}", id);
 
@@ -324,7 +319,7 @@ private:
                 // to schedule the next read immediately
                 // this will allow parallel response handling
                 // in multi-threaded environments
-                packio::asio::post(
+                net::post(
                     socket_.get_executor(),
                     [ec,
                      handler = std::move(handler),
@@ -382,7 +377,7 @@ private:
             self_->async_send(
                 std::move(packer_buf),
                 [handler = std::forward<NotifyHandler>(handler)](
-                    packio::err::error_code ec, std::size_t length) mutable {
+                    error_code ec, std::size_t length) mutable {
                     if (ec) {
                         PACKIO_WARN("write error: {}", ec.message());
                     }
@@ -435,7 +430,7 @@ private:
                     name,
                     args));
 
-            packio::asio::dispatch(
+            net::dispatch(
                 self_->call_strand_,
                 [self = self_->shared_from_this(),
                  call_id,
@@ -456,8 +451,7 @@ private:
                     self->async_send(
                         std::move(packer_buf),
                         [self = std::move(self), call_id](
-                            packio::err::error_code ec,
-                            std::size_t length) mutable {
+                            error_code ec, std::size_t length) mutable {
                             if (ec) {
                                 PACKIO_WARN("write error: {}", ec.message());
                                 self->async_call_handler(
@@ -483,7 +477,7 @@ private:
 
     internal::manual_strand<executor_type> wstrand_;
 
-    packio::asio::strand<executor_type> call_strand_;
+    net::strand<executor_type> call_strand_;
     Map<id_type, async_call_handler_type> pending_;
     bool reading_{false};
 };

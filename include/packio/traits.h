@@ -67,7 +67,7 @@ struct Trait : std::integral_constant<bool, condition> {
 //! Handler used by @ref client::async_notify
 //! - Must be callable with an error_code
 template <typename T>
-struct NotifyHandler : Trait<std::is_invocable_v<T, packio::err::error_code>> {
+struct NotifyHandler : Trait<std::is_invocable_v<T, error_code>> {
 };
 
 //! CallHandler trait
@@ -76,7 +76,7 @@ struct NotifyHandler : Trait<std::is_invocable_v<T, packio::err::error_code>> {
 //! - Must be callable with error_code, msgpack::object_handle
 template <typename T>
 struct CallHandler
-    : Trait<std::is_invocable_v<T, packio::err::error_code, msgpack::object_handle>> {
+    : Trait<std::is_invocable_v<T, error_code, msgpack::object_handle>> {
 };
 
 //! AsCallHandler
@@ -85,7 +85,7 @@ struct CallHandler
 //! - Must be callable with error_code, std::optional<T>
 template <typename T, typename Result>
 struct AsCallHandler
-    : Trait<std::is_invocable_v<T, packio::err::error_code, std::optional<Result>>> {
+    : Trait<std::is_invocable_v<T, error_code, std::optional<Result>>> {
 };
 
 //! AsVoidCallHandler
@@ -93,8 +93,7 @@ struct AsCallHandler
 //! Handler wrapped by @ref as<void>
 //! - Must be callable with error_code
 template <typename T>
-struct AsVoidCallHandler
-    : Trait<std::is_invocable_v<T, packio::err::error_code>> {
+struct AsVoidCallHandler : Trait<std::is_invocable_v<T, error_code>> {
 };
 
 //! ServeHandler trait
@@ -104,7 +103,7 @@ struct AsVoidCallHandler
 //! error_code, std::shared_ptr<@ref server::session_type "session_type">
 template <typename T, typename Session>
 struct ServeHandler
-    : Trait<std::is_invocable_v<T, packio::err::error_code, std::shared_ptr<Session>>> {
+    : Trait<std::is_invocable_v<T, error_code, std::shared_ptr<Session>>> {
 };
 
 //! AsyncProcedure trait

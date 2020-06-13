@@ -31,22 +31,21 @@ auto as(
     std::enable_if_t<!std::is_void_v<Result>, void*> = nullptr)
 {
     PACKIO_STATIC_ASSERT_TTRAIT(AsCallHandler, Result);
-    return
-        [handler = std::forward<AsCallHandler>(handler)](
-            packio::err::error_code ec, msgpack::object_handle result) mutable {
-            if (ec) {
+    return [handler = std::forward<AsCallHandler>(handler)](
+               error_code ec, msgpack::object_handle result) mutable {
+        if (ec) {
+            handler(ec, std::nullopt);
+        }
+        else {
+            try {
+                handler(ec, std::optional<Result>{result->as<Result>()});
+            }
+            catch (msgpack::type_error&) {
+                ec = make_error_code(error::bad_result_type);
                 handler(ec, std::nullopt);
             }
-            else {
-                try {
-                    handler(ec, std::optional<Result>{result->as<Result>()});
-                }
-                catch (msgpack::type_error&) {
-                    ec = make_error_code(error::bad_result_type);
-                    handler(ec, std::nullopt);
-                }
-            }
-        };
+        }
+    };
 }
 
 //! Function used to wrap a call handler that expects a void result
@@ -61,14 +60,13 @@ auto as(
     std::enable_if_t<std::is_void_v<Result>, void*> = nullptr)
 {
     PACKIO_STATIC_ASSERT_TRAIT(AsVoidCallHandler);
-    return
-        [handler = std::forward<AsVoidCallHandler>(handler)](
-            packio::err::error_code ec, msgpack::object_handle result) mutable {
-            if (!ec && result->type != msgpack::type::NIL) {
-                ec = make_error_code(error::bad_result_type);
-            }
-            handler(ec);
-        };
+    return [handler = std::forward<AsVoidCallHandler>(handler)](
+               error_code ec, msgpack::object_handle result) mutable {
+        if (!ec && result->type != msgpack::type::NIL) {
+            ec = make_error_code(error::bad_result_type);
+        }
+        handler(ec);
+    };
 }
 
 } // packio

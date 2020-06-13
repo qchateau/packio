@@ -10,17 +10,15 @@ int main(int argc, char** argv)
     }
     const int n = std::atoi(argv[1]);
 
-    packio::asio::io_context io;
-    packio::asio::ip::tcp::endpoint bind_ep{
-        packio::asio::ip::make_address("127.0.0.1"), 0};
-    auto server = packio::make_server(
-        packio::asio::ip::tcp::acceptor{io, bind_ep});
-    auto client = packio::make_client(
-        packio::asio::use_awaitable_t<>::as_default_on(
-            packio::asio::ip::tcp::socket{io}));
+    packio::net::io_context io;
+    packio::net::ip::tcp::endpoint bind_ep{
+        packio::net::ip::make_address("127.0.0.1"), 0};
+    auto server = packio::make_server(packio::net::ip::tcp::acceptor{io, bind_ep});
+    auto client = packio::make_client(packio::net::use_awaitable_t<>::as_default_on(
+        packio::net::ip::tcp::socket{io}));
 
     server->dispatcher()->add_coro(
-        "fibonacci", io, [&](int n) -> packio::asio::awaitable<int> {
+        "fibonacci", io, [&](int n) -> packio::net::awaitable<int> {
             if (n <= 1) {
                 co_return n;
             }
@@ -39,7 +37,7 @@ int main(int argc, char** argv)
     client->async_call(
         "fibonacci",
         std::tuple{n},
-        packio::as<int>([&](packio::err::error_code, std::optional<int> r) {
+        packio::as<int>([&](packio::error_code, std::optional<int> r) {
             result = *r;
             io.stop();
         }));

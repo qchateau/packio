@@ -12,14 +12,14 @@ template <typename endpoint>
 endpoint get_endpoint();
 
 template <>
-inline packio::asio::ip::tcp::endpoint get_endpoint()
+inline packio::net::ip::tcp::endpoint get_endpoint()
 {
-    return {packio::asio::ip::make_address("127.0.0.1"), 0};
+    return {packio::net::ip::make_address("127.0.0.1"), 0};
 }
 
 #if defined(PACKIO_HAS_LOCAL_SOCKETS)
 template <>
-inline packio::asio::local::stream_protocol::endpoint get_endpoint()
+inline packio::net::local::stream_protocol::endpoint get_endpoint()
 {
     auto ts = std::chrono::system_clock::now().time_since_epoch().count();
     return {"/tmp/packio-" + std::to_string(ts)};

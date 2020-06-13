@@ -8,16 +8,15 @@
 
 #include "misc.h"
 
-using namespace std::chrono;
-using namespace packio::asio;
+using namespace std::chrono_literals;
+using namespace packio::net;
 using namespace packio;
-using std::this_thread::sleep_for;
 
 typedef ::testing::Types<
 #if defined(PACKIO_HAS_LOCAL_SOCKETS)
-    packio::asio::local::stream_protocol,
+    local::stream_protocol,
 #endif // defined(PACKIO_HAS_LOCAL_SOCKETS)
-    packio::asio::ip::tcp>
+    ip::tcp>
     Protocols;
 
 template <class Protocol>
@@ -74,7 +73,7 @@ protected:
         return clients;
     }
 
-    packio::asio::io_context io_;
+    io_context io_;
     std::shared_ptr<server_type> server_;
     std::vector<std::thread> runners_;
 };
@@ -106,8 +105,8 @@ TYPED_TEST(Server, test_same_func)
         }
     }
 
-    ASSERT_TRUE(done.wait_for(std::chrono::seconds{10}));
-    ASSERT_TRUE(calls.wait_for(std::chrono::seconds{10}));
+    ASSERT_TRUE(done.wait_for(10s));
+    ASSERT_TRUE(calls.wait_for(10s));
 }
 
 TYPED_TEST(Server, test_big_msg)
@@ -138,8 +137,8 @@ TYPED_TEST(Server, test_big_msg)
         }
     }
 
-    ASSERT_TRUE(done.wait_for(std::chrono::seconds{10}));
-    ASSERT_TRUE(calls.wait_for(std::chrono::seconds{10}));
+    ASSERT_TRUE(done.wait_for(10s));
+    ASSERT_TRUE(calls.wait_for(10s));
 }
 
 TYPED_TEST(Server, test_many_func)
@@ -177,6 +176,6 @@ TYPED_TEST(Server, test_many_func)
         }
     }
 
-    ASSERT_TRUE(done.wait_for(std::chrono::seconds{10}));
-    ASSERT_TRUE(calls.wait_for(std::chrono::seconds{10}));
+    ASSERT_TRUE(done.wait_for(10s));
+    ASSERT_TRUE(calls.wait_for(10s));
 }

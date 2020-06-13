@@ -52,7 +52,7 @@ struct is_awaitable : std::false_type {
 };
 
 template <typename... Args>
-struct is_awaitable<packio::asio::awaitable<Args...>> : std::true_type {
+struct is_awaitable<net::awaitable<Args...>> : std::true_type {
 };
 
 template <typename, typename = void>
@@ -101,18 +101,18 @@ struct decay_tuple<std::tuple<Args...>> {
 template <typename T>
 using decay_tuple_t = typename decay_tuple<T>::type;
 
-inline packio::asio::const_buffer buffer(const msgpack::sbuffer& buf)
+inline net::const_buffer buffer(const msgpack::sbuffer& buf)
 {
-    return packio::asio::const_buffer(buf.data(), buf.size());
+    return net::const_buffer(buf.data(), buf.size());
 }
 
-inline std::vector<packio::asio::const_buffer> buffer(const msgpack::vrefbuffer& buf)
+inline std::vector<net::const_buffer> buffer(const msgpack::vrefbuffer& buf)
 {
-    std::vector<packio::asio::const_buffer> vec;
+    std::vector<net::const_buffer> vec;
     vec.reserve(buf.vector_size());
     const struct iovec* iov = buf.vector();
     for (std::size_t i = 0; i < buf.vector_size(); ++i) {
-        vec.push_back(packio::asio::const_buffer(iov->iov_base, iov->iov_len));
+        vec.push_back(net::const_buffer(iov->iov_base, iov->iov_len));
         ++iov;
     }
     return vec;
@@ -132,9 +132,9 @@ void set_no_delay(T&)
 }
 
 template <>
-inline void set_no_delay(packio::asio::ip::tcp::socket& socket)
+inline void set_no_delay(net::ip::tcp::socket& socket)
 {
-    socket.set_option(packio::asio::ip::tcp::no_delay{true});
+    socket.set_option(net::ip::tcp::no_delay{true});
 }
 
 } // internal

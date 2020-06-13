@@ -1,16 +1,17 @@
 #include "tests.h"
 
+using namespace std::chrono_literals;
+using namespace packio::net;
+
 TYPED_TEST(Test, test_coroutine)
 {
-    using packio::asio::use_awaitable;
-
-    packio::asio::steady_timer timer{this->io_};
+    steady_timer timer{this->io_};
 
     this->server_->dispatcher()->add_coro(
         "add",
         this->io_.get_executor(), // executor
-        [&](int a, int b) -> packio::asio::awaitable<int> {
-            timer.expires_after(std::chrono::milliseconds{1});
+        [&](int a, int b) -> awaitable<int> {
+            timer.expires_after(1ms);
             co_await timer.async_wait(use_awaitable);
             co_return a + b;
         });
@@ -18,29 +19,29 @@ TYPED_TEST(Test, test_coroutine)
     this->server_->dispatcher()->add_coro(
         "add2",
         this->io_, // executor context
-        [&](int a, int b) -> packio::asio::awaitable<int> {
-            timer.expires_after(std::chrono::milliseconds{1});
+        [&](int a, int b) -> awaitable<int> {
+            timer.expires_after(1ms);
             co_await timer.async_wait(use_awaitable);
             co_return a + b;
         });
 
-    packio::asio::co_spawn(
+    co_spawn(
         this->io_,
-        [&]() -> packio::asio::awaitable<void> {
+        [&]() -> awaitable<void> {
             while (true) {
                 auto session = co_await this->server_->async_serve(use_awaitable);
                 session->start();
             }
         },
-        packio::asio::detached);
+        detached);
 
     this->async_run();
     this->connect();
 
     std::promise<void> p;
-    packio::asio::co_spawn(
+    co_spawn(
         this->io_,
-        [&]() -> packio::asio::awaitable<void> {
+        [&]() -> awaitable<void> {
             // Call using an awaitable
             msgpack::object_handle res = co_await this->client_->async_call(
                 "add", std::tuple{12, 23}, use_awaitable);
@@ -52,8 +53,6 @@ TYPED_TEST(Test, test_coroutine)
 
             p.set_value();
         },
-        packio::asio::detached);
-    ASSERT_EQ(
-        p.get_future().wait_for(std::chrono::seconds{1}),
-        std::future_status::ready);
+        detached);
+    ASSERT_EQ(p.get_future().wait_for(1s), std::future_status::ready);
 }

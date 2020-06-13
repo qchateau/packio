@@ -14,18 +14,18 @@
 typedef ::testing::Types<
 #if defined(PACKIO_HAS_LOCAL_SOCKETS)
     std::pair<
-        packio::client<packio::asio::local::stream_protocol::socket>,
-        packio::server<packio::asio::local::stream_protocol::acceptor>>,
+        packio::client<packio::net::local::stream_protocol::socket>,
+        packio::server<packio::net::local::stream_protocol::acceptor>>,
 #endif // defined(PACKIO_HAS_LOCAL_SOCKETS)
     std::pair<
-        packio::client<packio::asio::ip::tcp::socket>,
-        packio::server<packio::asio::ip::tcp::acceptor>>,
+        packio::client<packio::net::ip::tcp::socket>,
+        packio::server<packio::net::ip::tcp::acceptor>>,
     std::pair<
-        packio::client<packio::asio::ip::tcp::socket>,
-        packio::server<packio::asio::ip::tcp::acceptor, packio::dispatcher<std::map, my_spinlock>>>,
+        packio::client<packio::net::ip::tcp::socket>,
+        packio::server<packio::net::ip::tcp::acceptor, packio::dispatcher<std::map, my_spinlock>>>,
     std::pair<
-        packio::client<packio::asio::ip::tcp::socket, my_unordered_map>,
-        packio::server<packio::asio::ip::tcp::acceptor>>>
+        packio::client<packio::net::ip::tcp::socket, my_unordered_map>,
+        packio::server<packio::net::ip::tcp::acceptor>>>
     Implementations;
 
 template <class Impl>
@@ -64,7 +64,7 @@ protected:
         client_->socket().connect(ep);
     }
 
-    packio::asio::io_context io_;
+    packio::net::io_context io_;
     std::shared_ptr<server_type> server_;
     std::shared_ptr<client_type> client_;
     std::thread runner_;
