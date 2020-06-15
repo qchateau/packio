@@ -32,11 +32,6 @@ else ()
     add_definitions(/D_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING=1)
 endif ()
 
-if (PACKIO_STANDALONE_ASIO)
-    message(STATUS "Using standalone asio")
-    add_definitions(-DPACKIO_STANDALONE_ASIO=1)
-endif ()
-
 if (PACKIO_LOGGING)
     string(TOUPPER "${PACKIO_LOGGING}" LOGLEVEL)
     add_definitions(-DPACKIO_LOGGING=1)

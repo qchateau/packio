@@ -99,7 +99,7 @@ int main(int, char**)
 ### Standalone or boost asio
 
 By default, `packio` uses `boost.asio`. It is also compatible with standalone `asio`. To use the standalone version, the preprocessor macro `PACKIO_STANDALONE_ASIO=1` must be defined.
-If you are using the conan package, you must also use the option `standalone_asio=True`.
+If you are using the conan package, you can use the option `standalone_asio=True`.
 
 ## Tested compilers
 

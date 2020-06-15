@@ -24,6 +24,7 @@ class PackioConan(ConanFile):
 
     def configure(self):
         self.options["gtest"].build_gmock = False
+        self.options["packio"].standalone_asio = bool(self.options.asio)
 
     def requirements(self):
         if self.options.boost:
@@ -38,8 +39,6 @@ class PackioConan(ConanFile):
         defs = dict()
         if self.options.loglevel:
             defs["PACKIO_LOGGING"] = self.options.loglevel
-        if self.options.asio:
-            defs["PACKIO_STANDALONE_ASIO"] = "1"
         if self.options.coroutines:
             defs["PACKIO_COROUTINES"] = "1"
         # dont use the compiler setting, it breaks pre-built binaries
