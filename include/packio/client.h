@@ -83,7 +83,6 @@ public:
             auto ec = make_error_code(error::cancelled);
             self->async_call_handler(
                 id, internal::make_msgpack_object(ec.message()), ec);
-            self->maybe_stop_reading();
         });
     }
 
@@ -100,7 +99,6 @@ public:
                     internal::make_msgpack_object(ec.message()),
                     ec);
             }
-            self->maybe_stop_reading();
         });
     }
 
@@ -302,25 +300,27 @@ private:
     void async_call_handler(id_type id, msgpack::object_handle result, error_code ec)
     {
         net::dispatch(
-            call_strand_, [this, ec, id, result = std::move(result)]() mutable {
+            call_strand_,
+            [ec, id, self = shared_from_this(), result = std::move(result)]() mutable {
                 PACKIO_DEBUG("calling handler for id: {}", id);
 
                 assert(call_strand_.running_in_this_thread());
-                auto it = pending_.find(id);
-                if (it == pending_.end()) {
+                auto it = self->pending_.find(id);
+                if (it == self->pending_.end()) {
                     PACKIO_WARN("unexisting id");
                     return;
                 }
 
                 auto handler = std::move(it->second);
-                pending_.erase(it);
+                self->pending_.erase(it);
+                self->maybe_stop_reading();
 
                 // handle the response asynchronously (post)
                 // to schedule the next read immediately
                 // this will allow parallel response handling
                 // in multi-threaded environments
                 net::post(
-                    socket_.get_executor(),
+                    self->socket_.get_executor(),
                     [ec,
                      handler = std::move(handler),
                      result = std::move(result)]() mutable {
