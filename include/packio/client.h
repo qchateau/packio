@@ -203,19 +203,18 @@ private:
     template <typename Buffer, typename WriteHandler>
     void async_send(std::unique_ptr<Buffer> buffer_ptr, WriteHandler&& handler)
     {
-        wstrand_.push([this,
-                       self = shared_from_this(),
+        wstrand_.push([self = shared_from_this(),
                        buffer_ptr = std::move(buffer_ptr),
                        handler = std::forward<WriteHandler>(handler)]() mutable {
             using internal::buffer;
 
-            internal::set_no_delay(socket_);
+            internal::set_no_delay(self->socket_);
 
             auto buf = buffer(*buffer_ptr);
             net::async_write(
-                socket_,
+                self->socket_,
                 buf,
-                [self = std::move(self),
+                [self,
                  buffer_ptr = std::move(buffer_ptr),
                  handler = std::forward<WriteHandler>(handler)](
                     error_code ec, size_t length) mutable {
