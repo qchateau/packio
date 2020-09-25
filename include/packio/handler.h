@@ -10,26 +10,30 @@
 
 #include <functional>
 
-#include <msgpack.hpp>
-
-#include "error_code.h"
 #include "internal/config.h"
+#include "internal/rpc.h"
 #include "internal/utils.h"
 
 namespace packio {
 
 //! The completion_handler class
+//! @tparam Rpc RPC protocol implementation
 //!
 //! First argument of @ref traits::AsyncProcedure "AsyncProcedure", the
 //! completion_handler is a callable used to notify the completion of an
 //! asynchronous procedure. You must only call @ref set_value or
 //! @ref set_error once.
+template <typename Rpc>
 class completion_handler {
 public:
-    using function_type = std::function<void(error_code, msgpack::object_handle)>;
+    using id_type = typename Rpc::id_type;
+    using response_buffer_type = decltype(
+        Rpc::serialize_response(std::declval<id_type>()));
+    using function_type = std::function<void(response_buffer_type&&)>;
 
     template <typename F>
-    completion_handler(F&& handler) : handler_{std::forward<F>(handler)}
+    completion_handler(const id_type& id, F&& handler)
+        : id_(id), handler_(std::forward<F>(handler))
     {
     }
 
@@ -46,7 +50,7 @@ public:
 
     //! Move constructor
     completion_handler(completion_handler&& other)
-        : handler_{std::move(other.handler_)}
+        : id_(other.id_), handler_(std::move(other.handler_))
     {
         other.handler_ = nullptr;
     }
@@ -57,6 +61,7 @@ public:
         if (handler_) {
             set_error("Call finished with no result");
         }
+        id_ = other.id_;
         handler_ = std::move(other.handler_);
         other.handler_ = nullptr;
         return *this;
@@ -67,28 +72,25 @@ public:
     template <typename T>
     void set_value(T&& return_value)
     {
-        complete(
-            error::success,
-            internal::make_msgpack_object(std::forward<T>(return_value)));
+        complete(Rpc::serialize_response(id_, std::forward<T>(return_value)));
     }
 
-    //! Notify successful completion of the procedure with no return value
     //! @overload
-    void set_value() { complete(error::success, {}); }
+    void set_value() { complete(Rpc::serialize_response(id_)); }
 
     //! Notify erroneous completion of the procedure with an associated error
     //! @param error_value Error value
     template <typename T>
     void set_error(T&& error_value)
     {
-        complete(
-            error::error_during_call,
-            internal::make_msgpack_object(std::forward<T>(error_value)));
+        complete(Rpc::serialize_error_response(id_, std::forward<T>(error_value)));
     }
 
-    //! Notify erroneous completion of the procedure without an error value
     //! @overload
-    void set_error() { complete(error::error_during_call, {}); }
+    void set_error()
+    {
+        complete(Rpc::serialize_error_response(id_, "Unknown error"));
+    }
 
     //! Same as @ref set_value
     template <typename T>
@@ -101,12 +103,13 @@ public:
     void operator()() { set_value(); }
 
 private:
-    void complete(error err, msgpack::object_handle result)
+    void complete(response_buffer_type&& buffer)
     {
-        handler_(make_error_code(err), std::move(result));
+        handler_(std::move(buffer));
         handler_ = nullptr;
     }
 
+    id_type id_;
     function_type handler_;
 };
 } // packio

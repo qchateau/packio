@@ -75,7 +75,8 @@ def test_linux():
     builder = Packager()
 
     # Test coroutines
-    builder.add(compiler=CLANG, compiler_version="10", cppstd="17", settings={"compiler.libcxx": "libc++"}, options={"coroutines": True})
+    builder.add(compiler=CLANG, compiler_version="10", cppstd="20", settings={"compiler.libcxx": "libc++"}, options={"boost": "1.74.0", "coroutines": True})
+    builder.add(compiler=CLANG, compiler_version="10", cppstd="20", settings={"compiler.libcxx": "libc++"}, options={"asio": "1.17.0", "packio:standalone_asio": True, "coroutines": True})
 
     # Test debug build
     builder.add(compiler=GCC, compiler_version="10", cppstd="20", build_type="Debug")
@@ -105,6 +106,7 @@ def test_linux():
     builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"asio": "1.13.0", "packio:standalone_asio": True})
     builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"asio": "1.14.1", "packio:standalone_asio": True})
     builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"asio": "1.16.1", "packio:standalone_asio": True})
+    builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"asio": "1.17.0", "packio:standalone_asio": True})
 
     # Test logs
     builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"loglevel": "trace"})
@@ -125,7 +127,6 @@ def test_windows():
     builder.add(compiler=MSVC, compiler_version="16", cppstd="17")
     builder.add(compiler=MSVC, compiler_version="16", cppstd="20")
     builder.add(compiler=MSVC, compiler_version="16", cppstd="20", build_type="Debug")
-    builder.add(compiler=MSVC, compiler_version="16", cppstd="17", options={"coroutines": True})
     builder.run()
 
 

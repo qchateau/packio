@@ -15,81 +15,153 @@
 #include <string_view>
 #include <tuple>
 
-#include <msgpack.hpp>
-
-#include "error_code.h"
 #include "handler.h"
 #include "internal/config.h"
-#include "internal/unique_function.h"
+#include "internal/movable_function.h"
+#include "internal/rpc.h"
 #include "internal/utils.h"
 #include "traits.h"
 
 namespace packio {
 
 //! The dispatcher class, used to store and dispatch procedures
+//! @tparam Rpc RPC protocol implementation
 //! @tparam Map The container used to associate procedures to their name
 //! @tparam Lockable The lockable used to protect accesses to the procedure map
-template <template <class...> class Map = std::unordered_map, typename Lockable = std::mutex>
+template <typename Rpc, template <class...> class Map = default_map, typename Lockable = default_mutex>
 class dispatcher {
 public:
+    //! The RPC protocol type
+    using rpc_type = Rpc;
     //! The mutex type used to protect the procedure map
     using mutex_type = Lockable;
+    //! The type of the arguments used by the RPC protocol
+    using args_type = decltype(typename rpc_type::request_type{}.args);
     //! The type of function stored in the dispatcher
-    using function_type =
-        internal::unique_function<void(completion_handler, const msgpack::object&)>;
+    using function_type = internal::movable_function<
+        void(completion_handler<rpc_type>, args_type&& args)>;
     //! A shared pointer to @ref function_type
     using function_ptr_type = std::shared_ptr<function_type>;
 
     //! Add a synchronous procedure to the dispatcher
     //! @param name The name of the procedure
+    //! @param arguments_names The name of the arguments (optional)
     //! @param fct The procedure itself
-    template <typename SyncProcedure>
-    bool add(std::string_view name, SyncProcedure&& fct)
+    template <
+        typename SyncProcedure,
+        std::size_t N = internal::func_traits<SyncProcedure>::args_count>
+    bool add(
+        std::string_view name,
+        const std::array<std::string, N>& arguments_names,
+        SyncProcedure&& fct)
     {
         PACKIO_STATIC_ASSERT_TRAIT(SyncProcedure);
         std::unique_lock lock{map_mutex_};
         return function_map_
-            .emplace(name, wrap_sync(std::forward<SyncProcedure>(fct)))
+            .emplace(
+                name,
+                std::make_shared<function_type>(wrap_sync(
+                    std::forward<SyncProcedure>(fct), arguments_names)))
             .second;
+    }
+
+    //! @overload
+    template <typename SyncProcedure>
+    bool add(std::string_view name, SyncProcedure&& fct)
+    {
+        return add<SyncProcedure, 0>(name, {}, std::forward<SyncProcedure>(fct));
     }
 
     //! Add an asynchronous procedure to the dispatcher
     //! @param name The name of the procedure
+    //! @param arguments_names The name of the arguments (optional)
     //! @param fct The procedure itself
-    template <typename AsyncProcedure>
-    bool add_async(std::string_view name, AsyncProcedure&& fct)
+    template <
+        typename AsyncProcedure,
+        std::size_t N = internal::func_traits<AsyncProcedure>::args_count - 1>
+    bool add_async(
+        std::string_view name,
+        const std::array<std::string, N>& arguments_names,
+        AsyncProcedure&& fct)
     {
-        PACKIO_STATIC_ASSERT_TRAIT(AsyncProcedure);
+        PACKIO_STATIC_ASSERT_TTRAIT(AsyncProcedure, rpc_type);
         std::unique_lock lock{map_mutex_};
         return function_map_
-            .emplace(name, wrap_async(std::forward<AsyncProcedure>(fct)))
+            .emplace(
+                name,
+                std::make_shared<function_type>(wrap_async(
+                    std::forward<AsyncProcedure>(fct), arguments_names)))
             .second;
     }
 
-#if defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_DOCUMENTATION)
+    //! @overload
+    template <typename AsyncProcedure>
+    bool add_async(std::string_view name, AsyncProcedure&& fct)
+    {
+        return add_async<AsyncProcedure, 0>(
+            name, {}, std::forward<AsyncProcedure>(fct));
+    }
+
+#if defined(PACKIO_HAS_CO_AWAIT)
     //! Add a coroutine to the dispatcher
     //! @param name The name of the procedure
     //! @param executor The executor used to execute the coroutine
+    //! @param arguments_names The name of the arguments (optional)
     //! @param coro The coroutine to use as procedure
-    template <typename Executor, typename CoroProcedure>
-    bool add_coro(std::string_view name, const Executor& executor, CoroProcedure&& coro)
+    template <
+        typename Executor,
+        typename CoroProcedure,
+        std::size_t N = internal::func_traits<CoroProcedure>::args_count>
+    bool add_coro(
+        std::string_view name,
+        const Executor& executor,
+        const std::array<std::string, N>& arguments_names,
+        CoroProcedure&& coro)
     {
         PACKIO_STATIC_ASSERT_TRAIT(CoroProcedure);
         std::unique_lock lock{map_mutex_};
         return function_map_
-            .emplace(name, wrap_coro(executor, std::forward<CoroProcedure>(coro)))
+            .emplace(
+                name,
+                std::make_shared<function_type>(wrap_coro(
+                    executor, std::forward<CoroProcedure>(coro), arguments_names)))
             .second;
     }
 
-    //! Add a coroutine to the dispatcher
+    //! @overload
+    template <typename Executor, typename CoroProcedure>
+    bool add_coro(std::string_view name, const Executor& executor, CoroProcedure&& coro)
+    {
+        return add_coro<Executor, CoroProcedure, 0>(
+            name, executor, {}, std::forward<CoroProcedure>(coro));
+    }
+
+    //! @overload
+    template <
+        typename ExecutionContext,
+        typename CoroProcedure,
+        std::size_t N = internal::func_traits<CoroProcedure>::args_count>
+    bool add_coro(
+        std::string_view name,
+        ExecutionContext& ctx,
+        const std::array<std::string, N>& arguments_names,
+        CoroProcedure&& coro)
+    {
+        return add_coro<decltype(ctx.get_executor()), CoroProcedure, N>(
+            name,
+            ctx.get_executor(),
+            arguments_names,
+            std::forward<CoroProcedure>(coro));
+    }
+
     //! @overload
     template <typename ExecutionContext, typename CoroProcedure>
     bool add_coro(std::string_view name, ExecutionContext& ctx, CoroProcedure&& coro)
     {
-        return add_coro(
-            name, ctx.get_executor(), std::forward<CoroProcedure>(coro));
+        return add_coro<ExecutionContext, CoroProcedure, 0>(
+            name, ctx, {}, std::forward<CoroProcedure>(coro));
     }
-#endif // defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_DOCUMENTATION)
+#endif // defined(PACKIO_HAS_CO_AWAIT)
 
     //! Remove a procedure from the dispatcher
     //! @param name The name of the procedure to remove
@@ -149,125 +221,120 @@ public:
     }
 
 private:
-    using map_type = Map<std::string, function_ptr_type>;
+    using function_map_type = Map<std::string, function_ptr_type>;
 
-    template <typename F>
-    function_ptr_type wrap_sync(F&& fct)
+    template <typename TArgs, std::size_t NNamedArgs>
+    static void static_assert_arguments_name_and_count()
+    {
+        static_assert(
+            NNamedArgs == 0 || std::tuple_size_v<TArgs> == NNamedArgs,
+            "incompatible arguments count and names");
+    }
+
+    template <typename F, std::size_t N>
+    auto wrap_sync(F&& fct, const std::array<std::string, N>& args_names)
     {
         using value_args =
             internal::decay_tuple_t<typename internal::func_traits<F>::args_type>;
         using result_type = typename internal::func_traits<F>::result_type;
+        static_assert_arguments_name_and_count<value_args, N>();
 
-        return std::make_shared<function_type>(
-            [fct = std::forward<F>(fct)](
-                completion_handler handler, const msgpack::object& args) mutable {
-                if (args.via.array.size != std::tuple_size_v<value_args>) {
-                    // keep this check otherwise msgpack unpacker
-                    // may silently drop arguments
-                    PACKIO_DEBUG("incompatible argument count");
+        return
+            [fct = std::forward<F>(fct), args_names](
+                completion_handler<rpc_type> handler, args_type&& args) mutable {
+                auto typed_args = rpc_type::template extract_args<value_args>(
+                    std::move(args), args_names);
+                if (!typed_args) {
+                    PACKIO_DEBUG("incompatible arguments");
                     handler.set_error("Incompatible arguments");
                     return;
                 }
 
-                try {
-                    if constexpr (std::is_void_v<result_type>) {
-                        std::apply(fct, args.as<value_args>());
-                        handler();
-                    }
-                    else {
-                        handler(std::apply(fct, args.as<value_args>()));
-                    }
+                if constexpr (std::is_void_v<result_type>) {
+                    std::apply(fct, std::move(*typed_args));
+                    handler();
                 }
-                catch (msgpack::type_error&) {
-                    PACKIO_DEBUG("incompatible arguments");
-                    handler.set_error("Incompatible arguments");
+                else {
+                    handler(std::apply(fct, std::move(*typed_args)));
                 }
-            });
+            };
     }
 
-    template <typename F>
-    function_ptr_type wrap_async(F&& fct)
+    template <typename F, std::size_t N>
+    auto wrap_async(F&& fct, const std::array<std::string, N>& args_names)
     {
         using args = typename internal::func_traits<F>::args_type;
         using value_args = internal::decay_tuple_t<internal::shift_tuple_t<args>>;
+        static_assert_arguments_name_and_count<value_args, N>();
 
-        return std::make_shared<function_type>(
-            [fct = std::forward<F>(fct)](
-                completion_handler handler, const msgpack::object& args) mutable {
-                if (args.via.array.size != std::tuple_size_v<value_args>) {
-                    // keep this check otherwise msgpack unpacker
-                    // may silently drop arguments
-                    PACKIO_DEBUG("incompatible argument count");
+        return
+            [fct = std::forward<F>(fct), args_names](
+                completion_handler<rpc_type> handler, args_type&& args) mutable {
+                auto typed_args = rpc_type::template extract_args<value_args>(
+                    std::move(args), args_names);
+                if (!typed_args) {
+                    PACKIO_DEBUG("incompatible arguments");
                     handler.set_error("Incompatible arguments");
                     return;
                 }
 
-                try {
-                    std::apply(
-                        [&](auto&&... args) {
-                            fct(std::move(handler),
-                                std::forward<decltype(args)>(args)...);
-                        },
-                        args.as<value_args>());
-                }
-                catch (msgpack::type_error&) {
-                    PACKIO_DEBUG("incompatible arguments");
-                    handler.set_error("Incompatible arguments");
-                }
-            });
+                std::apply(
+                    [&](auto&&... args) {
+                        fct(std::move(handler),
+                            std::forward<decltype(args)>(args)...);
+                    },
+                    std::move(*typed_args));
+            };
     }
 
-#if defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_DOCUMENTATION)
-    template <typename E, typename C>
-    function_ptr_type wrap_coro(const E& executor, C&& coro)
+#if defined(PACKIO_HAS_CO_AWAIT)
+    template <typename E, typename C, std::size_t N>
+    auto wrap_coro(
+        const E& executor,
+        C&& coro,
+        const std::array<std::string, N>& args_names)
     {
         using value_args =
             internal::decay_tuple_t<typename internal::func_traits<C>::args_type>;
         using result_type =
             typename internal::func_traits<C>::result_type::value_type;
+        static_assert_arguments_name_and_count<value_args, N>();
 
-        return std::make_shared<function_type>(
-            [executor, coro = std::forward<C>(coro)](
-                completion_handler handler, const msgpack::object& args) mutable {
-                if (args.via.array.size != std::tuple_size_v<value_args>) {
-                    // keep this check otherwise msgpack unpacker
-                    // may silently drop arguments
-                    PACKIO_DEBUG("incompatible argument count");
-                    handler.set_error("Incompatible arguments");
-                    return;
-                }
+        return [executor, coro = std::forward<C>(coro), args_names](
+                   completion_handler<rpc_type> handler,
+                   args_type&& args) mutable {
+            auto typed_args = rpc_type::template extract_args<value_args>(
+                std::move(args), args_names);
+            if (!typed_args) {
+                PACKIO_DEBUG("incompatible arguments");
+                handler.set_error("Incompatible arguments");
+                return;
+            }
 
-                net::co_spawn(
-                    executor,
-                    [args = args.as<value_args>(),
-                     handler = std::move(handler),
-                     coro = std::forward<C>(
-                         coro)]() mutable -> net::awaitable<void> {
-                        try {
-                            if constexpr (std::is_void_v<result_type>) {
-                                co_await std::apply(coro, args);
-                                handler();
-                            }
-                            else {
-                                handler(co_await std::apply(coro, args));
-                            }
-                        }
-                        catch (msgpack::type_error&) {
-                            PACKIO_DEBUG("incompatible arguments");
-                            handler.set_error("Incompatible arguments");
-                        }
-                    },
-                    [](std::exception_ptr exc) {
-                        if (exc) {
-                            std::rethrow_exception(exc);
-                        }
-                    });
-            });
+            net::co_spawn(
+                executor,
+                [typed_args = std::move(*typed_args),
+                 handler = std::move(handler),
+                 coro = std::forward<C>(coro)]() mutable -> net::awaitable<void> {
+                    if constexpr (std::is_void_v<result_type>) {
+                        co_await std::apply(coro, std::move(typed_args));
+                        handler();
+                    }
+                    else {
+                        handler(co_await std::apply(coro, std::move(typed_args)));
+                    }
+                },
+                [](std::exception_ptr exc) {
+                    if (exc) {
+                        std::rethrow_exception(exc);
+                    }
+                });
+        };
     }
-#endif // defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_DOCUMENTATION)
+#endif // defined(PACKIO_HAS_CO_AWAIT)
 
     mutable mutex_type map_mutex_;
-    map_type function_map_;
+    function_map_type function_map_;
 };
 
 } // packio

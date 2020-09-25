@@ -10,9 +10,6 @@
 #include <type_traits>
 #include <vector>
 
-#include <msgpack.hpp>
-
-#include "../error_code.h"
 #include "config.h"
 #include "log.h"
 
@@ -46,7 +43,7 @@ struct func_traits<R (*)(Args...)> : std::true_type {
 template <typename T>
 constexpr bool func_traits_v = func_traits<T>::value;
 
-#if defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_DOCUMENTATION)
+#if defined(PACKIO_HAS_CO_AWAIT)
 template <typename>
 struct is_awaitable : std::false_type {
 };
@@ -66,14 +63,15 @@ struct is_coroutine<T, std::enable_if_t<func_traits_v<T>>>
 
 template <typename T>
 constexpr bool is_coroutine_v = is_coroutine<T>::value;
-#endif // defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_DOCUMENTATION)
+#endif // defined(PACKIO_HAS_CO_AWAIT)
 
-template <typename T>
+template <typename T, typename = void>
 struct is_tuple : std::false_type {
 };
 
-template <typename... Args>
-struct is_tuple<std::tuple<Args...>> : std::true_type {
+template <typename T>
+struct is_tuple<T, std::void_t<decltype(std::tuple_size<std::decay_t<T>>::value)>>
+    : std::true_type {
 };
 
 template <typename T>
@@ -101,31 +99,6 @@ struct decay_tuple<std::tuple<Args...>> {
 template <typename T>
 using decay_tuple_t = typename decay_tuple<T>::type;
 
-inline net::const_buffer buffer(const msgpack::sbuffer& buf)
-{
-    return net::const_buffer(buf.data(), buf.size());
-}
-
-inline std::vector<net::const_buffer> buffer(const msgpack::vrefbuffer& buf)
-{
-    std::vector<net::const_buffer> vec;
-    vec.reserve(buf.vector_size());
-    const struct iovec* iov = buf.vector();
-    for (std::size_t i = 0; i < buf.vector_size(); ++i) {
-        vec.push_back(net::const_buffer(iov->iov_base, iov->iov_len));
-        ++iov;
-    }
-    return vec;
-}
-
-template <typename T>
-msgpack::object_handle make_msgpack_object(T&& value)
-{
-    msgpack::object_handle oh({}, std::make_unique<msgpack::zone>());
-    oh.set(msgpack::object(std::forward<T>(value), *oh.zone()));
-    return oh;
-}
-
 template <typename T>
 void set_no_delay(T&)
 {
@@ -135,6 +108,12 @@ template <>
 inline void set_no_delay(net::ip::tcp::socket& socket)
 {
     socket.set_option(net::ip::tcp::no_delay{true});
+}
+
+template <typename T>
+std::unique_ptr<std::decay_t<T>> to_unique_ptr(T&& value)
+{
+    return std::make_unique<std::decay_t<T>>(std::forward<T>(value));
 }
 
 } // internal

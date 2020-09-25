@@ -10,8 +10,6 @@
 
 #include <memory>
 
-#include <msgpack.hpp>
-
 #include "dispatcher.h"
 #include "internal/config.h"
 #include "internal/log.h"
@@ -22,11 +20,14 @@
 namespace packio {
 
 //! The server class
+//! @tparam Rpc RPC protocol implementation
 //! @tparam Acceptor Acceptor type to use for this server
 //! @tparam Dispatcher Dispatcher used to store and dispatch procedures. See @ref dispatcher
-template <typename Acceptor, typename Dispatcher = dispatcher<>>
-class server : public std::enable_shared_from_this<server<Acceptor, Dispatcher>> {
+template <typename Rpc, typename Acceptor, typename Dispatcher = dispatcher<Rpc>>
+class server
+    : public std::enable_shared_from_this<server<Rpc, Acceptor, Dispatcher>> {
 public:
+    using rpc_type = Rpc; //!< The RPC protocol type
     using acceptor_type = Acceptor; //!< The acceptor type
     using protocol_type = typename Acceptor::protocol_type; //!< The protocol type
     using dispatcher_type = Dispatcher; //!< The dispatcher type
@@ -34,9 +35,9 @@ public:
         typename acceptor_type::executor_type; //!< The executor type
     using socket_type = std::decay_t<decltype(
         std::declval<acceptor_type>().accept())>; //!< The connection socket type
-    using session_type = server_session<socket_type, dispatcher_type>;
+    using session_type = server_session<rpc_type, socket_type, dispatcher_type>;
 
-    using std::enable_shared_from_this<server<Acceptor, Dispatcher>>::shared_from_this;
+    using std::enable_shared_from_this<server<Rpc, Acceptor, Dispatcher>>::shared_from_this;
 
     //! The constructor
     //!
@@ -47,7 +48,6 @@ public:
     {
     }
 
-    //! Simplified constructor: will allocate a new dispatcher automatically
     //! @overload
     explicit server(acceptor_type acceptor)
         : server{std::move(acceptor), std::make_shared<dispatcher_type>()}
@@ -143,12 +143,13 @@ private:
 };
 
 //! Create a server from an acceptor
+//! @tparam Rpc RPC protocol implementation
 //! @tparam Acceptor Acceptor type to use for this server
 //! @tparam Dispatcher Dispatcher used to store and dispatch procedures. See @ref dispatcher
-template <typename Acceptor, typename Dispatcher = dispatcher<>>
+template <typename Rpc, typename Acceptor, typename Dispatcher = dispatcher<Rpc>>
 auto make_server(Acceptor&& acceptor)
 {
-    return std::make_shared<server<Acceptor, Dispatcher>>(
+    return std::make_shared<server<Rpc, Acceptor, Dispatcher>>(
         std::forward<Acceptor>(acceptor));
 }
 

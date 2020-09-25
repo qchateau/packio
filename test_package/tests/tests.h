@@ -14,18 +14,23 @@
 typedef ::testing::Types<
 #if defined(PACKIO_HAS_LOCAL_SOCKETS)
     std::pair<
-        packio::client<packio::net::local::stream_protocol::socket>,
-        packio::server<packio::net::local::stream_protocol::acceptor>>,
+        packio::msgpack_rpc::client<packio::net::local::stream_protocol::socket>,
+        packio::msgpack_rpc::server<packio::net::local::stream_protocol::acceptor>>,
 #endif // defined(PACKIO_HAS_LOCAL_SOCKETS)
     std::pair<
-        packio::client<packio::net::ip::tcp::socket>,
-        packio::server<packio::net::ip::tcp::acceptor>>,
+        packio::msgpack_rpc::client<packio::net::ip::tcp::socket>,
+        packio::msgpack_rpc::server<packio::net::ip::tcp::acceptor>>,
     std::pair<
-        packio::client<packio::net::ip::tcp::socket>,
-        packio::server<packio::net::ip::tcp::acceptor, packio::dispatcher<std::map, my_spinlock>>>,
+        packio::nl_json_rpc::client<packio::net::ip::tcp::socket>,
+        packio::nl_json_rpc::server<packio::net::ip::tcp::acceptor>>,
     std::pair<
-        packio::client<packio::net::ip::tcp::socket, my_unordered_map>,
-        packio::server<packio::net::ip::tcp::acceptor>>>
+        packio::msgpack_rpc::client<packio::net::ip::tcp::socket>,
+        packio::msgpack_rpc::server<
+            packio::net::ip::tcp::acceptor,
+            packio::msgpack_rpc::dispatcher<std::map, my_spinlock>>>,
+    std::pair<
+        packio::msgpack_rpc::client<packio::net::ip::tcp::socket, my_unordered_map>,
+        packio::msgpack_rpc::server<packio::net::ip::tcp::acceptor>>>
     Implementations;
 
 template <class Impl>
@@ -37,6 +42,8 @@ protected:
     using endpoint_type = typename protocol_type::endpoint;
     using socket_type = typename protocol_type::socket;
     using acceptor_type = typename protocol_type::acceptor;
+    using completion_handler =
+        packio::completion_handler<typename client_type::rpc_type>;
 
     Test()
         : server_{std::make_shared<server_type>(

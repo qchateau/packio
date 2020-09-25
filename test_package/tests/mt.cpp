@@ -22,8 +22,8 @@ typedef ::testing::Types<
 template <class Protocol>
 class Server : public ::testing::Test {
 protected:
-    using server_type = server<typename Protocol::acceptor>;
-    using client_type = client<typename Protocol::socket>;
+    using server_type = packio::msgpack_rpc::server<typename Protocol::acceptor>;
+    using client_type = packio::msgpack_rpc::client<typename Protocol::socket>;
     using endpoint_type = typename Protocol::endpoint;
     using socket_type = typename Protocol::socket;
     using acceptor_type = typename Protocol::acceptor;
@@ -97,9 +97,9 @@ TYPED_TEST(Server, test_same_func)
     for (int i = 0; i < kNCalls; ++i) {
         for (auto& client : clients) {
             client->async_call(
-                "double", std::make_tuple(42), [&](auto ec, auto result) {
+                "double", std::make_tuple(42), [&](auto ec, auto res) {
                     ASSERT_FALSE(ec);
-                    ASSERT_EQ(84, result->template as<int>());
+                    ASSERT_EQ(84, get<int>(res.result));
                     done.count_down();
                 });
         }
@@ -129,9 +129,9 @@ TYPED_TEST(Server, test_big_msg)
     for (int i = 0; i < kNCalls; ++i) {
         for (auto& client : clients) {
             client->async_call(
-                "echo", std::make_tuple(big_msg), [&](auto ec, auto result) {
+                "echo", std::make_tuple(big_msg), [&](auto ec, auto res) {
                     ASSERT_FALSE(ec);
-                    ASSERT_EQ(big_msg, result->template as<std::string>());
+                    ASSERT_EQ(big_msg, get<std::string>(res.result));
                     done.count_down();
                 });
         }
@@ -163,12 +163,11 @@ TYPED_TEST(Server, test_many_func)
         int j = 0;
         for (auto& client : clients) {
             std::string name = std::to_string(j++);
-            client->async_call(
-                name, std::make_tuple(42), [&](auto ec, auto result) {
-                    ASSERT_FALSE(ec);
-                    ASSERT_EQ(42, result->template as<int>());
-                    done.count_down();
-                });
+            client->async_call(name, std::make_tuple(42), [&](auto ec, auto res) {
+                ASSERT_FALSE(ec);
+                ASSERT_EQ(42, get<int>(res.result));
+                done.count_down();
+            });
             client->async_notify(name, std::make_tuple(42), [&](auto ec) {
                 ASSERT_FALSE(ec);
                 done.count_down();

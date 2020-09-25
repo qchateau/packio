@@ -43,16 +43,16 @@ TYPED_TEST(Test, test_coroutine)
         this->io_,
         [&]() -> awaitable<void> {
             // Call using an awaitable
-            msgpack::object_handle res = co_await this->client_->async_call(
+            auto res = co_await this->client_->async_call(
                 "add", std::tuple{12, 23}, use_awaitable);
-            EXPECT_EQ(res->as<int>(), 35);
+            EXPECT_EQ(get<int>(res.result), 35);
 
             res = co_await this->client_->async_call(
                 "add2", std::tuple{31, 3}, use_awaitable);
-            EXPECT_EQ(res->as<int>(), 34);
+            EXPECT_EQ(get<int>(res.result), 34);
 
             p.set_value();
         },
         detached);
-    ASSERT_EQ(p.get_future().wait_for(1s), std::future_status::ready);
+    ASSERT_FUTURE_NO_THROW(p.get_future());
 }
