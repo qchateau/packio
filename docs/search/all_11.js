@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['unknown_5fprocedure_66',['unknown_procedure',['../namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809ae63ab84fdc5d63927652dac21ec411ac',1,'packio']]]
+  ['_7ecompletion_5fhandler_70',['~completion_handler',['../classpackio_1_1completion__handler.html#ab171e21dd2e0508e96fd908a542b79b5',1,'packio::completion_handler']]]
 ];

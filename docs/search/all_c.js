@@ -1,5 +1,8 @@
 var searchData=
 [
-  ['operator_28_29_46',['operator()',['../classpackio_1_1completion__handler.html#af8fc63fe1638048313ca2e081d1bfb7e',1,'packio::completion_handler::operator()(T &amp;&amp;return_value)'],['../classpackio_1_1completion__handler.html#ae88a9601765c0e6ee070a73ee70b60f9',1,'packio::completion_handler::operator()()']]],
-  ['operator_3d_47',['operator=',['../classpackio_1_1completion__handler.html#aeedf3e5ac4eeb5a8976a82aaca769bb9',1,'packio::completion_handler']]]
+  ['msgpack_5frpc_44',['msgpack_rpc',['../namespacepackio_1_1msgpack__rpc.html',1,'packio']]],
+  ['nl_5fjson_5frpc_45',['nl_json_rpc',['../namespacepackio_1_1nl__json__rpc.html',1,'packio']]],
+  ['packio_46',['packio',['../namespacepackio.html',1,'']]],
+  ['packio_2eh_47',['packio.h',['../packio_8h.html',1,'']]],
+  ['protocol_5ftype_48',['protocol_type',['../classpackio_1_1client.html#a6d4173ba81572e0e1d11d4e83d57ab90',1,'packio::client::protocol_type()'],['../classpackio_1_1server.html#aeca24e496aec70feb6c1363b760a6e55',1,'packio::server::protocol_type()'],['../classpackio_1_1server__session.html#a555264e82920fac940e21abb4ca7f098',1,'packio::server_session::protocol_type()']]]
 ];

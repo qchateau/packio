@@ -76,7 +76,6 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><code>#include &lt;memory&gt;</code><br />
-<code>#include &lt;msgpack.hpp&gt;</code><br />
 <code>#include &quot;<a class="el" href="dispatcher_8h_source.html">dispatcher.h</a>&quot;</code><br />
 <code>#include &quot;internal/config.h&quot;</code><br />
 <code>#include &quot;internal/log.h&quot;</code><br />
@@ -88,7 +87,7 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
 Classes</h2></td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1server.html">packio::server&lt; Acceptor, Dispatcher &gt;</a></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1server.html">packio::server&lt; Rpc, Acceptor, Dispatcher &gt;</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The server class.  <a href="classpackio_1_1server.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -99,10 +98,10 @@ Namespaces</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:adb4190a7fda2259edbbe7684c2c5a766"><td class="memTemplParams" colspan="2">template&lt;typename Acceptor , typename Dispatcher  = dispatcher&lt;&gt;&gt; </td></tr>
-<tr class="memitem:adb4190a7fda2259edbbe7684c2c5a766"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacepackio.html#adb4190a7fda2259edbbe7684c2c5a766">packio::make_server</a> (Acceptor &amp;&amp;acceptor)</td></tr>
-<tr class="memdesc:adb4190a7fda2259edbbe7684c2c5a766"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a server from an acceptor.  <a href="namespacepackio.html#adb4190a7fda2259edbbe7684c2c5a766">More...</a><br /></td></tr>
-<tr class="separator:adb4190a7fda2259edbbe7684c2c5a766"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4944e82d7f3dd2ee989a49d928cef3d3"><td class="memTemplParams" colspan="2">template&lt;typename Rpc , typename Acceptor , typename Dispatcher  = dispatcher&lt;Rpc&gt;&gt; </td></tr>
+<tr class="memitem:a4944e82d7f3dd2ee989a49d928cef3d3"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacepackio.html#a4944e82d7f3dd2ee989a49d928cef3d3">packio::make_server</a> (Acceptor &amp;&amp;acceptor)</td></tr>
+<tr class="memdesc:a4944e82d7f3dd2ee989a49d928cef3d3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a server from an acceptor.  <a href="namespacepackio.html#a4944e82d7f3dd2ee989a49d928cef3d3">More...</a><br /></td></tr>
+<tr class="separator:a4944e82d7f3dd2ee989a49d928cef3d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Class <a class="el" href="classpackio_1_1server.html">server</a> </p>

@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['kdefaultbufferreservesize_122',['kDefaultBufferReserveSize',['../classpackio_1_1client.html#a2f73dd57767e2dac677ffd03b672e6c5',1,'packio::client::kDefaultBufferReserveSize()'],['../classpackio_1_1server__session.html#abb614afb4157378d1a533312880af595',1,'packio::server_session::kDefaultBufferReserveSize()']]]
+  ['kdefaultbufferreservesize_128',['kDefaultBufferReserveSize',['../classpackio_1_1client.html#ad4e5a705e61a06ffa999e7c2cbf42cb2',1,'packio::client::kDefaultBufferReserveSize()'],['../classpackio_1_1server__session.html#abda9254cbf38a8b0644b3603e55b2c15',1,'packio::server_session::kDefaultBufferReserveSize()']]]
 ];

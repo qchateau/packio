@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['dispatcher_105',['dispatcher',['../classpackio_1_1server.html#a71c73a5ab56575e2fa3e05b39865a68e',1,'packio::server::dispatcher()'],['../classpackio_1_1server.html#a343d3dab6de63fe6dee0c0765d781f2c',1,'packio::server::dispatcher() const']]]
+  ['dispatcher_111',['dispatcher',['../classpackio_1_1server.html#aa22366b9445ea0aefd62f30b671ad803',1,'packio::server::dispatcher()'],['../classpackio_1_1server.html#a2250f0c7f67268253726730efde18f1e',1,'packio::server::dispatcher() const']]]
 ];

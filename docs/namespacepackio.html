@@ -64,15 +64,21 @@ $(function() {
 </div><!-- top -->
 <div class="header">
   <div class="summary">
+<a href="#namespaces">Namespaces</a> &#124;
 <a href="#nested-classes">Classes</a> &#124;
-<a href="#typedef-members">Typedefs</a> &#124;
-<a href="#enum-members">Enumerations</a> &#124;
 <a href="#func-members">Functions</a>  </div>
   <div class="headertitle">
 <div class="title">packio Namespace Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
 <table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="namespaces"></a>
+Namespaces</h2></td></tr>
+<tr class="memitem:namespacepackio_1_1msgpack__rpc"><td class="memItemLeft" align="right" valign="top"> &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepackio_1_1msgpack__rpc.html">msgpack_rpc</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:namespacepackio_1_1nl__json__rpc"><td class="memItemLeft" align="right" valign="top"> &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepackio_1_1nl__json__rpc.html">nl_json_rpc</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
 Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1client.html">client</a></td></tr>
@@ -91,174 +97,27 @@ Classes</h2></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="classpackio_1_1server__session.html" title="The server_session class, created by the server.">server_session</a> class, created by the <a class="el" href="classpackio_1_1server.html">server</a>.  <a href="classpackio_1_1server__session.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
-Typedefs</h2></td></tr>
-<tr class="memitem:a02aa56c39599b9cde75f298011dc87e8"><td class="memItemLeft" align="right" valign="top"><a id="a02aa56c39599b9cde75f298011dc87e8"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepackio.html#a02aa56c39599b9cde75f298011dc87e8">id_type</a> = uint32_t</td></tr>
-<tr class="memdesc:a02aa56c39599b9cde75f298011dc87e8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type used to store call IDs. <br /></td></tr>
-<tr class="separator:a02aa56c39599b9cde75f298011dc87e8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
-Enumerations</h2></td></tr>
-<tr class="memitem:ad0fad01adc607b1ef672314d1ed01809"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809">error</a> { <br />
-&#160;&#160;<a class="el" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a260ca9dd8a4577fc00b7bd5810298076">error::success</a> = 0, 
-<a class="el" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809ad1ef7ee50ccddcdd2ed2ce9c69db96ae">error::error_during_call</a>, 
-<a class="el" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809ae63ab84fdc5d63927652dac21ec411ac">error::unknown_procedure</a>, 
-<a class="el" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a38881e0a24039dc2621e1d6f86cb71f7">error::cancelled</a>, 
-<br />
-&#160;&#160;<a class="el" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a71ecb7c2f853a21a83ebdc5a392c57b6">error::call_error</a>, 
-<a class="el" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a3421ef6eef824d84f3ff3170d051ef80">error::bad_result_type</a>
-<br />
- }</td></tr>
-<tr class="memdesc:ad0fad01adc607b1ef672314d1ed01809"><td class="mdescLeft">&#160;</td><td class="mdescRight">The error codes enumeration.  <a href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809">More...</a><br /></td></tr>
-<tr class="separator:ad0fad01adc607b1ef672314d1ed01809"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:a98ec735bfe5e3655f1e398f9f8c122bc"><td class="memTemplParams" colspan="2">template&lt;typename Result , typename AsCallHandler &gt; </td></tr>
-<tr class="memitem:a98ec735bfe5e3655f1e398f9f8c122bc"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacepackio.html#a98ec735bfe5e3655f1e398f9f8c122bc">as</a> (AsCallHandler &amp;&amp;handler, std::enable_if_t&lt;!std::is_void_v&lt; Result &gt;, void * &gt;=nullptr)</td></tr>
-<tr class="memdesc:a98ec735bfe5e3655f1e398f9f8c122bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function used to wrap a typed call handler.  <a href="namespacepackio.html#a98ec735bfe5e3655f1e398f9f8c122bc">More...</a><br /></td></tr>
-<tr class="separator:a98ec735bfe5e3655f1e398f9f8c122bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a96d591f155009301646e3827cc3e4f14"><td class="memTemplParams" colspan="2">template&lt;typename Result , typename AsVoidCallHandler &gt; </td></tr>
-<tr class="memitem:a96d591f155009301646e3827cc3e4f14"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacepackio.html#a96d591f155009301646e3827cc3e4f14">as</a> (AsVoidCallHandler &amp;&amp;handler, std::enable_if_t&lt; std::is_void_v&lt; Result &gt;, void * &gt;=nullptr)</td></tr>
-<tr class="memdesc:a96d591f155009301646e3827cc3e4f14"><td class="mdescLeft">&#160;</td><td class="mdescRight">Function used to wrap a call handler that expects a void result.  <a href="namespacepackio.html#a96d591f155009301646e3827cc3e4f14">More...</a><br /></td></tr>
-<tr class="separator:a96d591f155009301646e3827cc3e4f14"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae41a42d5103a615a810d6e42d68906da"><td class="memTemplParams" colspan="2">template&lt;typename Socket , template&lt; class... &gt; class Map = std::map&gt; </td></tr>
-<tr class="memitem:ae41a42d5103a615a810d6e42d68906da"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacepackio.html#ae41a42d5103a615a810d6e42d68906da">make_client</a> (Socket &amp;&amp;socket)</td></tr>
-<tr class="memdesc:ae41a42d5103a615a810d6e42d68906da"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a client from a socket.  <a href="namespacepackio.html#ae41a42d5103a615a810d6e42d68906da">More...</a><br /></td></tr>
-<tr class="separator:ae41a42d5103a615a810d6e42d68906da"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:adb4190a7fda2259edbbe7684c2c5a766"><td class="memTemplParams" colspan="2">template&lt;typename Acceptor , typename Dispatcher  = dispatcher&lt;&gt;&gt; </td></tr>
-<tr class="memitem:adb4190a7fda2259edbbe7684c2c5a766"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacepackio.html#adb4190a7fda2259edbbe7684c2c5a766">make_server</a> (Acceptor &amp;&amp;acceptor)</td></tr>
-<tr class="memdesc:adb4190a7fda2259edbbe7684c2c5a766"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a server from an acceptor.  <a href="namespacepackio.html#adb4190a7fda2259edbbe7684c2c5a766">More...</a><br /></td></tr>
-<tr class="separator:adb4190a7fda2259edbbe7684c2c5a766"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5a73a8453d35e9f6f0c29e9b87e93490"><td class="memTemplParams" colspan="2">template&lt;typename Rpc , typename Socket , template&lt; class... &gt; class Map = default_map&gt; </td></tr>
+<tr class="memitem:a5a73a8453d35e9f6f0c29e9b87e93490"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacepackio.html#a5a73a8453d35e9f6f0c29e9b87e93490">make_client</a> (Socket &amp;&amp;socket)</td></tr>
+<tr class="memdesc:a5a73a8453d35e9f6f0c29e9b87e93490"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a client from a socket.  <a href="namespacepackio.html#a5a73a8453d35e9f6f0c29e9b87e93490">More...</a><br /></td></tr>
+<tr class="separator:a5a73a8453d35e9f6f0c29e9b87e93490"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4944e82d7f3dd2ee989a49d928cef3d3"><td class="memTemplParams" colspan="2">template&lt;typename Rpc , typename Acceptor , typename Dispatcher  = dispatcher&lt;Rpc&gt;&gt; </td></tr>
+<tr class="memitem:a4944e82d7f3dd2ee989a49d928cef3d3"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacepackio.html#a4944e82d7f3dd2ee989a49d928cef3d3">make_server</a> (Acceptor &amp;&amp;acceptor)</td></tr>
+<tr class="memdesc:a4944e82d7f3dd2ee989a49d928cef3d3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a server from an acceptor.  <a href="namespacepackio.html#a4944e82d7f3dd2ee989a49d928cef3d3">More...</a><br /></td></tr>
+<tr class="separator:a4944e82d7f3dd2ee989a49d928cef3d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>The packio namespace </p>
-</div><h2 class="groupheader">Enumeration Type Documentation</h2>
-<a id="ad0fad01adc607b1ef672314d1ed01809"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad0fad01adc607b1ef672314d1ed01809">&#9670;&nbsp;</a></span>error</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">enum <a class="el" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809">packio::error</a></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">strong</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>The error codes enumeration. </p>
-<table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="ad0fad01adc607b1ef672314d1ed01809a260ca9dd8a4577fc00b7bd5810298076"></a>success&#160;</td><td class="fielddoc"><p>Success. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="ad0fad01adc607b1ef672314d1ed01809ad1ef7ee50ccddcdd2ed2ce9c69db96ae"></a>error_during_call&#160;</td><td class="fielddoc"><p>An error happened during the call, server-side error. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="ad0fad01adc607b1ef672314d1ed01809ae63ab84fdc5d63927652dac21ec411ac"></a>unknown_procedure&#160;</td><td class="fielddoc"><p>The procedure name is unknown, server-side error. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="ad0fad01adc607b1ef672314d1ed01809a38881e0a24039dc2621e1d6f86cb71f7"></a>cancelled&#160;</td><td class="fielddoc"><p>The operation has been cancelled. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="ad0fad01adc607b1ef672314d1ed01809a71ecb7c2f853a21a83ebdc5a392c57b6"></a>call_error&#160;</td><td class="fielddoc"><p>An error happened during the call. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="ad0fad01adc607b1ef672314d1ed01809a3421ef6eef824d84f3ff3170d051ef80"></a>bad_result_type&#160;</td><td class="fielddoc"><p>The result type is not as expected. </p>
-</td></tr>
-</table>
-
-</div>
-</div>
-<h2 class="groupheader">Function Documentation</h2>
-<a id="a98ec735bfe5e3655f1e398f9f8c122bc"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a98ec735bfe5e3655f1e398f9f8c122bc">&#9670;&nbsp;</a></span>as() <span class="overload">[1/2]</span></h2>
+</div><h2 class="groupheader">Function Documentation</h2>
+<a id="a5a73a8453d35e9f6f0c29e9b87e93490"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5a73a8453d35e9f6f0c29e9b87e93490">&#9670;&nbsp;</a></span>make_client()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename Result , typename AsCallHandler &gt; </div>
-      <table class="memname">
-        <tr>
-          <td class="memname">auto packio::as </td>
-          <td>(</td>
-          <td class="paramtype">AsCallHandler &amp;&amp;&#160;</td>
-          <td class="paramname"><em>handler</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::enable_if_t&lt;!std::is_void_v&lt; Result &gt;, void * &gt;&#160;</td>
-          <td class="paramname"> = <code>nullptr</code>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Function used to wrap a typed call handler. </p>
-<p>This function is used to provide a call handler that expects a specific return type. If the procedure call succeeds but the returned type is not what is expected, the handler will be called with <a class="el" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a3421ef6eef824d84f3ff3170d051ef80">error::bad_result_type</a>. The optional given as second argument will have a value only if the error code is <a class="el" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a260ca9dd8a4577fc00b7bd5810298076">error::success</a>.</p>
-<dl class="tparams"><dt>Template Parameters</dt><dd>
-  <table class="tparams">
-    <tr><td class="paramname">Result</td><td>The expected return type for the procedure </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">handler</td><td>Call handler to wrap. Must satisfy <a class="el" href="structpackio_1_1traits_1_1AsCallHandler.html">traits::AsCallHandler</a> </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a id="a96d591f155009301646e3827cc3e4f14"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a96d591f155009301646e3827cc3e4f14">&#9670;&nbsp;</a></span>as() <span class="overload">[2/2]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;typename Result , typename AsVoidCallHandler &gt; </div>
-      <table class="memname">
-        <tr>
-          <td class="memname">auto packio::as </td>
-          <td>(</td>
-          <td class="paramtype">AsVoidCallHandler &amp;&amp;&#160;</td>
-          <td class="paramname"><em>handler</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::enable_if_t&lt; std::is_void_v&lt; Result &gt;, void * &gt;&#160;</td>
-          <td class="paramname"> = <code>nullptr</code>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Function used to wrap a call handler that expects a void result. </p>
-<p>This is an overloaded member function, provided for convenience. It differs from the above function only in what argument(s) it accepts. The only point of this wrapper is to verify that the remote procedure returned void. If the remote procedure returns any other type, this wrapper will set the error code to <a class="el" href="namespacepackio.html#ad0fad01adc607b1ef672314d1ed01809a3421ef6eef824d84f3ff3170d051ef80">error::bad_result_type</a>. </p>
-
-</div>
-</div>
-<a id="ae41a42d5103a615a810d6e42d68906da"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae41a42d5103a615a810d6e42d68906da">&#9670;&nbsp;</a></span>make_client()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;typename Socket , template&lt; class... &gt; class Map = std::map&gt; </div>
+template&lt;typename Rpc , typename Socket , template&lt; class... &gt; class Map = default_map&gt; </div>
       <table class="memname">
         <tr>
           <td class="memname">auto packio::make_client </td>
@@ -273,6 +132,7 @@ template&lt;typename Socket , template&lt; class... &gt; class Map = std::map&gt
 <p>Create a client from a socket. </p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
+    <tr><td class="paramname">Rpc</td><td>RPC protocol implementation </td></tr>
     <tr><td class="paramname">Socket</td><td>Socket type to use for this client </td></tr>
     <tr><td class="paramname">Map</td><td>Container used to associate call IDs and handlers </td></tr>
   </table>
@@ -281,13 +141,13 @@ template&lt;typename Socket , template&lt; class... &gt; class Map = std::map&gt
 
 </div>
 </div>
-<a id="adb4190a7fda2259edbbe7684c2c5a766"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#adb4190a7fda2259edbbe7684c2c5a766">&#9670;&nbsp;</a></span>make_server()</h2>
+<a id="a4944e82d7f3dd2ee989a49d928cef3d3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4944e82d7f3dd2ee989a49d928cef3d3">&#9670;&nbsp;</a></span>make_server()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename Acceptor , typename Dispatcher  = dispatcher&lt;&gt;&gt; </div>
+template&lt;typename Rpc , typename Acceptor , typename Dispatcher  = dispatcher&lt;Rpc&gt;&gt; </div>
       <table class="memname">
         <tr>
           <td class="memname">auto packio::make_server </td>
@@ -302,6 +162,7 @@ template&lt;typename Acceptor , typename Dispatcher  = dispatcher&lt;&gt;&gt; </
 <p>Create a server from an acceptor. </p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
+    <tr><td class="paramname">Rpc</td><td>RPC protocol implementation </td></tr>
     <tr><td class="paramname">Acceptor</td><td>Acceptor type to use for this server </td></tr>
     <tr><td class="paramname">Dispatcher</td><td>Dispatcher used to store and dispatch procedures. See <a class="el" href="classpackio_1_1dispatcher.html">dispatcher</a> </td></tr>
   </table>

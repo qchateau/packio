@@ -7,7 +7,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=9" />
     <meta name="generator" content="Doxygen 1.8.17" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>packio: packio::server_session&lt; Socket, Dispatcher &gt; Class Template Reference</title>
+    <title>packio: packio::server_session&lt; Rpc, Socket, Dispatcher &gt; Class Template Reference</title>
     <link href="tabs.css" rel="stylesheet" type="text/css" />
     <script type="text/javascript" src="jquery.js"></script>
     <script type="text/javascript" src="dynsections.js"></script>
@@ -73,7 +73,7 @@ $(function() {
 <a href="#pub-static-attribs">Static Public Attributes</a> &#124;
 <a href="classpackio_1_1server__session-members.html">List of all members</a>  </div>
   <div class="headertitle">
-<div class="title">packio::server_session&lt; Socket, Dispatcher &gt; Class Template Reference</div>  </div>
+<div class="title">packio::server_session&lt; Rpc, Socket, Dispatcher &gt; Class Template Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
 
@@ -84,56 +84,56 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:ab9ab57c300970cc8dbf520f214a43534"><td class="memItemLeft" align="right" valign="top"><a id="ab9ab57c300970cc8dbf520f214a43534"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1server__session.html#ab9ab57c300970cc8dbf520f214a43534">socket_type</a> = Socket</td></tr>
-<tr class="memdesc:ab9ab57c300970cc8dbf520f214a43534"><td class="mdescLeft">&#160;</td><td class="mdescRight">The socket type. <br /></td></tr>
-<tr class="separator:ab9ab57c300970cc8dbf520f214a43534"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af544ff51d72997416c11bc8c8de4a9f9"><td class="memItemLeft" align="right" valign="top"><a id="af544ff51d72997416c11bc8c8de4a9f9"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1server__session.html#af544ff51d72997416c11bc8c8de4a9f9">protocol_type</a> = typename socket_type::protocol_type</td></tr>
-<tr class="memdesc:af544ff51d72997416c11bc8c8de4a9f9"><td class="mdescLeft">&#160;</td><td class="mdescRight">The protocol type. <br /></td></tr>
-<tr class="separator:af544ff51d72997416c11bc8c8de4a9f9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7ebcbb24ebb5b5a9dcd55d3f676b736b"><td class="memItemLeft" align="right" valign="top"><a id="a7ebcbb24ebb5b5a9dcd55d3f676b736b"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1server__session.html#a7ebcbb24ebb5b5a9dcd55d3f676b736b">executor_type</a> = typename socket_type::executor_type</td></tr>
-<tr class="memdesc:a7ebcbb24ebb5b5a9dcd55d3f676b736b"><td class="mdescLeft">&#160;</td><td class="mdescRight">The executor type. <br /></td></tr>
-<tr class="separator:a7ebcbb24ebb5b5a9dcd55d3f676b736b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1115ebfdbbd4413ae7f5cbf99a8c6dda"><td class="memItemLeft" align="right" valign="top"><a id="a1115ebfdbbd4413ae7f5cbf99a8c6dda"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1server__session.html#a1115ebfdbbd4413ae7f5cbf99a8c6dda">socket_type</a> = Socket</td></tr>
+<tr class="memdesc:a1115ebfdbbd4413ae7f5cbf99a8c6dda"><td class="mdescLeft">&#160;</td><td class="mdescRight">The socket type. <br /></td></tr>
+<tr class="separator:a1115ebfdbbd4413ae7f5cbf99a8c6dda"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a555264e82920fac940e21abb4ca7f098"><td class="memItemLeft" align="right" valign="top"><a id="a555264e82920fac940e21abb4ca7f098"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1server__session.html#a555264e82920fac940e21abb4ca7f098">protocol_type</a> = typename socket_type::protocol_type</td></tr>
+<tr class="memdesc:a555264e82920fac940e21abb4ca7f098"><td class="mdescLeft">&#160;</td><td class="mdescRight">The protocol type. <br /></td></tr>
+<tr class="separator:a555264e82920fac940e21abb4ca7f098"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a48876882ec8f7851967a4d24cf283a7a"><td class="memItemLeft" align="right" valign="top"><a id="a48876882ec8f7851967a4d24cf283a7a"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1server__session.html#a48876882ec8f7851967a4d24cf283a7a">executor_type</a> = typename socket_type::executor_type</td></tr>
+<tr class="memdesc:a48876882ec8f7851967a4d24cf283a7a"><td class="mdescLeft">&#160;</td><td class="mdescRight">The executor type. <br /></td></tr>
+<tr class="separator:a48876882ec8f7851967a4d24cf283a7a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a4f48ee3c8b5226c06ed2fd0a249d8405"><td class="memItemLeft" align="right" valign="top"><a id="a4f48ee3c8b5226c06ed2fd0a249d8405"></a>
-<a class="el" href="classpackio_1_1server__session.html#ab9ab57c300970cc8dbf520f214a43534">socket_type</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1server__session.html#a4f48ee3c8b5226c06ed2fd0a249d8405">socket</a> ()</td></tr>
-<tr class="memdesc:a4f48ee3c8b5226c06ed2fd0a249d8405"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the underlying socket. <br /></td></tr>
-<tr class="separator:a4f48ee3c8b5226c06ed2fd0a249d8405"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a876b18d9307ba6cc5f75c55b040764d5"><td class="memItemLeft" align="right" valign="top"><a id="a876b18d9307ba6cc5f75c55b040764d5"></a>
-const <a class="el" href="classpackio_1_1server__session.html#ab9ab57c300970cc8dbf520f214a43534">socket_type</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1server__session.html#a876b18d9307ba6cc5f75c55b040764d5">socket</a> () const</td></tr>
-<tr class="memdesc:a876b18d9307ba6cc5f75c55b040764d5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the underlying socket, const. <br /></td></tr>
-<tr class="separator:a876b18d9307ba6cc5f75c55b040764d5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab36ba2101ee2e9ad5226282234fe0e08"><td class="memItemLeft" align="right" valign="top"><a id="ab36ba2101ee2e9ad5226282234fe0e08"></a>
-<a class="el" href="classpackio_1_1server__session.html#a7ebcbb24ebb5b5a9dcd55d3f676b736b">executor_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1server__session.html#ab36ba2101ee2e9ad5226282234fe0e08">get_executor</a> ()</td></tr>
-<tr class="memdesc:ab36ba2101ee2e9ad5226282234fe0e08"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the executor associated with the object. <br /></td></tr>
-<tr class="separator:ab36ba2101ee2e9ad5226282234fe0e08"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4eb23e0e0dd78ff5fec025c10866970e"><td class="memItemLeft" align="right" valign="top"><a id="a4eb23e0e0dd78ff5fec025c10866970e"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1server__session.html#a4eb23e0e0dd78ff5fec025c10866970e">set_buffer_reserve_size</a> (std::size_t size) noexcept</td></tr>
-<tr class="memdesc:a4eb23e0e0dd78ff5fec025c10866970e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the size reserved by the reception buffer. <br /></td></tr>
-<tr class="separator:a4eb23e0e0dd78ff5fec025c10866970e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af58a304a3af85ed97f6c2f56ddf2830e"><td class="memItemLeft" align="right" valign="top"><a id="af58a304a3af85ed97f6c2f56ddf2830e"></a>
-std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1server__session.html#af58a304a3af85ed97f6c2f56ddf2830e">get_buffer_reserve_size</a> () const noexcept</td></tr>
-<tr class="memdesc:af58a304a3af85ed97f6c2f56ddf2830e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the size reserved by the reception buffer. <br /></td></tr>
-<tr class="separator:af58a304a3af85ed97f6c2f56ddf2830e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae52740e61342e388a27f65f01cc3376f"><td class="memItemLeft" align="right" valign="top"><a id="ae52740e61342e388a27f65f01cc3376f"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1server__session.html#ae52740e61342e388a27f65f01cc3376f">start</a> ()</td></tr>
-<tr class="memdesc:ae52740e61342e388a27f65f01cc3376f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Start the session. <br /></td></tr>
-<tr class="separator:ae52740e61342e388a27f65f01cc3376f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a74cc5ac0eefaf0edfcef3bb9666359b9"><td class="memItemLeft" align="right" valign="top"><a id="a74cc5ac0eefaf0edfcef3bb9666359b9"></a>
+<a class="el" href="classpackio_1_1server__session.html#a1115ebfdbbd4413ae7f5cbf99a8c6dda">socket_type</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1server__session.html#a74cc5ac0eefaf0edfcef3bb9666359b9">socket</a> ()</td></tr>
+<tr class="memdesc:a74cc5ac0eefaf0edfcef3bb9666359b9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the underlying socket. <br /></td></tr>
+<tr class="separator:a74cc5ac0eefaf0edfcef3bb9666359b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1fa1898f17fb73ad8469987b4a81033f"><td class="memItemLeft" align="right" valign="top"><a id="a1fa1898f17fb73ad8469987b4a81033f"></a>
+const <a class="el" href="classpackio_1_1server__session.html#a1115ebfdbbd4413ae7f5cbf99a8c6dda">socket_type</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1server__session.html#a1fa1898f17fb73ad8469987b4a81033f">socket</a> () const</td></tr>
+<tr class="memdesc:a1fa1898f17fb73ad8469987b4a81033f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the underlying socket, const. <br /></td></tr>
+<tr class="separator:a1fa1898f17fb73ad8469987b4a81033f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aeaa34f73dad87f3a59d106c3f7efa118"><td class="memItemLeft" align="right" valign="top"><a id="aeaa34f73dad87f3a59d106c3f7efa118"></a>
+<a class="el" href="classpackio_1_1server__session.html#a48876882ec8f7851967a4d24cf283a7a">executor_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1server__session.html#aeaa34f73dad87f3a59d106c3f7efa118">get_executor</a> ()</td></tr>
+<tr class="memdesc:aeaa34f73dad87f3a59d106c3f7efa118"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the executor associated with the object. <br /></td></tr>
+<tr class="separator:aeaa34f73dad87f3a59d106c3f7efa118"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0ae604b3897fd019f8dbaa491ab4012c"><td class="memItemLeft" align="right" valign="top"><a id="a0ae604b3897fd019f8dbaa491ab4012c"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1server__session.html#a0ae604b3897fd019f8dbaa491ab4012c">set_buffer_reserve_size</a> (std::size_t size) noexcept</td></tr>
+<tr class="memdesc:a0ae604b3897fd019f8dbaa491ab4012c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the size reserved by the reception buffer. <br /></td></tr>
+<tr class="separator:a0ae604b3897fd019f8dbaa491ab4012c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a68b291544e6a1b63434d74a6c4d29969"><td class="memItemLeft" align="right" valign="top"><a id="a68b291544e6a1b63434d74a6c4d29969"></a>
+std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1server__session.html#a68b291544e6a1b63434d74a6c4d29969">get_buffer_reserve_size</a> () const noexcept</td></tr>
+<tr class="memdesc:a68b291544e6a1b63434d74a6c4d29969"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the size reserved by the reception buffer. <br /></td></tr>
+<tr class="separator:a68b291544e6a1b63434d74a6c4d29969"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aca595d69b5e342e4b46e73adaa2969ba"><td class="memItemLeft" align="right" valign="top"><a id="aca595d69b5e342e4b46e73adaa2969ba"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1server__session.html#aca595d69b5e342e4b46e73adaa2969ba">start</a> ()</td></tr>
+<tr class="memdesc:aca595d69b5e342e4b46e73adaa2969ba"><td class="mdescLeft">&#160;</td><td class="mdescRight">Start the session. <br /></td></tr>
+<tr class="separator:aca595d69b5e342e4b46e73adaa2969ba"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-static-attribs"></a>
 Static Public Attributes</h2></td></tr>
-<tr class="memitem:abb614afb4157378d1a533312880af595"><td class="memItemLeft" align="right" valign="top"><a id="abb614afb4157378d1a533312880af595"></a>
-static constexpr size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1server__session.html#abb614afb4157378d1a533312880af595">kDefaultBufferReserveSize</a> = 4096</td></tr>
-<tr class="memdesc:abb614afb4157378d1a533312880af595"><td class="mdescLeft">&#160;</td><td class="mdescRight">The default size reserved by the reception buffer. <br /></td></tr>
-<tr class="separator:abb614afb4157378d1a533312880af595"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abda9254cbf38a8b0644b3603e55b2c15"><td class="memItemLeft" align="right" valign="top"><a id="abda9254cbf38a8b0644b3603e55b2c15"></a>
+static constexpr size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1server__session.html#abda9254cbf38a8b0644b3603e55b2c15">kDefaultBufferReserveSize</a> = 4096</td></tr>
+<tr class="memdesc:abda9254cbf38a8b0644b3603e55b2c15"><td class="mdescLeft">&#160;</td><td class="mdescRight">The default size reserved by the reception buffer. <br /></td></tr>
+<tr class="separator:abda9254cbf38a8b0644b3603e55b2c15"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><h3>template&lt;typename Socket, typename Dispatcher&gt;<br />
-class packio::server_session&lt; Socket, Dispatcher &gt;</h3>
+<div class="textblock"><h3>template&lt;typename Rpc, typename Socket, typename Dispatcher&gt;<br />
+class packio::server_session&lt; Rpc, Socket, Dispatcher &gt;</h3>
 
 <p>The <a class="el" href="classpackio_1_1server__session.html" title="The server_session class, created by the server.">server_session</a> class, created by the <a class="el" href="classpackio_1_1server.html">server</a>. </p>
 </div><hr/>The documentation for this class was generated from the following file:<ul>

@@ -85,7 +85,7 @@ struct CallHandler
 //!
 //! Handler used by @ref server::async_serve
 //! - Must be callable with
-//! error_code, std::shared_ptr<@ref server::session_type "session_type">
+//! error_code, std::shared_ptr<@ref packio::server_session "server_session">
 template <typename T, typename Session>
 struct ServeHandler
     : Trait<std::is_invocable_v<T, error_code, std::shared_ptr<Session>>> {

@@ -80,11 +80,10 @@ $(function() {
 <code>#include &lt;optional&gt;</code><br />
 <code>#include &lt;string_view&gt;</code><br />
 <code>#include &lt;tuple&gt;</code><br />
-<code>#include &lt;msgpack.hpp&gt;</code><br />
-<code>#include &quot;<a class="el" href="error__code_8h_source.html">error_code.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="handler_8h_source.html">handler.h</a>&quot;</code><br />
 <code>#include &quot;internal/config.h&quot;</code><br />
-<code>#include &quot;internal/unique_function.h&quot;</code><br />
+<code>#include &quot;internal/movable_function.h&quot;</code><br />
+<code>#include &quot;internal/rpc.h&quot;</code><br />
 <code>#include &quot;internal/utils.h&quot;</code><br />
 <code>#include &quot;<a class="el" href="traits_8h_source.html">traits.h</a>&quot;</code><br />
 </div>
@@ -92,7 +91,7 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
 Classes</h2></td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1dispatcher.html">packio::dispatcher&lt; Map, Lockable &gt;</a></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1dispatcher.html">packio::dispatcher&lt; Rpc, Map, Lockable &gt;</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The dispatcher class, used to store and dispatch procedures.  <a href="classpackio_1_1dispatcher.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">

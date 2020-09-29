@@ -6,7 +6,7 @@
 #define PACKIO_ARG_H
 
 //! @file
-//! Class @ref packio::arg "arg"
+//! Class arg
 
 #include <string>
 #include <string_view>

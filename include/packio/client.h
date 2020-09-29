@@ -80,7 +80,7 @@ public:
 
     //! Cancel a pending call
     //!
-    //! The associated handler will be called with @ref error::cancelled
+    //! The associated handler will be called with net::error::operation_aborted
     //! @param id The call ID of the call to cancel
     void cancel(id_type id)
     {
@@ -92,7 +92,7 @@ public:
 
     //! Cancel all pending calls
     //!
-    //! The associated handlers will be called with @ref error::cancelled
+    //! The associated handlers will be called with net::error::operation_aborted
     void cancel()
     {
         net::dispatch(call_strand_, [self = shared_from_this()] {
