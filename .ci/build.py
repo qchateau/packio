@@ -47,7 +47,8 @@ class Packager(cpt.packager.ConanMultiPackager):
         options = options or {}
         if "asio" not in options:
             options.update(self._get_boost_options())
-        options["msgpack:header_only"] = True
+        options["msgpack:cpp_api"] = True
+        options["msgpack:c_api"] = False
         options["cppstd"] = cppstd
 
         env_vars = {}
