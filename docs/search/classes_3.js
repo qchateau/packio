@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['notifyhandler_76',['NotifyHandler',['../structpackio_1_1traits_1_1NotifyHandler.html',1,'packio::traits']]]
+  ['incremental_5fparser_77',['incremental_parser',['../classpackio_1_1msgpack__rpc_1_1internal_1_1incremental__parser.html',1,'packio::msgpack_rpc::internal::incremental_parser'],['../classpackio_1_1nl__json__rpc_1_1internal_1_1incremental__parser.html',1,'packio::nl_json_rpc::internal::incremental_parser']]]
 ];

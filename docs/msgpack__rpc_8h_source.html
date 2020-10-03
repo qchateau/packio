@@ -7,7 +7,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=9" />
     <meta name="generator" content="Doxygen 1.8.17" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>packio: packio/internal/msgpack_rpc.h Source File</title>
+    <title>packio: packio/msgpack_rpc/msgpack_rpc.h Source File</title>
     <link href="tabs.css" rel="stylesheet" type="text/css" />
     <script type="text/javascript" src="jquery.js"></script>
     <script type="text/javascript" src="dynsections.js"></script>
@@ -63,7 +63,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><a class="el" href="dir_7f2d0a2a0928023e758bb1e0e178d043.html">packio</a></li><li class="navelem"><a class="el" href="dir_d7eb85775561ce766e8a532a122e1c82.html">internal</a></li>  </ul>
+<li class="navelem"><a class="el" href="dir_7f2d0a2a0928023e758bb1e0e178d043.html">packio</a></li><li class="navelem"><a class="el" href="dir_8b84d8fff14d06fd8cd883713d64b14f.html">msgpack_rpc</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -75,24 +75,53 @@ $(function() {
 <div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;<span class="comment">// License, v. 2.0. If a copy of the MPL was not distributed with this</span></div>
 <div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;<span class="comment">// file, You can obtain one at https://mozilla.org/MPL/2.0/.</span></div>
 <div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160; </div>
-<div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;<span class="preprocessor">#ifndef PACKIO_MSGPACK_RPC_H</span></div>
-<div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;<span class="preprocessor">#define PACKIO_MSGPACK_RPC_H</span></div>
+<div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;<span class="preprocessor">#ifndef PACKIO_MSGPACK_RPC_MSGPACK_RPC_H</span></div>
+<div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;<span class="preprocessor">#define PACKIO_MSGPACK_RPC_MSGPACK_RPC_H</span></div>
 <div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160; </div>
 <div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160; </div>
-<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;<span class="preprocessor">#include &lt;cstdint&gt;</span></div>
-<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160; </div>
-<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="keyword">namespace </span><a class="code" href="namespacepackio.html">packio</a> {</div>
+<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;<span class="preprocessor">#include &quot;../client.h&quot;</span></div>
+<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="preprocessor">#include &quot;../server.h&quot;</span></div>
+<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="preprocessor">#include &quot;rpc.h&quot;</span></div>
 <div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160; </div>
-<div class="line"><a name="l00016"></a><span class="lineno"><a class="line" href="namespacepackio.html#a02aa56c39599b9cde75f298011dc87e8">   16</a></span>&#160;<span class="keyword">using</span> <a class="code" href="namespacepackio.html#a02aa56c39599b9cde75f298011dc87e8">id_type</a> = uint32_t;</div>
-<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160; </div>
-<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="keyword">enum class</span> msgpack_rpc_type { request = 0, response = 1, notification = 2 };</div>
+<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="keyword">namespace </span><a class="code" href="namespacepackio.html">packio</a> {</div>
+<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="keyword">namespace </span>msgpack_rpc {</div>
 <div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160; </div>
-<div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;} <span class="comment">// packio</span></div>
-<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160; </div>
-<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160;<span class="preprocessor">#endif // PACKIO_MSGPACK_RPC_H</span></div>
+<div class="line"><a name="l00021"></a><span class="lineno"><a class="line" href="namespacepackio_1_1msgpack__rpc.html#a5f26747f38ee4b858478d242f2d1fb93">   21</a></span>&#160;<span class="keyword">using</span> <a class="code" href="namespacepackio_1_1msgpack__rpc.html#a5f26747f38ee4b858478d242f2d1fb93">completion_handler</a> = <a class="code" href="namespacepackio_1_1msgpack__rpc.html#a5f26747f38ee4b858478d242f2d1fb93">completion_handler&lt;rpc&gt;</a>;</div>
+<div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160; </div>
+<div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">template</span> &lt;<span class="keyword">class</span>...&gt; <span class="keyword">class </span>Map = default_map, <span class="keyword">typename</span> Lockable = default_mutex&gt;</div>
+<div class="line"><a name="l00025"></a><span class="lineno"><a class="line" href="namespacepackio_1_1msgpack__rpc.html#ae3d9c63288b95af71c1f562c8a348437">   25</a></span>&#160;<span class="keyword">using</span> <a class="code" href="namespacepackio_1_1msgpack__rpc.html#ae3d9c63288b95af71c1f562c8a348437">dispatcher</a> = <a class="code" href="namespacepackio_1_1msgpack__rpc.html#ae3d9c63288b95af71c1f562c8a348437">dispatcher&lt;rpc, Map, Lockable&gt;</a>;</div>
+<div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160; </div>
+<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> Socket, <span class="keyword">template</span> &lt;<span class="keyword">class</span>...&gt; <span class="keyword">class </span>Map = default_map&gt;</div>
+<div class="line"><a name="l00029"></a><span class="lineno"><a class="line" href="namespacepackio_1_1msgpack__rpc.html#a49d32a81a0e25f0afd20c06b0f3be038">   29</a></span>&#160;<span class="keyword">using</span> <a class="code" href="classpackio_1_1client.html">client</a> = <a class="code" href="classpackio_1_1client.html">::packio::client&lt;rpc, Socket, Map&gt;</a>;</div>
+<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160; </div>
+<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> Socket, <span class="keyword">template</span> &lt;<span class="keyword">class</span>...&gt; <span class="keyword">class </span>Map = default_map&gt;</div>
+<div class="line"><a name="l00033"></a><span class="lineno"><a class="line" href="namespacepackio_1_1msgpack__rpc.html#a10bd3630d97339e416f5e407efece04d">   33</a></span>&#160;<span class="keyword">auto</span> <a class="code" href="namespacepackio_1_1msgpack__rpc.html#a10bd3630d97339e416f5e407efece04d">make_client</a>(Socket&amp;&amp; socket)</div>
+<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;{</div>
+<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;    <span class="keywordflow">return</span> std::make_shared&lt;client&lt;Socket, Map&gt;&gt;(std::forward&lt;Socket&gt;(socket));</div>
+<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;}</div>
+<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160; </div>
+<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> Acceptor, <span class="keyword">typename</span> Dispatcher = dispatcher&lt;&gt;&gt;</div>
+<div class="line"><a name="l00040"></a><span class="lineno"><a class="line" href="namespacepackio_1_1msgpack__rpc.html#a34d73db89c36af6b191cb1b148ba77d2">   40</a></span>&#160;<span class="keyword">using</span> <a class="code" href="classpackio_1_1server.html">server</a> = <a class="code" href="classpackio_1_1server.html">::packio::server&lt;rpc, Acceptor, Dispatcher&gt;</a>;</div>
+<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160; </div>
+<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> Acceptor, <span class="keyword">typename</span> Dispatcher = dispatcher&lt;&gt;&gt;</div>
+<div class="line"><a name="l00044"></a><span class="lineno"><a class="line" href="namespacepackio_1_1msgpack__rpc.html#a437273529bff1d9196ae2afdf8233f9f">   44</a></span>&#160;<span class="keyword">auto</span> <a class="code" href="namespacepackio_1_1msgpack__rpc.html#a437273529bff1d9196ae2afdf8233f9f">make_server</a>(Acceptor&amp;&amp; acceptor)</div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;{</div>
+<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;    <span class="keywordflow">return</span> std::make_shared&lt;server&lt;Acceptor, Dispatcher&gt;&gt;(</div>
+<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;        std::forward&lt;Acceptor&gt;(acceptor));</div>
+<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;}</div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160; </div>
+<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;} <span class="comment">// msgpack_rpc</span></div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;} <span class="comment">// packio</span></div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160; </div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;<span class="preprocessor">#endif // PACKIO_MSGPACK_RPC_MSGPACK_RPC_H</span></div>
 </div><!-- fragment --></div><!-- contents -->
-<div class="ttc" id="anamespacepackio_html_a02aa56c39599b9cde75f298011dc87e8"><div class="ttname"><a href="namespacepackio.html#a02aa56c39599b9cde75f298011dc87e8">packio::id_type</a></div><div class="ttdeci">uint32_t id_type</div><div class="ttdoc">Type used to store call IDs.</div><div class="ttdef"><b>Definition:</b> msgpack_rpc.h:16</div></div>
-<div class="ttc" id="anamespacepackio_html"><div class="ttname"><a href="namespacepackio.html">packio</a></div><div class="ttdef"><b>Definition:</b> as.h:16</div></div>
+<div class="ttc" id="aclasspackio_1_1client_html"><div class="ttname"><a href="classpackio_1_1client.html">packio::client</a></div><div class="ttdoc">The client class.</div><div class="ttdef"><b>Definition:</b> client.h:33</div></div>
+<div class="ttc" id="aclasspackio_1_1server_html"><div class="ttname"><a href="classpackio_1_1server.html">packio::server</a></div><div class="ttdoc">The server class.</div><div class="ttdef"><b>Definition:</b> server.h:27</div></div>
+<div class="ttc" id="anamespacepackio_1_1msgpack__rpc_html_a5f26747f38ee4b858478d242f2d1fb93"><div class="ttname"><a href="namespacepackio_1_1msgpack__rpc.html#a5f26747f38ee4b858478d242f2d1fb93">packio::msgpack_rpc::completion_handler</a></div><div class="ttdeci">completion_handler&lt; rpc &gt; completion_handler</div><div class="ttdoc">The completion_handler for msgpack-RPC.</div><div class="ttdef"><b>Definition:</b> msgpack_rpc.h:21</div></div>
+<div class="ttc" id="anamespacepackio_1_1msgpack__rpc_html_ae3d9c63288b95af71c1f562c8a348437"><div class="ttname"><a href="namespacepackio_1_1msgpack__rpc.html#ae3d9c63288b95af71c1f562c8a348437">packio::msgpack_rpc::dispatcher</a></div><div class="ttdeci">dispatcher&lt; rpc, Map, Lockable &gt; dispatcher</div><div class="ttdoc">The dispatcher for msgpack-RPC.</div><div class="ttdef"><b>Definition:</b> msgpack_rpc.h:25</div></div>
+<div class="ttc" id="anamespacepackio_html"><div class="ttname"><a href="namespacepackio.html">packio</a></div><div class="ttdef"><b>Definition:</b> arg.h:14</div></div>
+<div class="ttc" id="anamespacepackio_1_1msgpack__rpc_html_a10bd3630d97339e416f5e407efece04d"><div class="ttname"><a href="namespacepackio_1_1msgpack__rpc.html#a10bd3630d97339e416f5e407efece04d">packio::msgpack_rpc::make_client</a></div><div class="ttdeci">auto make_client(Socket &amp;&amp;socket)</div><div class="ttdoc">The make_client function for msgpack-RPC.</div><div class="ttdef"><b>Definition:</b> msgpack_rpc.h:33</div></div>
+<div class="ttc" id="anamespacepackio_1_1msgpack__rpc_html_a437273529bff1d9196ae2afdf8233f9f"><div class="ttname"><a href="namespacepackio_1_1msgpack__rpc.html#a437273529bff1d9196ae2afdf8233f9f">packio::msgpack_rpc::make_server</a></div><div class="ttdeci">auto make_server(Acceptor &amp;&amp;acceptor)</div><div class="ttdoc">The make_server function for msgpack-RPC.</div><div class="ttdef"><b>Definition:</b> msgpack_rpc.h:44</div></div>
 <!-- HTML footer for doxygen 1.8.13-->
 <!-- start footer part -->
 </body>

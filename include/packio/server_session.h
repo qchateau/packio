@@ -10,28 +10,27 @@
 
 #include <memory>
 #include <queue>
-#include <msgpack.hpp>
 
-#include "error_code.h"
+#include "handler.h"
 #include "internal/config.h"
 #include "internal/log.h"
 #include "internal/manual_strand.h"
-#include "internal/msgpack_rpc.h"
+#include "internal/rpc.h"
 #include "internal/utils.h"
 
 namespace packio {
 
 //! The server_session class, created by the @ref server
-template <typename Socket, typename Dispatcher>
+template <typename Rpc, typename Socket, typename Dispatcher>
 class server_session
-    : public std::enable_shared_from_this<server_session<Socket, Dispatcher>> {
+    : public std::enable_shared_from_this<server_session<Rpc, Socket, Dispatcher>> {
 public:
     using socket_type = Socket; //!< The socket type
     using protocol_type =
         typename socket_type::protocol_type; //!< The protocol type
     using executor_type =
         typename socket_type::executor_type; //!< The executor type
-    using std::enable_shared_from_this<server_session<Socket, Dispatcher>>::shared_from_this;
+    using std::enable_shared_from_this<server_session<Rpc, Socket, Dispatcher>>::shared_from_this;
 
     //! The default size reserved by the reception buffer
     static constexpr size_t kDefaultBufferReserveSize = 4096;
@@ -63,33 +62,24 @@ public:
     }
 
     //! Start the session
-    void start() { async_read(std::make_unique<msgpack::unpacker>()); }
+    void start() { this->async_read(parser_type{}); }
 
 private:
-    using buffer_type = msgpack::vrefbuffer; // non-owning buffer
-    using message_type = std::tuple<buffer_type, msgpack::object_handle>;
-    using message_queue = std::queue<std::unique_ptr<message_type>>;
+    using parser_type = typename Rpc::incremental_parser_type;
+    using request_type = typename Rpc::request_type;
 
-    struct Call {
-        msgpack_rpc_type type;
-        id_type id;
-        std::string name;
-        msgpack::object args;
-    };
-
-    void async_read(std::unique_ptr<msgpack::unpacker> unpacker)
+    void async_read(parser_type&& parser)
     {
         // abort R/W on error
         if (!socket_.is_open()) {
             return;
         }
 
-        unpacker->reserve_buffer(buffer_reserve_size_);
-        auto buffer = net::buffer(
-            unpacker->buffer(), unpacker->buffer_capacity());
+        parser.reserve_buffer(buffer_reserve_size_);
+        auto buffer = net::buffer(parser.buffer(), parser.buffer_capacity());
         socket_.async_read_some(
             buffer,
-            [self = shared_from_this(), unpacker = std::move(unpacker)](
+            [self = shared_from_this(), parser = std::move(parser)](
                 error_code ec, size_t length) mutable {
                 if (ec) {
                     PACKIO_WARN("read error: {}", ec.message());
@@ -98,141 +88,67 @@ private:
                 }
 
                 PACKIO_TRACE("read: {}", length);
-                unpacker->buffer_consumed(length);
+                parser.buffer_consumed(length);
 
-                for (msgpack::object_handle call; unpacker->next(call);) {
+                while (auto request = parser.get_request()) {
+                    if (!request) {
+                        self->close_connection();
+                        continue;
+                    }
                     // handle the call asynchronously (post)
                     // to schedule the next read immediately
                     // this will allow parallel call handling
                     // in multi-threaded environments
                     net::post(
-                        self->get_executor(), [self, call = std::move(call)] {
-                            self->dispatch(call.get());
+                        self->get_executor(),
+                        [self, request = std::move(*request)]() mutable {
+                            self->async_handle_request(std::move(request));
                         });
                 }
 
-                self->async_read(std::move(unpacker));
+                self->async_read(std::move(parser));
             });
     }
 
-    void dispatch(const msgpack::object& msgpack_call)
+    void async_handle_request(request_type&& request)
     {
-        std::optional<Call> call = parse_call(msgpack_call);
-        if (!call) {
-            close_connection();
-            return;
-        }
-
-        auto completion_handler =
-            [type = call->type, id = call->id, self = shared_from_this()](
-                error_code ec, msgpack::object_handle result) {
-                if (type == msgpack_rpc_type::request) {
-                    PACKIO_TRACE("result: {}", ec.message());
-                    self->async_send_result(id, ec, std::move(result));
+        completion_handler<Rpc> handler(
+            request.id,
+            [type = request.type, id = request.id, self = shared_from_this()](
+                auto&& response_buffer) {
+                if (type == call_type::request) {
+                    PACKIO_TRACE("result (id={})", Rpc::format_id(id));
+                    (void)id;
+                    self->async_send_response(std::move(response_buffer));
                 }
-            };
+            });
 
-        const auto function = dispatcher_ptr_->get(call->name);
+        const auto function = dispatcher_ptr_->get(request.method);
         if (function) {
-            PACKIO_TRACE("call: {} (id={})", call->name, call->id);
-            (*function)(completion_handler, call->args);
+            PACKIO_TRACE(
+                "call: {} (id={})", request.method, Rpc::format_id(request.id));
+            (*function)(std::move(handler), std::move(request.args));
         }
         else {
-            PACKIO_DEBUG("unknown function {}", call->name);
-            completion_handler(make_error_code(error::unknown_procedure), {});
+            PACKIO_DEBUG("unknown function {}", request.method);
+            handler.set_error("Unknown function");
         }
     }
 
-    std::optional<Call> parse_call(const msgpack::object& call)
-    {
-        if (call.type != msgpack::type::ARRAY || call.via.array.size < 3) {
-            PACKIO_ERROR("unexpected message type: {}", call.type);
-            return std::nullopt;
-        }
-
-        try {
-            int idx = 0;
-            id_type id = 0;
-            msgpack_rpc_type type = static_cast<msgpack_rpc_type>(
-                call.via.array.ptr[idx++].as<int>());
-
-            std::size_t expected_size;
-            switch (type) {
-            case msgpack_rpc_type::request:
-                id = call.via.array.ptr[idx++].as<id_type>();
-                expected_size = 4;
-                break;
-            case msgpack_rpc_type::notification:
-                expected_size = 3;
-                break;
-            default:
-                PACKIO_ERROR("unexpected type: {}", type);
-                return std::nullopt;
-            }
-
-            if (call.via.array.size != expected_size) {
-                PACKIO_ERROR("unexpected message size: {}", call.via.array.size);
-                return std::nullopt;
-            }
-
-            std::string name = call.via.array.ptr[idx++].as<std::string>();
-            const msgpack::object& args = call.via.array.ptr[idx++];
-
-            return Call{type, id, name, args};
-        }
-        catch (msgpack::type_error& exc) {
-            PACKIO_ERROR("unexpected message content: {}", exc.what());
-            (void)exc;
-            return std::nullopt;
-        }
-    }
-
-    void async_send_result(id_type id, error_code ec, msgpack::object_handle result_handle)
+    template <typename Buffer>
+    void async_send_response(Buffer&& response_buffer)
     {
         // abort R/W on error
         if (!socket_.is_open()) {
             return;
         }
 
-        auto message_ptr = std::make_unique<message_type>();
-        msgpack::packer<buffer_type> packer(std::get<buffer_type>(*message_ptr));
+        auto message_ptr = internal::to_unique_ptr(std::move(response_buffer));
 
-        // serialize the result into the buffer
-        const auto pack = [&](auto&& error, auto&& result) {
-            packer.pack(std::forward_as_tuple(
-                static_cast<int>(msgpack_rpc_type::response),
-                id,
-                std::forward<decltype(error)>(error),
-                std::forward<decltype(result)>(result)));
-        };
-
-        if (ec) {
-            if (result_handle.get().is_nil()) {
-                pack(ec.message(), msgpack::type::nil_t{});
-            }
-            else {
-                pack(result_handle.get(), msgpack::type::nil_t{});
-            }
-        }
-        else {
-            pack(msgpack::type::nil_t{}, result_handle.get());
-        }
-
-        // move the result handle to the message pointer
-        // as the buffer is non-owning, we need to keep the result handle
-        // with the buffer
-        std::get<msgpack::object_handle>(*message_ptr) = std::move(result_handle);
-        async_send_message(std::move(message_ptr));
-    }
-
-    void async_send_message(std::unique_ptr<message_type> message_ptr)
-    {
         wstrand_.push([this,
                        self = shared_from_this(),
                        message_ptr = std::move(message_ptr)]() mutable {
-            using internal::buffer;
-
-            auto buf = buffer(std::get<buffer_type>(*message_ptr));
+            auto buf = Rpc::buffer(*message_ptr);
             net::async_write(
                 socket_,
                 buf,
@@ -250,7 +166,7 @@ private:
                     (void)length;
                 });
         });
-    };
+    }
 
     void close_connection()
     {

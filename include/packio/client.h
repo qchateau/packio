@@ -11,36 +11,40 @@
 #include <atomic>
 #include <chrono>
 #include <functional>
-#include <map>
 #include <memory>
 #include <queue>
 #include <string_view>
 #include <type_traits>
 
-#include <msgpack.hpp>
-
-#include "error_code.h"
 #include "internal/config.h"
 #include "internal/manual_strand.h"
-#include "internal/msgpack_rpc.h"
-#include "internal/unique_function.h"
+#include "internal/movable_function.h"
+#include "internal/rpc.h"
 #include "internal/utils.h"
 #include "traits.h"
 
 namespace packio {
 
 //! The client class
+//! @tparam Rpc RPC protocol implementation
 //! @tparam Socket Socket type to use for this client
 //! @tparam Map Container used to associate call IDs and handlers
-template <typename Socket, template <class...> class Map = std::map>
-class client : public std::enable_shared_from_this<client<Socket, Map>> {
+template <typename Rpc, typename Socket, template <class...> class Map = default_map>
+class client : public std::enable_shared_from_this<client<Rpc, Socket, Map>> {
 public:
-    using socket_type = Socket; //!< The socket type
-    using protocol_type =
-        typename socket_type::protocol_type; //!< The protocol type
-    using executor_type =
-        typename socket_type::executor_type; //!< The executor type
-    using std::enable_shared_from_this<client<Socket, Map>>::shared_from_this;
+    //! The RPC protocol type
+    using rpc_type = Rpc;
+    //! The call ID type
+    using id_type = typename rpc_type::id_type;
+    //! The response of a RPC call
+    using response_type = typename rpc_type::response_type;
+    //! The socket type
+    using socket_type = Socket;
+    //! The protocol type
+    using protocol_type = typename socket_type::protocol_type;
+    //! The executor type
+    using executor_type = typename socket_type::executor_type;
+    using std::enable_shared_from_this<client<Rpc, Socket, Map>>::shared_from_this;
 
     //! The default size reserved by the reception buffer
     static constexpr size_t kDefaultBufferReserveSize = 4096;
@@ -56,6 +60,7 @@ public:
 
     //! Get the underlying socket
     socket_type& socket() noexcept { return socket_; }
+
     //! Get the underlying socket, const
     const socket_type& socket() const noexcept { return socket_; }
 
@@ -75,30 +80,23 @@ public:
 
     //! Cancel a pending call
     //!
-    //! The associated handler will be called with @ref error::cancelled
+    //! The associated handler will be called with net::error::operation_aborted
     //! @param id The call ID of the call to cancel
     void cancel(id_type id)
     {
         net::dispatch(call_strand_, [self = shared_from_this(), id] {
-            auto ec = make_error_code(error::cancelled);
-            self->async_call_handler(
-                id, internal::make_msgpack_object(ec.message()), ec);
+            auto ec = make_error_code(net::error::operation_aborted);
+            self->async_call_handler(id, ec, {});
         });
     }
 
     //! Cancel all pending calls
     //!
-    //! The associated handlers will be called with @ref error::cancelled
+    //! The associated handlers will be called with net::error::operation_aborted
     void cancel()
     {
         net::dispatch(call_strand_, [self = shared_from_this()] {
-            auto ec = make_error_code(error::cancelled);
-            while (!self->pending_.empty()) {
-                self->async_call_handler(
-                    self->pending_.begin()->first,
-                    internal::make_msgpack_object(ec.message()),
-                    ec);
-            }
+            self->cancel_all_calls();
         });
     }
 
@@ -106,31 +104,29 @@ public:
     //!
     //! A notify request will call the remote procedure but
     //! does not expect a response
-    //! @tparam Buffer Buffer used to serialize the arguments. Recommended:
-    //! - msgpack::sbuffer is an owning buffer \n
-    //! - msgpack::vrefbuffer is a non-owning buffer
     //! @param name Remote procedure name to call
     //! @param args Tuple of arguments to pass to the remote procedure
     //! @param handler Handler called after the notify request is sent.
     //! Must satisfy the @ref traits::NotifyHandler trait
     template <
-        typename Buffer = msgpack::sbuffer,
         PACKIO_COMPLETION_TOKEN_FOR(void(error_code))
             NotifyHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type),
-        typename... Args>
+        typename ArgsTuple,
+        typename = std::enable_if_t<internal::is_tuple_v<ArgsTuple>>>
     auto async_notify(
         std::string_view name,
-        const std::tuple<Args...>& args,
+        ArgsTuple&& args,
         NotifyHandler&& handler PACKIO_DEFAULT_COMPLETION_TOKEN(executor_type))
     {
         return net::async_initiate<NotifyHandler, void(error_code)>(
-            initiate_async_notify<Buffer>(this), handler, name, args);
+            initiate_async_notify(this),
+            handler,
+            name,
+            std::forward<ArgsTuple>(args));
     }
 
-    //! Send a notify request to the server with no argument
     //! @overload
     template <
-        typename Buffer = msgpack::sbuffer,
         PACKIO_COMPLETION_TOKEN_FOR(void(error_code))
             NotifyHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type),
         typename = std::enable_if_t<!internal::is_tuple_v<NotifyHandler>>>
@@ -138,40 +134,39 @@ public:
         std::string_view name,
         NotifyHandler&& handler PACKIO_DEFAULT_COMPLETION_TOKEN(executor_type))
     {
-        return async_notify<Buffer>(
+        return async_notify(
             name, std::tuple{}, std::forward<NotifyHandler>(handler));
     }
 
     //! Call a remote procedure
     //!
-    //! @tparam Buffer Buffer used to serialize the arguments. Recommended:
-    //! - msgpack::sbuffer is an owning buffer \n
-    //! - msgpack::vrefbuffer is a non-owning buffer
     //! @param name Remote procedure name to call
     //! @param args Tuple of arguments to pass to the remote procedure
     //! @param handler Handler called with the return value
     //! Must satisfy the @ref traits::CallHandler trait
     //! @param call_id Output parameter that will receive the call ID
     template <
-        typename Buffer = msgpack::sbuffer,
-        PACKIO_COMPLETION_TOKEN_FOR(void(error_code, msgpack::object_handle))
+        PACKIO_COMPLETION_TOKEN_FOR(void(error_code, response_type))
             CallHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type),
-        typename... Args>
+        typename ArgsTuple,
+        typename = std::enable_if_t<internal::is_tuple_v<ArgsTuple>>>
     auto async_call(
         std::string_view name,
-        const std::tuple<Args...>& args,
+        ArgsTuple&& args,
         CallHandler&& handler PACKIO_DEFAULT_COMPLETION_TOKEN(executor_type),
         std::optional<std::reference_wrapper<id_type>> call_id = std::nullopt)
     {
-        return net::async_initiate<CallHandler, void(error_code, msgpack::object_handle)>(
-            initiate_async_call<Buffer>(this), handler, name, args, call_id);
+        return net::async_initiate<CallHandler, void(error_code, response_type)>(
+            initiate_async_call(this),
+            handler,
+            name,
+            std::forward<ArgsTuple>(args),
+            call_id);
     }
 
-    //! Call a remote procedure
     //! @overload
     template <
-        typename Buffer = msgpack::sbuffer,
-        PACKIO_COMPLETION_TOKEN_FOR(void(error_code, msgpack::object_handle))
+        PACKIO_COMPLETION_TOKEN_FOR(void(error_code, response_type))
             CallHandler PACKIO_DEFAULT_COMPLETION_TOKEN_TYPE(executor_type),
         typename = std::enable_if_t<!internal::is_tuple_v<CallHandler>>>
     auto async_call(
@@ -179,13 +174,23 @@ public:
         CallHandler&& handler PACKIO_DEFAULT_COMPLETION_TOKEN(executor_type),
         std::optional<std::reference_wrapper<id_type>> call_id = std::nullopt)
     {
-        return async_call<Buffer>(
+        return async_call(
             name, std::tuple{}, std::forward<CallHandler>(handler), call_id);
     }
 
 private:
+    using parser_type = typename rpc_type::incremental_parser_type;
     using async_call_handler_type =
-        internal::unique_function<void(error_code, msgpack::object_handle)>;
+        internal::movable_function<void(error_code, response_type)>;
+
+    void cancel_all_calls()
+    {
+        assert(call_strand_.running_in_this_thread());
+        auto ec = make_error_code(net::error::operation_aborted);
+        while (!pending_.empty()) {
+            async_call_handler(pending_.begin()->first, ec, {});
+        }
+    }
 
     void maybe_stop_reading()
     {
@@ -201,16 +206,14 @@ private:
     }
 
     template <typename Buffer, typename WriteHandler>
-    void async_send(std::unique_ptr<Buffer> buffer_ptr, WriteHandler&& handler)
+    void async_send(std::unique_ptr<Buffer>&& buffer_ptr, WriteHandler&& handler)
     {
         wstrand_.push([self = shared_from_this(),
                        buffer_ptr = std::move(buffer_ptr),
                        handler = std::forward<WriteHandler>(handler)]() mutable {
-            using internal::buffer;
-
             internal::set_no_delay(self->socket_);
 
-            auto buf = buffer(*buffer_ptr);
+            auto buf = rpc_type::buffer(*buffer_ptr);
             net::async_write(
                 self->socket_,
                 buf,
@@ -224,11 +227,10 @@ private:
         });
     }
 
-    void async_read(std::unique_ptr<msgpack::unpacker> unpacker)
+    void async_read(parser_type&& parser)
     {
-        unpacker->reserve_buffer(buffer_reserve_size_);
-        auto buffer = net::buffer(
-            unpacker->buffer(), unpacker->buffer_capacity());
+        parser.reserve_buffer(buffer_reserve_size_);
+        auto buffer = net::buffer(parser.buffer(), parser.buffer_capacity());
 
         assert(call_strand_.running_in_this_thread());
         reading_ = true;
@@ -237,31 +239,29 @@ private:
             buffer,
             net::bind_executor(
                 call_strand_,
-                [self = shared_from_this(), unpacker = std::move(unpacker)](
+                [self = shared_from_this(), parser = std::move(parser)](
                     error_code ec, size_t length) mutable {
-                    PACKIO_TRACE("read: {}", length);
-                    unpacker->buffer_consumed(length);
-
-                    msgpack::object_handle response;
-                    while (unpacker->next(response)) {
-                        self->process_response(std::move(response), ec);
-                    }
-
                     // stop if there is an error or there is no more pending calls
                     assert(self->call_strand_.running_in_this_thread());
 
-                    if (ec && ec != net::error::operation_aborted) {
+                    if (ec) {
                         PACKIO_WARN("read error: {}", ec.message());
                         self->reading_ = false;
 
                         // cancel all pending calls
-                        while (!self->pending_.empty()) {
-                            self->async_call_handler(
-                                self->pending_.begin()->first,
-                                internal::make_msgpack_object(ec.message()),
-                                ec);
-                        }
+                        self->cancel_all_calls();
                         return;
+                    }
+
+                    PACKIO_TRACE("read: {}", length);
+                    parser.buffer_consumed(length);
+
+                    while (auto response = parser.get_response()) {
+                        if (!response) {
+                            PACKIO_ERROR("bad response");
+                            continue;
+                        }
+                        self->async_call_handler(std::move(*response));
                     }
 
                     if (self->pending_.empty()) {
@@ -270,43 +270,31 @@ private:
                         return;
                     }
 
-                    self->async_read(std::move(unpacker));
+                    self->async_read(std::move(parser));
                 }));
     }
 
-    void process_response(msgpack::object_handle response, error_code ec)
+    void async_call_handler(response_type&& response)
     {
-        if (!verify_reponse(response.get())) {
-            PACKIO_ERROR("received unexpected response");
-            return;
-        }
-
-        const auto& call_response = response->via.array.ptr;
-        int id = call_response[1].as<int>();
-        msgpack::object err = call_response[2];
-        msgpack::object result = call_response[3];
-
-        if (err.type != msgpack::type::NIL) {
-            ec = make_error_code(error::call_error);
-            async_call_handler(id, {err, std::move(response.zone())}, ec);
-        }
-        else {
-            ec = make_error_code(error::success);
-            async_call_handler(id, {result, std::move(response.zone())}, ec);
-        }
+        auto id = response.id;
+        return async_call_handler(id, {}, std::move(response));
     }
 
-    void async_call_handler(id_type id, msgpack::object_handle result, error_code ec)
+    void async_call_handler(id_type id, error_code ec, response_type&& response)
     {
         net::dispatch(
             call_strand_,
-            [ec, id, self = shared_from_this(), result = std::move(result)]() mutable {
-                PACKIO_DEBUG("calling handler for id: {}", id);
+            [ec,
+             id,
+             self = shared_from_this(),
+             response = std::move(response)]() mutable {
+                PACKIO_DEBUG(
+                    "calling handler for id: {}", rpc_type::format_id(id));
 
                 assert(call_strand_.running_in_this_thread());
                 auto it = self->pending_.find(id);
                 if (it == self->pending_.end()) {
-                    PACKIO_WARN("unexisting id");
+                    PACKIO_WARN("unexisting id: {}", rpc_type::format_id(id));
                     return;
                 }
 
@@ -322,31 +310,12 @@ private:
                     self->socket_.get_executor(),
                     [ec,
                      handler = std::move(handler),
-                     result = std::move(result)]() mutable {
-                        handler(ec, std::move(result));
+                     response = std::move(response)]() mutable {
+                        handler(ec, std::move(response));
                     });
             });
     }
 
-    bool verify_reponse(const msgpack::object& response)
-    {
-        if (response.type != msgpack::type::ARRAY) {
-            PACKIO_ERROR("unexpected message type: {}", response.type);
-            return false;
-        }
-        if (response.via.array.size != 4) {
-            PACKIO_ERROR("unexpected message size: {}", response.via.array.size);
-            return false;
-        }
-        int type = response.via.array.ptr[0].as<int>();
-        if (type != static_cast<int>(msgpack_rpc_type::response)) {
-            PACKIO_ERROR("unexpected type: {}", type);
-            return false;
-        }
-        return true;
-    }
-
-    template <typename Buffer>
     class initiate_async_notify {
     public:
         using executor_type = typename client::executor_type;
@@ -358,21 +327,23 @@ private:
             return self_->get_executor();
         }
 
-        template <typename NotifyHandler, typename... Args>
+        template <typename NotifyHandler, typename ArgsTuple>
         void operator()(
             NotifyHandler&& handler,
             std::string_view name,
-            const std::tuple<Args...>& args) const
+            ArgsTuple&& args) const
         {
             PACKIO_STATIC_ASSERT_TRAIT(NotifyHandler);
             PACKIO_DEBUG("async_notify: {}", name);
 
-            auto packer_buf = std::make_unique<Buffer>();
-            msgpack::pack(
-                *packer_buf,
-                std::forward_as_tuple(
-                    static_cast<int>(msgpack_rpc_type::notification), name, args));
+            auto packer_buf = internal::to_unique_ptr(std::apply(
+                [&name](auto&&... args) {
+                    return rpc_type::serialize_notification(
+                        name, std::forward<decltype(args)>(args)...);
+                },
+                std::forward<ArgsTuple>(args))
 
+            );
             self_->async_send(
                 std::move(packer_buf),
                 [handler = std::forward<NotifyHandler>(handler)](
@@ -393,7 +364,6 @@ private:
         client* self_;
     };
 
-    template <typename Buffer>
     class initiate_async_call {
     public:
         using executor_type = typename client::executor_type;
@@ -405,14 +375,14 @@ private:
             return self_->get_executor();
         }
 
-        template <typename CallHandler, typename... Args>
+        template <typename CallHandler, typename ArgsTuple>
         void operator()(
             CallHandler&& handler,
             std::string_view name,
-            const std::tuple<Args...>& args,
+            ArgsTuple&& args,
             std::optional<std::reference_wrapper<id_type>> opt_call_id) const
         {
-            PACKIO_STATIC_ASSERT_TRAIT(CallHandler);
+            PACKIO_STATIC_ASSERT_TTRAIT(CallHandler, rpc_type);
             PACKIO_DEBUG("async_call: {}", name);
 
             id_type call_id = self_->id_.fetch_add(1, std::memory_order_acq_rel);
@@ -420,14 +390,12 @@ private:
                 opt_call_id->get() = call_id;
             }
 
-            auto packer_buf = std::make_unique<Buffer>();
-            msgpack::pack(
-                *packer_buf,
-                std::forward_as_tuple(
-                    static_cast<int>(msgpack_rpc_type::request),
-                    call_id,
-                    name,
-                    args));
+            auto packer_buf = internal::to_unique_ptr(std::apply(
+                [&name, &call_id](auto&&... args) {
+                    return rpc_type::serialize_request(
+                        call_id, name, std::forward<decltype(args)>(args)...);
+                },
+                std::forward<ArgsTuple>(args)));
 
             net::dispatch(
                 self_->call_strand_,
@@ -443,7 +411,7 @@ private:
                     // if we are not reading, start the read operation
                     if (!self->reading_) {
                         PACKIO_DEBUG("start reading");
-                        self->async_read(std::make_unique<msgpack::unpacker>());
+                        self->async_read(parser_type{});
                     }
 
                     // send the request buffer
@@ -453,10 +421,7 @@ private:
                             error_code ec, std::size_t length) mutable {
                             if (ec) {
                                 PACKIO_WARN("write error: {}", ec.message());
-                                self->async_call_handler(
-                                    call_id,
-                                    internal::make_msgpack_object(ec.message()),
-                                    ec);
+                                self->async_call_handler(call_id, ec, {});
                             }
                             else {
                                 PACKIO_TRACE("write: {}", length);
@@ -472,7 +437,7 @@ private:
 
     socket_type socket_;
     std::size_t buffer_reserve_size_{kDefaultBufferReserveSize};
-    std::atomic<id_type> id_{0};
+    std::atomic<uint64_t> id_{0};
 
     internal::manual_strand<executor_type> wstrand_;
 
@@ -482,12 +447,14 @@ private:
 };
 
 //! Create a client from a socket
+//! @tparam Rpc RPC protocol implementation
 //! @tparam Socket Socket type to use for this client
 //! @tparam Map Container used to associate call IDs and handlers
-template <typename Socket, template <class...> class Map = std::map>
+template <typename Rpc, typename Socket, template <class...> class Map = default_map>
 auto make_client(Socket&& socket)
 {
-    return std::make_shared<client<Socket, Map>>(std::forward<Socket>(socket));
+    return std::make_shared<client<Rpc, Socket, Map>>(
+        std::forward<Socket>(socket));
 }
 
 } // packio

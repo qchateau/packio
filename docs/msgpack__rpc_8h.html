@@ -7,7 +7,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=9" />
     <meta name="generator" content="Doxygen 1.8.17" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>packio: packio/internal/msgpack_rpc.h File Reference</title>
+    <title>packio: packio/msgpack_rpc/msgpack_rpc.h File Reference</title>
     <link href="tabs.css" rel="stylesheet" type="text/css" />
     <script type="text/javascript" src="jquery.js"></script>
     <script type="text/javascript" src="dynsections.js"></script>
@@ -63,35 +63,68 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><a class="el" href="dir_7f2d0a2a0928023e758bb1e0e178d043.html">packio</a></li><li class="navelem"><a class="el" href="dir_d7eb85775561ce766e8a532a122e1c82.html">internal</a></li>  </ul>
+<li class="navelem"><a class="el" href="dir_7f2d0a2a0928023e758bb1e0e178d043.html">packio</a></li><li class="navelem"><a class="el" href="dir_8b84d8fff14d06fd8cd883713d64b14f.html">msgpack_rpc</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
   <div class="summary">
 <a href="#namespaces">Namespaces</a> &#124;
-<a href="#typedef-members">Typedefs</a>  </div>
+<a href="#typedef-members">Typedefs</a> &#124;
+<a href="#func-members">Functions</a>  </div>
   <div class="headertitle">
 <div class="title">msgpack_rpc.h File Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><code>#include &lt;cstdint&gt;</code><br />
+<div class="textblock"><code>#include &quot;<a class="el" href="client_8h_source.html">../client.h</a>&quot;</code><br />
+<code>#include &quot;<a class="el" href="server_8h_source.html">../server.h</a>&quot;</code><br />
+<code>#include &quot;rpc.h&quot;</code><br />
 </div>
 <p><a href="msgpack__rpc_8h_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="namespaces"></a>
 Namespaces</h2></td></tr>
+<tr class="memitem:namespacepackio_1_1msgpack__rpc"><td class="memItemLeft" align="right" valign="top"> &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepackio_1_1msgpack__rpc.html">packio::msgpack_rpc</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:namespacepackio"><td class="memItemLeft" align="right" valign="top"> &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepackio.html">packio</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
 Typedefs</h2></td></tr>
-<tr class="memitem:a02aa56c39599b9cde75f298011dc87e8"><td class="memItemLeft" align="right" valign="top"><a id="a02aa56c39599b9cde75f298011dc87e8"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepackio.html#a02aa56c39599b9cde75f298011dc87e8">packio::id_type</a> = uint32_t</td></tr>
-<tr class="memdesc:a02aa56c39599b9cde75f298011dc87e8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type used to store call IDs. <br /></td></tr>
-<tr class="separator:a02aa56c39599b9cde75f298011dc87e8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5f26747f38ee4b858478d242f2d1fb93"><td class="memItemLeft" align="right" valign="top"><a id="a5f26747f38ee4b858478d242f2d1fb93"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacepackio_1_1msgpack__rpc.html#a5f26747f38ee4b858478d242f2d1fb93">packio::msgpack_rpc::completion_handler</a> = completion_handler&lt; rpc &gt;</td></tr>
+<tr class="memdesc:a5f26747f38ee4b858478d242f2d1fb93"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="classpackio_1_1completion__handler.html">completion_handler</a> for msgpack-RPC. <br /></td></tr>
+<tr class="separator:a5f26747f38ee4b858478d242f2d1fb93"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae3d9c63288b95af71c1f562c8a348437"><td class="memTemplParams" colspan="2"><a id="ae3d9c63288b95af71c1f562c8a348437"></a>
+template&lt;template&lt; class... &gt; class Map = default_map, typename Lockable  = default_mutex&gt; </td></tr>
+<tr class="memitem:ae3d9c63288b95af71c1f562c8a348437"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacepackio_1_1msgpack__rpc.html#ae3d9c63288b95af71c1f562c8a348437">packio::msgpack_rpc::dispatcher</a> = dispatcher&lt; rpc, Map, Lockable &gt;</td></tr>
+<tr class="memdesc:ae3d9c63288b95af71c1f562c8a348437"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="classpackio_1_1dispatcher.html">dispatcher</a> for msgpack-RPC. <br /></td></tr>
+<tr class="separator:ae3d9c63288b95af71c1f562c8a348437"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a49d32a81a0e25f0afd20c06b0f3be038"><td class="memTemplParams" colspan="2"><a id="a49d32a81a0e25f0afd20c06b0f3be038"></a>
+template&lt;typename Socket , template&lt; class... &gt; class Map = default_map&gt; </td></tr>
+<tr class="memitem:a49d32a81a0e25f0afd20c06b0f3be038"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacepackio_1_1msgpack__rpc.html#a49d32a81a0e25f0afd20c06b0f3be038">packio::msgpack_rpc::client</a> = ::<a class="el" href="classpackio_1_1client.html">packio::client</a>&lt; rpc, Socket, Map &gt;</td></tr>
+<tr class="memdesc:a49d32a81a0e25f0afd20c06b0f3be038"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="classpackio_1_1client.html">client</a> for msgpack-RPC. <br /></td></tr>
+<tr class="separator:a49d32a81a0e25f0afd20c06b0f3be038"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a34d73db89c36af6b191cb1b148ba77d2"><td class="memTemplParams" colspan="2"><a id="a34d73db89c36af6b191cb1b148ba77d2"></a>
+template&lt;typename Acceptor , typename Dispatcher  = dispatcher&lt;&gt;&gt; </td></tr>
+<tr class="memitem:a34d73db89c36af6b191cb1b148ba77d2"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacepackio_1_1msgpack__rpc.html#a34d73db89c36af6b191cb1b148ba77d2">packio::msgpack_rpc::server</a> = ::<a class="el" href="classpackio_1_1server.html">packio::server</a>&lt; rpc, Acceptor, Dispatcher &gt;</td></tr>
+<tr class="memdesc:a34d73db89c36af6b191cb1b148ba77d2"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="classpackio_1_1server.html">server</a> for msgpack-RPC. <br /></td></tr>
+<tr class="separator:a34d73db89c36af6b191cb1b148ba77d2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
+Functions</h2></td></tr>
+<tr class="memitem:a10bd3630d97339e416f5e407efece04d"><td class="memTemplParams" colspan="2"><a id="a10bd3630d97339e416f5e407efece04d"></a>
+template&lt;typename Socket , template&lt; class... &gt; class Map = default_map&gt; </td></tr>
+<tr class="memitem:a10bd3630d97339e416f5e407efece04d"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacepackio_1_1msgpack__rpc.html#a10bd3630d97339e416f5e407efece04d">packio::msgpack_rpc::make_client</a> (Socket &amp;&amp;socket)</td></tr>
+<tr class="memdesc:a10bd3630d97339e416f5e407efece04d"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="namespacepackio.html#a5a73a8453d35e9f6f0c29e9b87e93490">make_client</a> function for msgpack-RPC. <br /></td></tr>
+<tr class="separator:a10bd3630d97339e416f5e407efece04d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a437273529bff1d9196ae2afdf8233f9f"><td class="memTemplParams" colspan="2"><a id="a437273529bff1d9196ae2afdf8233f9f"></a>
+template&lt;typename Acceptor , typename Dispatcher  = dispatcher&lt;&gt;&gt; </td></tr>
+<tr class="memitem:a437273529bff1d9196ae2afdf8233f9f"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacepackio_1_1msgpack__rpc.html#a437273529bff1d9196ae2afdf8233f9f">packio::msgpack_rpc::make_server</a> (Acceptor &amp;&amp;acceptor)</td></tr>
+<tr class="memdesc:a437273529bff1d9196ae2afdf8233f9f"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="namespacepackio.html#a4944e82d7f3dd2ee989a49d928cef3d3">make_server</a> function for msgpack-RPC. <br /></td></tr>
+<tr class="separator:a437273529bff1d9196ae2afdf8233f9f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>msgpack-RPC related types and values </p>
+<div class="textblock"><p>Typedefs and functions to use the msgpack-RPC protocol </p>
 </div></div><!-- contents -->
 <!-- HTML footer for doxygen 1.8.13-->
 <!-- start footer part -->

@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['traits_2eh_65',['traits.h',['../traits_8h.html',1,'']]]
+  ['zone_69',['zone',['../structpackio_1_1msgpack__rpc_1_1internal_1_1request.html#ad05950fc46bacf68d602e20f83f4d64d',1,'packio::msgpack_rpc::internal::request::zone()'],['../structpackio_1_1msgpack__rpc_1_1internal_1_1response.html#ab86f414bf7f829e328923e78c77936be',1,'packio::msgpack_rpc::internal::response::zone()']]]
 ];

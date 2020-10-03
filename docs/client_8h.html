@@ -78,17 +78,14 @@ $(function() {
 <div class="textblock"><code>#include &lt;atomic&gt;</code><br />
 <code>#include &lt;chrono&gt;</code><br />
 <code>#include &lt;functional&gt;</code><br />
-<code>#include &lt;map&gt;</code><br />
 <code>#include &lt;memory&gt;</code><br />
 <code>#include &lt;queue&gt;</code><br />
 <code>#include &lt;string_view&gt;</code><br />
 <code>#include &lt;type_traits&gt;</code><br />
-<code>#include &lt;msgpack.hpp&gt;</code><br />
-<code>#include &quot;<a class="el" href="error__code_8h_source.html">error_code.h</a>&quot;</code><br />
 <code>#include &quot;internal/config.h&quot;</code><br />
 <code>#include &quot;internal/manual_strand.h&quot;</code><br />
-<code>#include &quot;<a class="el" href="msgpack__rpc_8h_source.html">internal/msgpack_rpc.h</a>&quot;</code><br />
-<code>#include &quot;internal/unique_function.h&quot;</code><br />
+<code>#include &quot;internal/movable_function.h&quot;</code><br />
+<code>#include &quot;internal/rpc.h&quot;</code><br />
 <code>#include &quot;internal/utils.h&quot;</code><br />
 <code>#include &quot;<a class="el" href="traits_8h_source.html">traits.h</a>&quot;</code><br />
 </div>
@@ -96,7 +93,7 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
 Classes</h2></td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1client.html">packio::client&lt; Socket, Map &gt;</a></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1client.html">packio::client&lt; Rpc, Socket, Map &gt;</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The client class.  <a href="classpackio_1_1client.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -107,10 +104,10 @@ Namespaces</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:ae41a42d5103a615a810d6e42d68906da"><td class="memTemplParams" colspan="2">template&lt;typename Socket , template&lt; class... &gt; class Map = std::map&gt; </td></tr>
-<tr class="memitem:ae41a42d5103a615a810d6e42d68906da"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacepackio.html#ae41a42d5103a615a810d6e42d68906da">packio::make_client</a> (Socket &amp;&amp;socket)</td></tr>
-<tr class="memdesc:ae41a42d5103a615a810d6e42d68906da"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a client from a socket.  <a href="namespacepackio.html#ae41a42d5103a615a810d6e42d68906da">More...</a><br /></td></tr>
-<tr class="separator:ae41a42d5103a615a810d6e42d68906da"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5a73a8453d35e9f6f0c29e9b87e93490"><td class="memTemplParams" colspan="2">template&lt;typename Rpc , typename Socket , template&lt; class... &gt; class Map = default_map&gt; </td></tr>
+<tr class="memitem:a5a73a8453d35e9f6f0c29e9b87e93490"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacepackio.html#a5a73a8453d35e9f6f0c29e9b87e93490">packio::make_client</a> (Socket &amp;&amp;socket)</td></tr>
+<tr class="memdesc:a5a73a8453d35e9f6f0c29e9b87e93490"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a client from a socket.  <a href="namespacepackio.html#a5a73a8453d35e9f6f0c29e9b87e93490">More...</a><br /></td></tr>
+<tr class="separator:a5a73a8453d35e9f6f0c29e9b87e93490"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Class <a class="el" href="classpackio_1_1client.html">client</a> </p>

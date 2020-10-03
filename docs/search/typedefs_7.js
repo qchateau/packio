@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['socket_5ftype_131',['socket_type',['../classpackio_1_1client.html#a6f710205e0426368bd4fc1e973d0e377',1,'packio::client::socket_type()'],['../classpackio_1_1server.html#ac42874f5c340ba691c88a6ea1d44c836',1,'packio::server::socket_type()'],['../classpackio_1_1server__session.html#ab9ab57c300970cc8dbf520f214a43534',1,'packio::server_session::socket_type()']]]
+  ['native_5ftype_142',['native_type',['../classpackio_1_1msgpack__rpc_1_1rpc.html#a34db8ce79c9de47fe5f8245eec851fdb',1,'packio::msgpack_rpc::rpc::native_type()'],['../classpackio_1_1nl__json__rpc_1_1rpc.html#a9d356881153c1ee2c93e7e31d49bde4b',1,'packio::nl_json_rpc::rpc::native_type()']]]
 ];

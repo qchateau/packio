@@ -8,7 +8,7 @@
 #include <queue>
 
 #include "config.h"
-#include "unique_function.h"
+#include "movable_function.h"
 
 namespace packio {
 namespace internal {
@@ -16,7 +16,7 @@ namespace internal {
 template <typename Executor>
 class manual_strand {
 public:
-    using function_type = unique_function<void()>;
+    using function_type = movable_function<void()>;
 
     manual_strand(const Executor& executor) : strand_{executor} {}
 

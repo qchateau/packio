@@ -13,7 +13,7 @@ namespace packio {
 namespace internal {
 
 template <typename T>
-class unique_function : public std::function<T> {
+class movable_function : public std::function<T> {
     template <typename Fn, typename En = void>
     struct wrapper {
     };
@@ -62,25 +62,25 @@ class unique_function : public std::function<T> {
     using base = std::function<T>;
 
 public:
-    unique_function() noexcept = default;
-    unique_function(std::nullptr_t) noexcept : base(nullptr) {}
+    movable_function() noexcept = default;
+    movable_function(std::nullptr_t) noexcept : base(nullptr) {}
 
     template <typename Fn>
-    unique_function(Fn&& f) : base(wrapper<Fn>{std::forward<Fn>(f)})
+    movable_function(Fn&& f) : base(wrapper<Fn>{std::forward<Fn>(f)})
     {
     }
 
-    unique_function(unique_function&&) = default;
-    unique_function& operator=(unique_function&&) = default;
+    movable_function(movable_function&&) = default;
+    movable_function& operator=(movable_function&&) = default;
 
-    unique_function& operator=(std::nullptr_t)
+    movable_function& operator=(std::nullptr_t)
     {
         base::operator=(nullptr);
         return *this;
     }
 
     template <typename Fn>
-    unique_function& operator=(Fn&& f)
+    movable_function& operator=(Fn&& f)
     {
         base::operator=(wrapper<Fn>{std::forward<Fn>(f)});
         return *this;

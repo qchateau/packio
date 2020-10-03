@@ -101,3 +101,74 @@ using my_unordered_map = std::unordered_map<
     std::hash<Key>,
     std::equal_to<Key>,
     my_allocator<std::pair<const Key, T>>>;
+
+template <typename T>
+T get(const ::msgpack::object& value)
+{
+    return value.as<T>();
+}
+
+template <typename T>
+T get(const ::nlohmann::json& value)
+{
+    return value.get<T>();
+}
+
+inline std::string get_error_message(const ::msgpack::object& error)
+{
+    return error.as<std::string>();
+}
+
+inline std::string get_error_message(const ::nlohmann::json& error)
+{
+    return error["message"].get<std::string>();
+}
+
+inline bool is_error_response(const packio::msgpack_rpc::rpc::response_type& resp)
+{
+    return resp.result.is_nil() && !resp.error.is_nil();
+}
+
+inline bool is_error_response(const packio::nl_json_rpc::rpc::response_type& resp)
+{
+    return resp.result.is_null() && !resp.error.is_null();
+}
+
+template <typename Future>
+decltype(auto) safe_future_get(Future&& fut)
+{
+    if (fut.wait_for(std::chrono::seconds{1}) != std::future_status::ready) {
+        throw std::runtime_error{"future was not ready"};
+    }
+    return fut.get();
+}
+
+#define ASSERT_RESULT_EQ(fut, value) \
+    ASSERT_EQ(                       \
+        get<std::decay_t<decltype(value)>>(safe_future_get(fut).result), value)
+
+#define ASSERT_RESULT_IS_OK(fut) \
+    ASSERT_FALSE(is_error_response(safe_future_get(fut)))
+
+#define ASSERT_RESULT_IS_ERROR(fut) \
+    ASSERT_TRUE(is_error_response(safe_future_get(fut)))
+
+#define ASSERT_FUTURE_THROW(fut, exc) \
+    ASSERT_THROW([&] { return safe_future_get(fut); }(), exc)
+
+#define ASSERT_FUTURE_NO_THROW(fut) \
+    ASSERT_NO_THROW([&] { return safe_future_get(fut); }())
+
+#define ASSERT_FUTURE_BLOCKS(fut, duration) \
+    ASSERT_EQ(std::future_status::timeout, fut.wait_for(duration))
+
+#define ASSERT_FUTURE_CANCELLED(fut)                              \
+    do {                                                          \
+        try {                                                     \
+            safe_future_get(fut);                                 \
+            ASSERT_FALSE(true);                                   \
+        }                                                         \
+        catch (system_error & err) {                              \
+            ASSERT_EQ(net::error::operation_aborted, err.code()); \
+        }                                                         \
+    } while (false)

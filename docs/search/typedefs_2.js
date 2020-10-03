@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['executor_5ftype_125',['executor_type',['../classpackio_1_1client.html#a0f2f08560e2ee10a7adbce5206d94a13',1,'packio::client::executor_type()'],['../classpackio_1_1server.html#a04594e9ee178269b5ae9a8b7f03967da',1,'packio::server::executor_type()'],['../classpackio_1_1server__session.html#a7ebcbb24ebb5b5a9dcd55d3f676b736b',1,'packio::server_session::executor_type()']]]
+  ['dispatcher_134',['dispatcher',['../namespacepackio_1_1msgpack__rpc.html#ae3d9c63288b95af71c1f562c8a348437',1,'packio::msgpack_rpc::dispatcher()'],['../namespacepackio_1_1nl__json__rpc.html#a04c96d3c7fdf708974d27d3616963237',1,'packio::nl_json_rpc::dispatcher()']]],
+  ['dispatcher_5ftype_135',['dispatcher_type',['../classpackio_1_1server.html#afaa03c3f3530583592670426de2834d5',1,'packio::server']]]
 ];

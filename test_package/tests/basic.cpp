@@ -1,6 +1,8 @@
 #include "tests.h"
 
 using namespace std::chrono_literals;
+using namespace std::string_literals;
+using namespace packio::arg_literals;
 using namespace packio::net;
 using namespace packio;
 
@@ -28,12 +30,14 @@ TYPED_TEST(Test, test_server_crash)
     this->async_run();
 
     auto f = this->client_->async_call("close", use_future);
-    ASSERT_EQ(std::future_status::ready, f.wait_for(std::chrono::seconds{1}));
-    ASSERT_THROW(f.get(), std::exception);
+    ASSERT_FUTURE_THROW(f, std::exception);
 }
 
 TYPED_TEST(Test, test_typical_usage)
 {
+    using completion_handler =
+        typename std::decay_t<decltype(*this)>::completion_handler;
+
     {
         latch connected{1};
         this->server_->async_serve([&](auto ec, auto session) {
@@ -61,8 +65,7 @@ TYPED_TEST(Test, test_typical_usage)
         call_latch.reset(1);
 
         auto f = this->client_->async_notify("echo", std::tuple{42}, use_future);
-        ASSERT_EQ(std::future_status::ready, f.wait_for(1s));
-        ASSERT_NO_THROW(f.get());
+        ASSERT_FUTURE_NO_THROW(f);
         ASSERT_TRUE(call_latch.wait_for(1s));
         ASSERT_EQ(42, call_arg_received.load());
     }
@@ -72,103 +75,16 @@ TYPED_TEST(Test, test_typical_usage)
         call_arg_received = 0;
 
         auto f = this->client_->async_call("echo", std::tuple{42}, use_future);
-        ASSERT_EQ(std::future_status::ready, f.wait_for(1s));
-        ASSERT_EQ(42, f.get()->template as<int>());
+        ASSERT_RESULT_EQ(f, 42);
         ASSERT_EQ(42, call_arg_received.load());
-    }
-}
-
-TYPED_TEST(Test, test_as)
-{
-    this->server_->async_serve_forever();
-    this->connect();
-    this->async_run();
-
-    this->server_->dispatcher()->add("add", [](int a, int b) { return a + b; });
-    this->server_->dispatcher()->add("void", [] {});
-
-    // test valid call
-    {
-        std::promise<void> done;
-        auto future_done = done.get_future();
-
-        this->client_->async_call(
-            "add",
-            std::tuple{12, 21},
-            as<int>([&done](error_code ec, std::optional<int> result) {
-                ASSERT_FALSE(ec);
-                ASSERT_EQ(33, *result);
-                done.set_value();
-            }));
-
-        ASSERT_EQ(std::future_status::ready, future_done.wait_for(1s));
-    }
-
-    // test as<void> valid call
-    {
-        std::promise<void> done;
-        auto future_done = done.get_future();
-
-        this->client_->async_call("void", as<void>([&done](error_code ec) {
-                                      ASSERT_FALSE(ec);
-                                      done.set_value();
-                                  }));
-
-        ASSERT_EQ(std::future_status::ready, future_done.wait_for(1s));
-    }
-
-    // test invalid call
-    {
-        std::promise<void> done;
-        auto future_done = done.get_future();
-
-        this->client_->async_call(
-            "add",
-            std::tuple<std::string, std::string>{"hello", "you"},
-            as<int>([&done](error_code ec, std::optional<int> result) {
-                ASSERT_EQ(::packio::error::call_error, ec);
-                ASSERT_FALSE(result);
-                done.set_value();
-            }));
-
-        ASSERT_EQ(std::future_status::ready, future_done.wait_for(1s));
-    }
-
-    // test invalid return type
-    {
-        std::promise<void> done;
-        auto future_done = done.get_future();
-
-        this->client_->async_call(
-            "add",
-            std::tuple{12, 21},
-            as<std::string>(
-                [&done](error_code ec, std::optional<std::string> result) {
-                    ASSERT_EQ(::packio::error::bad_result_type, ec);
-                    ASSERT_FALSE(result);
-                    done.set_value();
-                }));
-
-        ASSERT_EQ(std::future_status::ready, future_done.wait_for(1s));
-    }
-
-    // test as<void> invalid return type
-    {
-        std::promise<void> done;
-        auto future_done = done.get_future();
-
-        this->client_->async_call(
-            "add", std::tuple{12, 21}, as<void>([&done](error_code ec) {
-                ASSERT_EQ(::packio::error::bad_result_type, ec);
-                done.set_value();
-            }));
-
-        ASSERT_EQ(std::future_status::ready, future_done.wait_for(1s));
     }
 }
 
 TYPED_TEST(Test, test_timeout)
 {
+    using completion_handler =
+        typename std::decay_t<decltype(*this)>::completion_handler;
+
     this->server_->async_serve_forever();
     this->connect();
     this->async_run();
@@ -191,28 +107,14 @@ TYPED_TEST(Test, test_timeout)
             handler();
         });
 
-    const auto assert_blocks = [](auto& future) {
-        ASSERT_EQ(std::future_status::timeout, future.wait_for(100ms));
-    };
-    const auto assert_cancelled = [](auto& future) {
-        ASSERT_EQ(std::future_status::ready, future.wait_for(1s));
-        try {
-            future.get();
-            ASSERT_FALSE(true); // never reached
-        }
-        catch (system_error& err) {
-            ASSERT_EQ(make_error_code(::packio::error::cancelled), err.code());
-        }
-    };
-
     {
         auto f1 = this->client_->async_call("block", use_future);
         auto f2 = this->client_->async_call("block", use_future);
-        assert_blocks(f1);
-        assert_blocks(f2);
+        ASSERT_FUTURE_BLOCKS(f1, 100ms);
+        ASSERT_FUTURE_BLOCKS(f2, 100ms);
         this->client_->cancel();
-        assert_cancelled(f1);
-        assert_cancelled(f2);
+        ASSERT_FUTURE_CANCELLED(f1);
+        ASSERT_FUTURE_CANCELLED(f2);
     }
 
     {
@@ -221,16 +123,18 @@ TYPED_TEST(Test, test_timeout)
     }
 
     {
+        using id_type =
+            typename std::decay_t<decltype(*this)>::client_type::id_type;
         id_type id1, id2;
         auto f1 = this->client_->async_call("block", use_future, id1);
         auto f2 = this->client_->async_call("block", use_future, id2);
-        assert_blocks(f1);
-        assert_blocks(f2);
+        ASSERT_FUTURE_BLOCKS(f1, 10ms);
+        ASSERT_FUTURE_BLOCKS(f2, 10ms);
         this->client_->cancel(id2);
-        assert_blocks(f1);
-        assert_cancelled(f2);
+        ASSERT_FUTURE_BLOCKS(f1, 100ms);
+        ASSERT_FUTURE_CANCELLED(f2);
         this->client_->cancel(id1);
-        assert_cancelled(f1);
+        ASSERT_FUTURE_CANCELLED(f1);
         this->client_->cancel(id2);
         this->client_->cancel(id1);
         this->client_->cancel(424242);
@@ -243,17 +147,55 @@ TYPED_TEST(Test, test_timeout)
 
     {
         auto f = this->client_->async_call("block", use_future);
-        assert_blocks(f);
-        this->client_->async_call("unblock", use_future).get();
-        f.get();
+        ASSERT_FUTURE_BLOCKS(f, 100ms);
+        ASSERT_RESULT_IS_OK(this->client_->async_call("unblock", use_future));
+        ASSERT_RESULT_IS_OK(f);
     }
 
     this->io_.stop();
 }
 
+TYPED_TEST(Test, test_args_types)
+{
+    this->server_->async_serve_forever();
+    this->connect();
+    this->async_run();
+
+    this->server_->dispatcher()->add("add", [](int a, int b) { return a + b; });
+
+    // rvalue tuple
+    ASSERT_RESULT_EQ(
+        this->client_->async_call("add", std::tuple{12, 23}, use_future), 35);
+
+    // lvalue tuple
+    std::tuple tup{12, 23};
+    ASSERT_RESULT_EQ(this->client_->async_call("add", tup, use_future), 35);
+
+    // rvalue array
+    ASSERT_RESULT_EQ(
+        this->client_->async_call("add", std::array{12, 23}, use_future), 35);
+
+    // lvalue array
+    std::array arr{12, 23};
+    ASSERT_RESULT_EQ(this->client_->async_call("add", arr, use_future), 35);
+
+    // rvalue pair
+    ASSERT_RESULT_EQ(
+        this->client_->async_call("add", std::pair{12, 23}, use_future), 35);
+
+    // lvalue pair
+    std::pair pair{12, 23};
+    ASSERT_RESULT_EQ(this->client_->async_call("add", pair, use_future), 35);
+}
+
 TYPED_TEST(Test, test_functions)
 {
+    using completion_handler =
+        typename std::decay_t<decltype(*this)>::completion_handler;
     using tuple_int_str = std::tuple<int, std::string>;
+    using rpc_type = typename std::decay_t<decltype(*this)>::client_type::rpc_type;
+    using native_type = typename rpc_type::native_type;
+
     this->server_->async_serve_forever();
     this->connect();
     this->async_run();
@@ -283,6 +225,10 @@ TYPED_TEST(Test, test_functions)
         [](completion_handler handler, int i, std::string s) {
             handler(std::tuple{i, s});
         });
+    this->server_->dispatcher()->add_async(
+        "async_native", [](completion_handler handler, native_type native) {
+            handler(std::move(native));
+        });
 
     this->server_->dispatcher()->add("sync_void_void", []() {});
     this->server_->dispatcher()->add("sync_int_void", []() { return 42; });
@@ -300,100 +246,223 @@ TYPED_TEST(Test, test_functions)
         "sync_tuple_int_str", [](int i, std::string s) {
             return std::tuple{i, s};
         });
+    this->server_->dispatcher()->add(
+        "sync_native", [](native_type native) { return native; });
 
-    ASSERT_NO_THROW(
-        this->client_->async_call("async_void_void", use_future).get());
-    ASSERT_EQ(
-        42,
-        this->client_->async_call("async_int_void", use_future)
-            .get()
-            ->template as<int>());
-    ASSERT_NO_THROW(
-        this->client_->async_call("async_void_int", std::tuple{42}, use_future)
-            .get());
-    ASSERT_EQ(
-        42,
-        this->client_->async_call("async_int_int", std ::tuple{42}, use_future)
-            .get()
-            ->template as<int>());
-    ASSERT_EQ(
-        42,
-        this->client_->async_call("async_int_intref", std::tuple{42}, use_future)
-            .get()
-            ->template as<int>());
-    ASSERT_EQ(
-        42,
-        this->client_
-            ->async_call("async_int_intref_int", std::tuple{42, 24}, use_future)
-            .get()
-            ->template as<int>());
-    ASSERT_EQ(
-        "foobar",
-        this->client_
-            ->async_call("async_str_str", std::make_tuple("foobar"), use_future)
-            .get()
-            ->template as<std::string>());
-    ASSERT_EQ(
-        "foobar",
-        this->client_
-            ->async_call("async_str_strref", std::make_tuple("foobar"), use_future)
-            .get()
-            ->template as<std::string>());
-    ASSERT_EQ(
-        tuple_int_str(42, "foobar"),
-        this->client_
-            ->async_call(
-                "async_tuple_int_str", std::make_tuple(42, "foobar"), use_future)
-            .get()
-            ->template as<tuple_int_str>());
+    ASSERT_RESULT_IS_OK(this->client_->async_call("async_void_void", use_future));
 
-    ASSERT_NO_THROW(this->client_->async_call("sync_void_void", use_future).get());
-    ASSERT_EQ(
-        42,
-        this->client_->async_call("sync_int_void", use_future)
-            .get()
-            ->template as<int>());
-    ASSERT_NO_THROW(
-        this->client_->async_call("sync_void_int", std::tuple{42}, use_future).get());
-    ASSERT_EQ(
-        42,
-        this->client_->async_call("sync_int_int", std::tuple{42}, use_future)
-            .get()
-            ->template as<int>());
-    ASSERT_EQ(
-        42,
-        this->client_->async_call("sync_int_intref", std::tuple{42}, use_future)
-            .get()
-            ->template as<int>());
-    ASSERT_EQ(
-        42,
-        this->client_
-            ->async_call("sync_int_intref_int", std::tuple{42, 24}, use_future)
-            .get()
-            ->template as<int>());
-    ASSERT_EQ(
-        "foobar",
-        this->client_
-            ->async_call("sync_str_str", std::make_tuple("foobar"), use_future)
-            .get()
-            ->template as<std::string>());
-    ASSERT_EQ(
-        "foobar",
-        this->client_
-            ->async_call("sync_str_strref", std::make_tuple("foobar"), use_future)
-            .get()
-            ->template as<std::string>());
-    ASSERT_EQ(
-        tuple_int_str(42, "foobar"),
-        this->client_
-            ->async_call(
-                "sync_tuple_int_str", std::make_tuple(42, "foobar"), use_future)
-            .get()
-            ->template as<tuple_int_str>());
+    ASSERT_RESULT_EQ(this->client_->async_call("async_int_void", use_future), 42);
+    ASSERT_RESULT_IS_OK(this->client_->async_call(
+        "async_void_int", std::tuple{42}, use_future));
+    ASSERT_RESULT_EQ(
+        this->client_->async_call("async_int_int", std ::tuple{42}, use_future),
+        42);
+    ASSERT_RESULT_EQ(
+        this->client_->async_call("async_int_intref", std::tuple{42}, use_future),
+        42);
+    ASSERT_RESULT_EQ(
+        this->client_->async_call(
+            "async_int_intref_int", std::tuple{42, 24}, use_future),
+        42);
+    ASSERT_RESULT_EQ(
+        this->client_->async_call(
+            "async_str_str", std::make_tuple("foobar"), use_future),
+        "foobar"s);
+    ASSERT_RESULT_EQ(
+        this->client_->async_call(
+            "async_str_strref", std::make_tuple("foobar"), use_future),
+        "foobar"s);
+    ASSERT_RESULT_EQ(
+        this->client_->async_call(
+            "async_tuple_int_str", std::make_tuple(42, "foobar"), use_future),
+        tuple_int_str(42, "foobar"));
+    ASSERT_RESULT_EQ(
+        this->client_->async_call(
+            "async_native", std::make_tuple("foobar"), use_future),
+        "foobar"s);
+
+    ASSERT_RESULT_IS_OK(this->client_->async_call("sync_void_void", use_future));
+    ASSERT_RESULT_EQ(this->client_->async_call("sync_int_void", use_future), 42);
+    ASSERT_RESULT_IS_OK(
+        this->client_->async_call("sync_void_int", std::tuple{42}, use_future));
+    ASSERT_RESULT_EQ(
+        this->client_->async_call("sync_int_int", std::tuple{42}, use_future),
+        42);
+    ASSERT_RESULT_EQ(
+        this->client_->async_call("sync_int_intref", std::tuple{42}, use_future),
+        42);
+    ASSERT_RESULT_EQ(
+        this->client_->async_call(
+            "sync_int_intref_int", std::tuple{42, 24}, use_future),
+        42);
+    ASSERT_RESULT_EQ(
+        this->client_->async_call(
+            "sync_str_str", std::make_tuple("foobar"), use_future),
+        "foobar"s);
+    ASSERT_RESULT_EQ(
+        this->client_->async_call(
+            "sync_str_strref", std::make_tuple("foobar"), use_future),
+        "foobar"s);
+    ASSERT_RESULT_EQ(
+        this->client_->async_call(
+            "sync_tuple_int_str", std::make_tuple(42, "foobar"), use_future),
+        tuple_int_str(42, "foobar"));
+    ASSERT_RESULT_EQ(
+        this->client_->async_call(
+            "sync_native", std::make_tuple("foobar"), use_future),
+        "foobar"s);
+}
+
+TYPED_TEST(Test, test_named_arguments)
+{
+    using completion_handler =
+        typename std::decay_t<decltype(*this)>::completion_handler;
+    using rpc_type = typename std::decay_t<decltype(*this)>::client_type::rpc_type;
+    constexpr bool has_named_args =
+        std::is_same_v<rpc_type, packio::nl_json_rpc::rpc>;
+
+    this->server_->async_serve_forever();
+    this->connect();
+    this->async_run();
+
+    this->server_->dispatcher()->add(
+        "echo", {"a"}, [](std::string a) { return a; });
+    this->server_->dispatcher()->add(
+        "concat", {"a", "b"}, [](std::string a, std::string b) { return a + b; });
+
+    this->server_->dispatcher()->add_async(
+        "aecho", {"a"}, [](completion_handler c, std::string a) { c(a); });
+    this->server_->dispatcher()->add_async(
+        "aconcat",
+        {"a", "b"},
+        [](completion_handler c, std::string a, std::string b) {
+            return c(a + b);
+        });
+
+#if defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_FORCE_COROUTINES)
+    this->server_->dispatcher()->add_coro(
+        "cecho",
+        this->io_,
+        {"a"},
+        [](std::string a) -> net::awaitable<std::string> { co_return a; });
+    this->server_->dispatcher()->add_coro(
+        "cconcat",
+        this->io_,
+        {"a", "b"},
+        [](std::string a, std::string b) -> net::awaitable<std::string> {
+            co_return a + b;
+        });
+#endif // defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_FORCE_COROUTINES)
+
+    ASSERT_RESULT_EQ(
+        this->client_->async_call("echo", std::make_tuple("toto"), use_future),
+        "toto"s);
+    if constexpr (has_named_args) {
+        ASSERT_RESULT_EQ(
+            this->client_->async_call(
+                "echo", std::tuple{arg("a") = "toto"}, use_future),
+            "toto"s);
+        ASSERT_RESULT_EQ(
+            this->client_->async_call(
+                "echo", std::tuple{arg("a") = "toto", "b"_arg = "titi"}, use_future),
+            "toto"s);
+    }
+
+    ASSERT_RESULT_EQ(
+        this->client_->async_call(
+            "concat", std::make_tuple("toto", "titi"), use_future),
+        "tototiti"s);
+    if constexpr (has_named_args) {
+        ASSERT_RESULT_EQ(
+            this->client_->async_call(
+                "concat",
+                std::tuple{arg("b") = "titi", "a"_arg = "toto"},
+                use_future),
+            "tototiti"s);
+        ASSERT_RESULT_EQ(
+            this->client_->async_call(
+                "concat",
+                std::tuple{"c"_arg = "tata", arg("b") = "titi", "a"_arg = "toto"},
+                use_future),
+            "tototiti"s);
+    }
+
+    ASSERT_RESULT_EQ(
+        this->client_->async_call("aecho", std::make_tuple("toto"), use_future),
+        "toto"s);
+    if constexpr (has_named_args) {
+        ASSERT_RESULT_EQ(
+            this->client_->async_call(
+                "aecho", std::tuple{arg("a") = "toto"}, use_future),
+            "toto"s);
+        ASSERT_RESULT_EQ(
+            this->client_->async_call(
+                "aecho",
+                std::tuple{arg("a") = "toto", "b"_arg = "titi"},
+                use_future),
+            "toto"s);
+    }
+    ASSERT_RESULT_EQ(
+        this->client_->async_call(
+            "aconcat", std::make_tuple("toto", "titi"), use_future),
+        "tototiti"s);
+    if constexpr (has_named_args) {
+        ASSERT_RESULT_EQ(
+            this->client_->async_call(
+                "aconcat",
+                std::tuple{"b"_arg = "titi", arg("a") = "toto"},
+                use_future),
+            "tototiti"s);
+        ASSERT_RESULT_EQ(
+            this->client_->async_call(
+                "aconcat",
+                std::tuple{"c"_arg = "tata", arg("b") = "titi", "a"_arg = "toto"},
+                use_future),
+            "tototiti"s);
+    }
+
+#if defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_FORCE_COROUTINES)
+    ASSERT_RESULT_EQ(
+        this->client_->async_call("cecho", std::make_tuple("toto"), use_future),
+        "toto"s);
+    if constexpr (has_named_args) {
+        ASSERT_RESULT_EQ(
+            this->client_->async_call(
+                "cecho", std::tuple{"a"_arg = "toto"}, use_future),
+            "toto"s);
+        ASSERT_RESULT_EQ(
+            this->client_->async_call(
+                "cecho",
+                std::tuple{arg("a") = "toto", "b"_arg = "titi"},
+                use_future),
+            "toto"s);
+    }
+    ASSERT_RESULT_EQ(
+        this->client_->async_call(
+            "cconcat", std::make_tuple("toto", "titi"), use_future),
+        "tototiti"s);
+    if constexpr (has_named_args) {
+        ASSERT_RESULT_EQ(
+            this->client_->async_call(
+                "cconcat",
+                std::tuple{"b"_arg = "titi", "a"_arg = "toto"},
+                use_future),
+            "tototiti"s);
+        ASSERT_RESULT_EQ(
+            this->client_->async_call(
+                "cconcat",
+                std::tuple{"c"_arg = "tata", arg("b") = "titi", "a"_arg = "toto"},
+                use_future),
+            "tototiti"s);
+    }
+#endif // defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_FORCE_COROUTINES)
 }
 
 TYPED_TEST(Test, test_dispatcher)
 {
+    using completion_handler =
+        typename std::decay_t<decltype(*this)>::completion_handler;
+
     this->server_->async_serve_forever();
     this->connect();
     this->async_run();
@@ -409,8 +478,8 @@ TYPED_TEST(Test, test_dispatcher)
     ASSERT_FALSE(this->server_->dispatcher()->add("f001", []() {}));
     ASSERT_FALSE(this->server_->dispatcher()->add("f002", []() {}));
 
-    this->client_->async_call("f001", use_future).get();
-    this->client_->async_call("f002", use_future).get();
+    ASSERT_RESULT_IS_OK(this->client_->async_call("f001", use_future));
+    ASSERT_RESULT_IS_OK(this->client_->async_call("f002", use_future));
 
     ASSERT_TRUE(this->server_->dispatcher()->has("f001"));
     ASSERT_TRUE(this->server_->dispatcher()->has("f002"));
@@ -421,8 +490,7 @@ TYPED_TEST(Test, test_dispatcher)
         std::set<std::string>(begin(known), end(known)));
 
     this->server_->dispatcher()->remove("f001");
-    ASSERT_THROW(
-        this->client_->async_call("f001", use_future).get(), system_error);
+    ASSERT_RESULT_IS_ERROR(this->client_->async_call("f001", use_future));
 
     ASSERT_FALSE(this->server_->dispatcher()->has("f001"));
     ASSERT_TRUE(this->server_->dispatcher()->has("f002"));
@@ -439,6 +507,9 @@ TYPED_TEST(Test, test_end_of_work)
 {
     using client_type = typename std::decay_t<decltype(*this)>::client_type;
     using socket_type = typename std::decay_t<decltype(*this)>::socket_type;
+    using id_type = typename client_type::id_type;
+    using completion_handler =
+        typename std::decay_t<decltype(*this)>::completion_handler;
 
     this->server_->async_serve_forever();
     std::vector<completion_handler> pending;
@@ -511,6 +582,10 @@ TYPED_TEST(Test, test_special_callables)
 {
     using session_type = typename decltype(
         this->server_)::element_type::session_type;
+    using completion_handler =
+        typename std::decay_t<decltype(*this)>::completion_handler;
+    using rpc_type = typename std::decay_t<decltype(*this)>::client_type::rpc_type;
+
     struct move_only {
         move_only() = default;
 
@@ -530,7 +605,7 @@ TYPED_TEST(Test, test_special_callables)
         void operator()(error_code){};
     };
     struct call_handler : public move_only {
-        void operator()(error_code, msgpack::object_handle){};
+        void operator()(error_code, typename rpc_type::response_type){};
     };
     struct serve_handler : public move_only {
         void operator()(error_code, std::shared_ptr<session_type>){};
@@ -568,6 +643,9 @@ TYPED_TEST(Test, test_special_callables)
 
 TYPED_TEST(Test, test_response_after_disconnect)
 {
+    using completion_handler =
+        typename std::decay_t<decltype(*this)>::completion_handler;
+
     this->server_->async_serve_forever();
     this->connect();
     this->async_run();
@@ -583,7 +661,7 @@ TYPED_TEST(Test, test_response_after_disconnect)
         });
 
     this->client_->async_call("block", [&](auto, auto) {});
-    auto complete_ptr = future.get();
+    auto complete_ptr = safe_future_get(future);
     this->client_->socket().shutdown(ip::tcp::socket::shutdown_both);
     (*complete_ptr)();
 }
@@ -595,6 +673,8 @@ TYPED_TEST(Test, test_shared_dispatcher)
     using socket_type = typename std::decay_t<decltype(*this)>::socket_type;
     using endpoint_type = typename std::decay_t<decltype(*this)>::endpoint_type;
     using acceptor_type = typename std::decay_t<decltype(*this)>::acceptor_type;
+    using completion_handler =
+        typename std::decay_t<decltype(*this)>::completion_handler;
 
     this->server_->async_serve_forever();
     this->connect();
@@ -630,7 +710,12 @@ TYPED_TEST(Test, test_shared_dispatcher)
 
 TYPED_TEST(Test, test_errors)
 {
-    constexpr auto kErrorMessage{"error message"};
+    using completion_handler =
+        typename std::decay_t<decltype(*this)>::completion_handler;
+    using rpc_type = typename std::decay_t<decltype(*this)>::client_type::rpc_type;
+    constexpr bool has_named_args =
+        std::is_same_v<rpc_type, packio::nl_json_rpc::rpc>;
+    const std::string kErrorMessage{"error message"};
 
     this->server_->async_serve_forever();
     this->connect();
@@ -647,33 +732,49 @@ TYPED_TEST(Test, test_errors)
         "add", [](completion_handler handler, int a, int b) { handler(a + b); }));
     ASSERT_TRUE(this->server_->dispatcher()->add(
         "add_sync", [](int a, int b) { return a + b; }));
+    ASSERT_TRUE(this->server_->dispatcher()->add(
+        "add_named", {"a", "b"}, [](int a, int b) { return a + b; }));
 
-    auto assert_error_message =
-        [&](std::string expected_message, std::string procedure, auto... args) {
-            std::promise<std::string> p;
-            auto f = p.get_future();
+#define ASSERT_ERROR_MESSAGE(message, procedure, ...)                         \
+    {                                                                         \
+        std::promise<std::string> p;                                          \
+        auto f = p.get_future();                                              \
+                                                                              \
+        this->client_->async_call(                                            \
+            procedure, std::make_tuple(__VA_ARGS__), [&](auto ec, auto res) { \
+                ASSERT_FALSE(ec);                                             \
+                ASSERT_TRUE(is_error_response(res));                          \
+                p.set_value(get_error_message(res.error));                    \
+            });                                                               \
+                                                                              \
+        ASSERT_EQ(message, safe_future_get(std::move(f)));                    \
+    };
 
-            this->client_->async_call(
-                procedure,
-                std::tuple{args...},
-                [&](auto ec, msgpack::object_handle res) {
-                    ASSERT_TRUE(ec);
-                    p.set_value(res->as<std::string>());
-                });
+    ASSERT_ERROR_MESSAGE(kErrorMessage, "error");
+    ASSERT_ERROR_MESSAGE("Unknown error", "empty_error");
+    ASSERT_ERROR_MESSAGE("Call finished with no result", "no_result");
+    ASSERT_ERROR_MESSAGE("Unknown function", "unexisting");
+    ASSERT_ERROR_MESSAGE("Incompatible arguments", "add", 1, "two");
+    ASSERT_ERROR_MESSAGE("Incompatible arguments", "add");
+    ASSERT_ERROR_MESSAGE("Incompatible arguments", "add", 1, 2, 3);
+    ASSERT_ERROR_MESSAGE("Incompatible arguments", "add_sync", 1, "two");
+    ASSERT_ERROR_MESSAGE("Incompatible arguments", "add_sync");
+    ASSERT_ERROR_MESSAGE("Incompatible arguments", "add_sync", 1, 2, 3);
 
-            ASSERT_EQ(expected_message, f.get());
-        };
+    if constexpr (has_named_args) {
+        ASSERT_ERROR_MESSAGE(
+            "Incompatible arguments", "add", arg("a") = 1, arg("b") = 2);
+        ASSERT_ERROR_MESSAGE(
+            "Incompatible arguments", "add_named", arg("c") = 1, arg("d") = 2);
+        ASSERT_ERROR_MESSAGE(
+            "Incompatible arguments", "add_named", arg("a") = 1, arg("c") = 2);
+        ASSERT_ERROR_MESSAGE(
+            "Incompatible arguments", "add_named", arg("c") = 1, arg("b") = 2);
+        ASSERT_ERROR_MESSAGE("Incompatible arguments", "add_named", arg("a") = 1);
+        ASSERT_ERROR_MESSAGE("Incompatible arguments", "add_named", arg("c") = 1);
+    }
 
-    assert_error_message(kErrorMessage, "error");
-    assert_error_message("Error during call", "empty_error");
-    assert_error_message("Call finished with no result", "no_result");
-    assert_error_message("Unknown function", "unexisting");
-    assert_error_message("Incompatible arguments", "add", 1, "two");
-    assert_error_message("Incompatible arguments", "add");
-    assert_error_message("Incompatible arguments", "add", 1, 2, 3);
-    assert_error_message("Incompatible arguments", "add_sync", 1, "two");
-    assert_error_message("Incompatible arguments", "add_sync");
-    assert_error_message("Incompatible arguments", "add_sync", 1, 2, 3);
+#undef ASSERT_ERROR_MESSAGE
 }
 
 #if defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_FORCE_COROUTINES)
@@ -692,7 +793,7 @@ TYPED_TEST(Test, test_coroutine)
 
     this->server_->dispatcher()->add_coro(
         "add2",
-        this->io_, // executor context
+        this->io_, // execution context
         [&](int a, int b) -> awaitable<int> {
             timer.expires_after(1ms);
             co_await timer.async_wait(use_awaitable);
@@ -717,17 +818,17 @@ TYPED_TEST(Test, test_coroutine)
         this->io_,
         [&]() -> awaitable<void> {
             // Call using an awaitable
-            msgpack::object_handle res = co_await this->client_->async_call(
+            auto res = co_await this->client_->async_call(
                 "add", std::tuple{12, 23}, use_awaitable);
-            EXPECT_EQ(res->as<int>(), 35);
+            EXPECT_EQ(get<int>(res.result), 35);
 
             res = co_await this->client_->async_call(
                 "add2", std::tuple{31, 3}, use_awaitable);
-            EXPECT_EQ(res->as<int>(), 34);
+            EXPECT_EQ(get<int>(res.result), 34);
 
             p.set_value();
         },
         detached);
-    ASSERT_EQ(p.get_future().wait_for(1s), std::future_status::ready);
+    ASSERT_FUTURE_NO_THROW(p.get_future());
 }
 #endif // defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_FORCE_COROUTINES)
