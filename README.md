@@ -116,8 +116,9 @@ If you are using the conan package, you can use the option `standalone_asio=True
 - clang-8
 - clang-9
 - clang-10
-- Apple clang-11
-- Visual Studio 2019 Version 16
+- clang-11
+- Apple clang-12
+- Visual Studio 2019 Version 16.8
 
 Older compilers may be compatible but are not tested.
 
@@ -136,7 +137,9 @@ conan install packio/x.x.x
 
 Coroutines are tested for the following compilers:
 
-- clang-10 with libc++
+- gcc-10 (with -fcoroutines)
+- clang-11 (with libc++)
+- Apple clang-12
 
 ## Bonus
 

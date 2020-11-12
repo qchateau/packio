@@ -24,4 +24,8 @@
 #include "nl_json_rpc/nl_json_rpc.h"
 #endif // PACKIO_HAS_NLOHMANN_JSON
 
+#if PACKIO_HAS_BOOST_JSON
+#include "json_rpc/json_rpc.h"
+#endif // PACKIO_HAS_BOOST_JSON
+
 #endif // PACKIO_PACKIO_H

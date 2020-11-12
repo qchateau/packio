@@ -30,9 +30,13 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -U conan conan_package_tools
 
-      - name: Install compilers
+      - name: Install Ubuntu compilers
         if: matrix.os == 'ubuntu-20.04'
-        run: sudo apt-get install -y clang-6.0 clang-7
+        run: |
+          echo "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-11 main" | sudo tee /etc/apt/sources.list.d/llvm-11.list
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          sudo apt-get update
+          sudo apt-get install -y clang-6.0 clang-7 clang-11 libc++-11-dev libc++-11-dev libc++abi-11-dev
 
       - name: Build
         run: python .github/build.py

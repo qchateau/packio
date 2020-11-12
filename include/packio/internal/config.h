@@ -8,25 +8,32 @@
 #include <mutex>
 #include <unordered_map>
 
-#define PACKIO_HAS_BOOST_ASIO __has_include(<boost/asio.hpp>)
-#define PACKIO_HAS_ASIO __has_include(<asio.hpp>)
+#if !defined(PACKIO_HAS_MSGPACK)
 #define PACKIO_HAS_MSGPACK __has_include(<msgpack.hpp>)
+#endif // !defined(PACKIO_HAS_MSGPACK)
+
+#if !defined(PACKIO_HAS_NLOHMANN_JSON)
 #define PACKIO_HAS_NLOHMANN_JSON __has_include(<nlohmann/json.hpp>)
+#endif // !defined(PACKIO_HAS_NLOHMANN_JSON)
 
+#if !defined(PACKIO_HAS_BOOST_JSON)
+#define PACKIO_HAS_BOOST_JSON __has_include(<boost/json.hpp>)
+#endif // !defined(PACKIO_HAS_BOOST_JSON)
+
+#if !defined(PACKIO_STANDALONE_ASIO)
 // If we cannot find boost but we can find asio, fallback to it
-#if !defined(PACKIO_STANDALONE_ASIO) && !PACKIO_HAS_BOOST_ASIO && PACKIO_HAS_ASIO
-#define PACKIO_STANDALONE_ASIO 1
-#endif // !defined(PACKIO_STANDALONE_ASIO) && !PACKIO_HAS_BOOST_ASIO && PACKIO_HAS_ASIO
+#define PACKIO_STANDALONE_ASIO (!__has_include(<boost/asio.hpp>) && __has_include(<asio.hpp>))
+#endif // !defined(PACKIO_STANDALONE_ASIO)
 
-#if defined(PACKIO_STANDALONE_ASIO)
+#if PACKIO_STANDALONE_ASIO
 #include <asio.hpp>
 #else // defined(PACKIO_STANDALONE_ASIO)
 #include <boost/asio.hpp>
-#endif // defined(PACKIO_STANDALONE_ASIO)
+#endif // PACKIO_STANDALONE_ASIO
 
 namespace packio {
 
-#if defined(PACKIO_STANDALONE_ASIO)
+#if PACKIO_STANDALONE_ASIO
 namespace net = ::asio;
 using error_code = std::error_code;
 using system_error = std::system_error;
@@ -36,7 +43,7 @@ namespace net = ::boost::asio;
 using error_code = boost::system::error_code;
 using system_error = boost::system::system_error;
 using error_category = boost::system::error_category;
-#endif // defined(PACKIO_STANDALONE_ASIO)
+#endif // PACKIO_STANDALONE_ASIO
 
 #if defined(BOOST_ASIO_HAS_CO_AWAIT) || defined(ASIO_HAS_CO_AWAIT) \
     || defined(PACKIO_DOCUMENTATION)

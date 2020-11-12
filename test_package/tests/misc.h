@@ -8,6 +8,16 @@
 
 #include <packio/packio.h>
 
+#if PACKIO_HAS_MSGPACK
+namespace default_rpc = packio::msgpack_rpc;
+#elif PACKIO_HAS_NLOHMANN_JSON
+namespace default_rpc = packio::nl_json_rpc;
+#elif PACKIO_HAS_BOOST_JSON
+namespace default_rpc = packio::json_rpc;
+#else
+#error No serialization library available
+#endif
+
 template <typename endpoint>
 endpoint get_endpoint();
 
@@ -22,6 +32,7 @@ template <>
 inline packio::net::local::stream_protocol::endpoint get_endpoint()
 {
     auto ts = std::chrono::system_clock::now().time_since_epoch().count();
+    // FIXME: make this cross platform
     return {"/tmp/packio-" + std::to_string(ts)};
 }
 #endif // defined(PACKIO_HAS_LOCAL_SOCKETS)
@@ -102,16 +113,11 @@ using my_unordered_map = std::unordered_map<
     std::equal_to<Key>,
     my_allocator<std::pair<const Key, T>>>;
 
+#if PACKIO_HAS_MSGPACK
 template <typename T>
 T get(const ::msgpack::object& value)
 {
     return value.as<T>();
-}
-
-template <typename T>
-T get(const ::nlohmann::json& value)
-{
-    return value.get<T>();
 }
 
 inline std::string get_error_message(const ::msgpack::object& error)
@@ -119,20 +125,47 @@ inline std::string get_error_message(const ::msgpack::object& error)
     return error.as<std::string>();
 }
 
-inline std::string get_error_message(const ::nlohmann::json& error)
-{
-    return error["message"].get<std::string>();
-}
-
 inline bool is_error_response(const packio::msgpack_rpc::rpc::response_type& resp)
 {
     return resp.result.is_nil() && !resp.error.is_nil();
+}
+#endif // PACKIO_HAS_MSGPACK
+
+#if PACKIO_HAS_NLOHMANN_JSON
+template <typename T>
+T get(const ::nlohmann::json& value)
+{
+    return value.get<T>();
+}
+
+inline std::string get_error_message(const ::nlohmann::json& error)
+{
+    return error["message"].get<std::string>();
 }
 
 inline bool is_error_response(const packio::nl_json_rpc::rpc::response_type& resp)
 {
     return resp.result.is_null() && !resp.error.is_null();
 }
+#endif // PACKIO_HAS_NLOHMANN_JSON
+
+#if PACKIO_HAS_BOOST_JSON
+template <typename T>
+T get(const ::boost::json::value& value)
+{
+    return ::boost::json::value_to<T>(value);
+}
+
+inline std::string get_error_message(const ::boost::json::value& error)
+{
+    return error.as_object().at("message").as_string().c_str();
+}
+
+inline bool is_error_response(const packio::json_rpc::rpc::response_type& resp)
+{
+    return resp.result.is_null() && !resp.error.is_null();
+}
+#endif // PACKIO_HAS_BOOST_JSON
 
 template <typename Future>
 decltype(auto) safe_future_get(Future&& fut)
