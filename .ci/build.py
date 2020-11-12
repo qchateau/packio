@@ -41,6 +41,7 @@ class Packager(cpt.packager.ConanMultiPackager):
         settings = settings or {}
         settings["compiler"] = compiler
         settings["compiler.version"] = compiler_version
+        settings["build_type"] = build_type
 
         # Use header only libraries to avoid re-building dependencies all the time
         # NOTE: link issues on windows with boost header only

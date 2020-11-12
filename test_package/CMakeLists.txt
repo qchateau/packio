@@ -31,8 +31,10 @@ else ()
     add_compile_options(/W4 /WX /Zc:__cplusplus /bigobj)
     # C4715 is raised in nlohmann::json
     # C4499 is raised in boost 1.74 with coroutines
-    add_compile_options(/wd4715 /wd4499)
-    add_definitions(/D_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING=1)
+    # C4702 is raised for now reason in nl_json_rpc/rpc.h
+    add_compile_options(/wd4715 /wd4499 /wd4702)
+    add_compile_definitions(_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING=1)
+    add_compile_definitions(_WIN32_WINNT=0x0A00) # win10
 endif ()
 
 if (PACKIO_LOGGING)
@@ -49,7 +51,6 @@ if (PACKIO_COROUTINES)
         add_compile_options(-fcoroutines-ts)
     elseif (MSVC)
         add_compile_options(/await)
-        add_compile_definitions(_WIN32_WINNT=0x0A00) # win10
     endif ()
 
     message(STATUS "Building with coroutines")
