@@ -52,6 +52,10 @@ class Packager(cpt.packager.ConanMultiPackager):
         options["msgpack:c_api"] = False
         options["cppstd"] = cppstd
 
+        unity_batch = os.environ.get("UNITY_BATCH", None)
+        if unity_batch:
+            options["unity_batch"] = unity_batch
+
         env_vars = {}
         if compiler == GCC:
             env_vars.update({"CXX": f"g++-{compiler_version}", "CC": f"gcc-{compiler_version}"})

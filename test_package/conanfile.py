@@ -13,6 +13,7 @@ class PackioConan(ConanFile):
         "coroutines": [True, False],
         "loglevel": [None, "trace", "debug", "info", "warn", "error"],
         "cppstd": ["17", "20"],
+        "unity_batch": "ANY",
     }
     default_options = {
         "boost": None,
@@ -20,6 +21,7 @@ class PackioConan(ConanFile):
         "coroutines": False,
         "loglevel": None,
         "cppstd": "17",
+        "unity_batch": None,
     }
 
     def configure(self):
@@ -43,6 +45,10 @@ class PackioConan(ConanFile):
             defs["PACKIO_COROUTINES"] = "1"
         # dont use the compiler setting, it breaks pre-built binaries
         defs["CMAKE_CXX_STANDARD"] = self.options.cppstd
+
+        if self.options.unity_batch:
+            defs["CMAKE_UNITY_BUILD"] = "1"
+            defs["CMAKE_UNITY_BUILD_BATCH_SIZE"] = str(self.options.unity_batch)
 
         cmake.configure(defs=defs)
         cmake.build()

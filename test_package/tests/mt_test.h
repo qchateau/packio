@@ -22,7 +22,7 @@ typedef ::testing::Types<
     std::pair<
         packio::nl_json_rpc::client<packio::net::ip::tcp::socket>,
         packio::nl_json_rpc::server<packio::net::ip::tcp::acceptor>>>
-    Implementations;
+    MtImplementations;
 
 template <class Impl>
 class MtTest : public ::testing::Test {
@@ -84,4 +84,4 @@ protected:
     std::vector<std::thread> runners_;
 };
 
-TYPED_TEST_SUITE(MtTest, Implementations);
+TYPED_TEST_SUITE(MtTest, MtImplementations);

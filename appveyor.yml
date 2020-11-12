@@ -3,6 +3,7 @@ build: false
 environment:
   global:
     CONAN_REQUEST_TIMEOUT: 300
+    UNITY_BATCH: 10
 
   matrix:
     # Windows job

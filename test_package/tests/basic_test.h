@@ -31,7 +31,7 @@ typedef ::testing::Types<
     std::pair<
         packio::msgpack_rpc::client<packio::net::ip::tcp::socket, my_unordered_map>,
         packio::msgpack_rpc::server<packio::net::ip::tcp::acceptor>>>
-    Implementations;
+    BasicImplementations;
 
 template <class Impl>
 class BasicTest : public ::testing::Test {
@@ -77,4 +77,4 @@ protected:
     std::thread runner_;
 };
 
-TYPED_TEST_SUITE(BasicTest, Implementations);
+TYPED_TEST_SUITE(BasicTest, BasicImplementations);
