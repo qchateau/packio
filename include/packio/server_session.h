@@ -91,10 +91,6 @@ private:
                 parser.buffer_consumed(length);
 
                 while (auto request = parser.get_request()) {
-                    if (!request) {
-                        self->close_connection();
-                        continue;
-                    }
                     // handle the call asynchronously (post)
                     // to schedule the next read immediately
                     // this will allow parallel call handling

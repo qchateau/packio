@@ -257,10 +257,6 @@ private:
                     parser.buffer_consumed(length);
 
                     while (auto response = parser.get_response()) {
-                        if (!response) {
-                            PACKIO_ERROR("bad response");
-                            continue;
-                        }
                         self->async_call_handler(std::move(*response));
                     }
 
