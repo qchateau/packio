@@ -9,6 +9,8 @@
 #include <deque>
 #include <optional>
 #include <string>
+#include <string_view>
+#include <vector>
 
 namespace packio {
 namespace nl_json_rpc {
@@ -67,6 +69,10 @@ public:
 private:
     void incremental_parse(std::size_t bytes)
     {
+        if (bytes == 0) {
+            return;
+        }
+
         if (buffer_.empty()) {
             std::string_view new_data{in_place_buffer(), bytes};
             auto first_pos = new_data.find_first_of("{[");
@@ -77,14 +83,15 @@ private:
             initialize(new_data[first_pos]);
         }
 
-        std::size_t token_pos = buffer_.size();
+        std::size_t search_pos = buffer_.size();
         buffer_ = std::string_view{raw_buffer_.data(), buffer_.size() + bytes};
 
         while (true) {
-            token_pos = buffer_.find_first_of(tokens_, token_pos + 1);
+            auto token_pos = buffer_.find_first_of(tokens_, search_pos);
             if (token_pos == std::string::npos) {
                 break;
             }
+            search_pos = token_pos + 1;
 
             char token = buffer_[token_pos];
             if (token == '"' && !is_escaped(token_pos)) {
@@ -99,15 +106,17 @@ private:
             if (token == last_char_) {
                 if (--depth_ == 0) {
                     // found objet, store the interesting part of the buffer
-                    std::size_t buffer_size = token_pos + 1;
-                    std::string new_raw_buffer = raw_buffer_.substr(buffer_size);
-                    raw_buffer_.resize(buffer_size);
-                    serialized_objects_.push_back(std::move(raw_buffer_));
-                    // then clear the buffer and re-feed the rest
-                    std::size_t bytes_left = buffer_.size() - buffer_size;
-                    raw_buffer_ = std::move(new_raw_buffer);
+                    std::size_t object_size = token_pos + 1;
+                    serialized_objects_.emplace_back(
+                        raw_buffer_.data(), object_size);
+                    std::size_t bytes_left = buffer_.size() - object_size;
+                    std::copy(
+                        raw_buffer_.begin() + object_size,
+                        raw_buffer_.begin() + object_size + bytes_left,
+                        raw_buffer_.begin());
                     buffer_ = std::string_view{raw_buffer_.data(), bytes_left};
-                    token_pos -= buffer_size;
+                    token_pos -= object_size;
+                    search_pos -= object_size;
                 }
             }
             else {
@@ -143,7 +152,7 @@ private:
             last_char_ = ']';
             tokens_ = "[]\"";
         }
-        depth_ = 1;
+        depth_ = 0;
         in_string_ = false;
     }
 
@@ -154,7 +163,7 @@ private:
     const char* tokens_;
 
     std::string_view buffer_;
-    std::string raw_buffer_;
+    std::vector<char> raw_buffer_;
 
     std::deque<std::string> serialized_objects_;
 };
