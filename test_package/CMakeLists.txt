@@ -14,12 +14,23 @@ set(ignoreme ${CMAKE_EXPORT_NO_PACKAGE_REGISTRY})
 
 set(SOURCES
     tests/main.cpp
-    tests/basic.cpp
-    tests/mt.cpp
+    tests/basic_test_server_crash.cpp
+    tests/basic_test_typical_usage.cpp
+    tests/basic_test_args_types.cpp
+    tests/basic_test_timeout.cpp
+    tests/basic_test_functions.cpp
+    tests/basic_test_named_arguments.cpp
+    tests/basic_test_dispatcher.cpp
+    tests/basic_test_end_of_work.cpp
+    tests/basic_test_special_callables.cpp
+    tests/basic_test_response_after_disconnect.cpp
+    tests/basic_test_shared_dispatcher.cpp
+    tests/basic_test_errors.cpp
+    tests/basic_test_coroutine.cpp
+    tests/mt_test_big_msg.cpp
+    tests/mt_test_many_func.cpp
+    tests/mt_test_same_func.cpp
     tests/incremental_buffers.cpp
-)
-set(CORO_SOURCES
-    tests/coroutines.cpp
 )
 
 add_definitions(-DASIO_NO_DEPRECATED=1)
@@ -54,7 +65,6 @@ if (PACKIO_COROUTINES)
     endif ()
 
     message(STATUS "Building with coroutines")
-    list(APPEND SOURCES ${CORO_SOURCES})
 endif ()
 
 add_executable(tests ${SOURCES})

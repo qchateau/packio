@@ -1,9 +1,10 @@
-#include "tests.h"
+#include "basic_test.h"
 
 using namespace std::chrono_literals;
 using namespace packio::net;
 
-TYPED_TEST(Test, test_coroutine)
+#if defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_FORCE_COROUTINES)
+TYPED_TEST(BasicTest, test_coroutine)
 {
     steady_timer timer{this->io_};
 
@@ -56,3 +57,4 @@ TYPED_TEST(Test, test_coroutine)
         detached);
     ASSERT_FUTURE_NO_THROW(p.get_future());
 }
+#endif // defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_FORCE_COROUTINES)

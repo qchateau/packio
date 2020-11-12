@@ -34,7 +34,7 @@ typedef ::testing::Types<
     Implementations;
 
 template <class Impl>
-class Test : public ::testing::Test {
+class BasicTest : public ::testing::Test {
 protected:
     using client_type = typename Impl::first_type;
     using server_type = typename Impl::second_type;
@@ -45,14 +45,14 @@ protected:
     using completion_handler =
         packio::completion_handler<typename client_type::rpc_type>;
 
-    Test()
+    BasicTest()
         : server_{std::make_shared<server_type>(
             acceptor_type(io_, get_endpoint<endpoint_type>()))},
           client_{std::make_shared<client_type>(socket_type{io_})}
     {
     }
 
-    ~Test()
+    ~BasicTest()
     {
         io_.stop();
         if (runner_.joinable()) {
@@ -77,4 +77,4 @@ protected:
     std::thread runner_;
 };
 
-TYPED_TEST_SUITE(Test, Implementations);
+TYPED_TEST_SUITE(BasicTest, Implementations);
