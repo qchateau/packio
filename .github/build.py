@@ -102,7 +102,7 @@ def test_linux():
     builder.add(compiler=CLANG, compiler_version="10", cppstd="20")
 
     # Test supported boost versions
-    # NOTE: boost 1.72.0 is not compatible with C++20
+    # NOTE: boost 1.72.0 and before are not compatible with C++20
     builder.add(compiler=GCC, compiler_version="10", cppstd="17", options={"boost": "1.70.0"})
     builder.add(compiler=GCC, compiler_version="10", cppstd="17", options={"boost": "1.71.0"})
     builder.add(compiler=GCC, compiler_version="10", cppstd="17", options={"boost": "1.72.0"})
@@ -115,6 +115,7 @@ def test_linux():
     builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"asio": "1.17.0", "packio:standalone_asio": True})
 
     # Test logs
+    builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"loglevel": "trace"}, build_type="Debug")
     builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"loglevel": "trace"})
 
     builder.run()
@@ -122,17 +123,19 @@ def test_linux():
 
 def test_mac():
     builder = Packager()
-    builder.add(compiler=APPLE_CLANG, compiler_version="11.0", cppstd="17")
-    builder.add(compiler=APPLE_CLANG, compiler_version="11.0", cppstd="20")
     builder.add(compiler=APPLE_CLANG, compiler_version="11.0", cppstd="20", build_type="Debug")
+    builder.add(compiler=APPLE_CLANG, compiler_version="11.0", cppstd="20")
+    builder.add(compiler=APPLE_CLANG, compiler_version="11.0", cppstd="17", build_type="Debug")
+    builder.add(compiler=APPLE_CLANG, compiler_version="11.0", cppstd="17")
     builder.run()
 
 
 def test_windows():
     builder = Packager()
-    builder.add(compiler=MSVC, compiler_version="16", cppstd="17")
-    builder.add(compiler=MSVC, compiler_version="16", cppstd="20")
     builder.add(compiler=MSVC, compiler_version="16", cppstd="20", build_type="Debug")
+    builder.add(compiler=MSVC, compiler_version="16", cppstd="20")
+    builder.add(compiler=MSVC, compiler_version="16", cppstd="17", build_type="Debug")
+    builder.add(compiler=MSVC, compiler_version="16", cppstd="17")
     builder.run()
 
 
