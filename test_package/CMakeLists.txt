@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.16)
 project(UnitTests CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -14,12 +14,23 @@ set(ignoreme ${CMAKE_EXPORT_NO_PACKAGE_REGISTRY})
 
 set(SOURCES
     tests/main.cpp
-    tests/basic.cpp
-    tests/mt.cpp
+    tests/basic_test_server_crash.cpp
+    tests/basic_test_typical_usage.cpp
+    tests/basic_test_args_types.cpp
+    tests/basic_test_timeout.cpp
+    tests/basic_test_functions.cpp
+    tests/basic_test_named_arguments.cpp
+    tests/basic_test_dispatcher.cpp
+    tests/basic_test_end_of_work.cpp
+    tests/basic_test_special_callables.cpp
+    tests/basic_test_response_after_disconnect.cpp
+    tests/basic_test_shared_dispatcher.cpp
+    tests/basic_test_errors.cpp
+    tests/basic_test_coroutine.cpp
+    tests/mt_test_big_msg.cpp
+    tests/mt_test_many_func.cpp
+    tests/mt_test_same_func.cpp
     tests/incremental_buffers.cpp
-)
-set(CORO_SOURCES
-    tests/coroutines.cpp
 )
 
 add_definitions(-DASIO_NO_DEPRECATED=1)
@@ -31,8 +42,10 @@ else ()
     add_compile_options(/W4 /WX /Zc:__cplusplus /bigobj)
     # C4715 is raised in nlohmann::json
     # C4499 is raised in boost 1.74 with coroutines
-    add_compile_options(/wd4715 /wd4499)
-    add_definitions(/D_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING=1)
+    # C4702 is raised for now reason in nl_json_rpc/rpc.h
+    add_compile_options(/wd4715 /wd4499 /wd4702)
+    add_compile_definitions(_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING=1)
+    add_compile_definitions(_WIN32_WINNT=0x0A00) # win10
 endif ()
 
 if (PACKIO_LOGGING)
@@ -49,11 +62,9 @@ if (PACKIO_COROUTINES)
         add_compile_options(-fcoroutines-ts)
     elseif (MSVC)
         add_compile_options(/await)
-        add_compile_definitions(_WIN32_WINNT=0x0A00) # win10
     endif ()
 
     message(STATUS "Building with coroutines")
-    list(APPEND SOURCES ${CORO_SOURCES})
 endif ()
 
 add_executable(tests ${SOURCES})

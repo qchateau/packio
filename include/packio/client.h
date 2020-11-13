@@ -257,10 +257,6 @@ private:
                     parser.buffer_consumed(length);
 
                     while (auto response = parser.get_response()) {
-                        if (!response) {
-                            PACKIO_ERROR("bad response");
-                            continue;
-                        }
                         self->async_call_handler(std::move(*response));
                     }
 
@@ -291,7 +287,7 @@ private:
                 PACKIO_DEBUG(
                     "calling handler for id: {}", rpc_type::format_id(id));
 
-                assert(call_strand_.running_in_this_thread());
+                assert(self->call_strand_.running_in_this_thread());
                 auto it = self->pending_.find(id);
                 if (it == self->pending_.end()) {
                     PACKIO_WARN("unexisting id: {}", rpc_type::format_id(id));
