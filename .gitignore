@@ -1,9 +1,10 @@
 .vscode/
 .history/
-build/
-site/site/
-compile_commands.json
 .clangd/
-html/
-xml/
+build/
 __pycache__/
+
+docs/*
+!docs/sources/
+
+compile_commands.json

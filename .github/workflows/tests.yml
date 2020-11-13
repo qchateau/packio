@@ -32,7 +32,30 @@ jobs:
 
       - name: Install compilers
         if: matrix.os == 'ubuntu-20.04'
-        run: sudo apt install -y clang-6.0 clang-7
+        run: sudo apt-get install -y clang-6.0 clang-7
 
       - name: Build
         run: python .github/build.py
+
+  docs:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2.3.1
+        with:
+          persist-credentials: false
+
+      - name: Install doxygen
+        run: sudo apt-get install -y doxygen
+
+      - name: Build documentation
+        run: doxygen
+
+      - name: Deploy
+        if: github.ref == 'refs/heads/master'
+        uses: JamesIves/github-pages-deploy-action@3.7.1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: gh-pages
+          FOLDER: docs
+          CLEAN: true
