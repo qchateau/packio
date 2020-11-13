@@ -7,16 +7,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        conan-total-pages: [4]
         conan-current-page: [1, 2, 3, 4]
+        conan-total-pages: [4]
         os: [ubuntu-20.04]
         include:
           - os: windows-2019
-            conan-total-pages: 1
             conan-current-page: 1
+            conan-total-pages: 1
           - os: macos-11.0
-            conan-total-pages: 1
             conan-current-page: 1
+            conan-total-pages: 1
     runs-on: ${{ matrix.os }}
     env:
       UNITY_BATCH: 10
@@ -26,6 +26,14 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v1
+
+      - name: Cache conan data
+        uses: actions/cache@v2
+        with:
+          path: ~/.conan
+          key: ${{ matrix.os }}-build-${{ matrix.conan-current-page }}-${{ matrix.conan-total-pages }}-${{ hashFiles('**/conanfile.py') }}-${{ hashFiles('**/build.py') }}
+          restore-keys: |
+            ${{ matrix.os }}-build-${{ matrix.conan-current-page }}-${{ matrix.conan-total-pages }}
 
       - name: Install dependencies
         run: python -m pip install -U conan conan_package_tools
