@@ -27,6 +27,14 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v1
 
+      - name: Cache conan data
+        uses: actions/cache@v2
+        with:
+          path: ~/.conan
+          key: ${{ matrix.os }}-build-${{ matrix.conan-current-page }}-${{ matrix.conan-total-pages }}-${{ hashFiles('**/conanfile.py') }}-${{ hashFiles('**/build.py') }}
+          restore-keys: |
+            ${{ matrix.os }}-build-${{ matrix.conan-current-page }}-${{ matrix.conan-total-pages }}
+
       - name: Install dependencies
         run: python -m pip install -U conan conan_package_tools
 
