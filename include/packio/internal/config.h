@@ -5,16 +5,24 @@
 #ifndef PACKIO_CONFIG_H
 #define PACKIO_CONFIG_H
 
+#include <mutex>
 #include <unordered_map>
+
+#define PACKIO_HAS_BOOST_ASIO __has_include(<boost/asio.hpp>)
+#define PACKIO_HAS_ASIO __has_include(<asio.hpp>)
+#define PACKIO_HAS_MSGPACK __has_include(<msgpack.hpp>)
+#define PACKIO_HAS_NLOHMANN_JSON __has_include(<nlohmann/json.hpp>)
+
+// If we cannot find boost but we can find asio, fallback to it
+#if !defined(PACKIO_STANDALONE_ASIO) && !PACKIO_HAS_BOOST_ASIO && PACKIO_HAS_ASIO
+#define PACKIO_STANDALONE_ASIO 1
+#endif // !defined(PACKIO_STANDALONE_ASIO) && !PACKIO_HAS_BOOST_ASIO && PACKIO_HAS_ASIO
 
 #if defined(PACKIO_STANDALONE_ASIO)
 #include <asio.hpp>
 #else // defined(PACKIO_STANDALONE_ASIO)
 #include <boost/asio.hpp>
 #endif // defined(PACKIO_STANDALONE_ASIO)
-
-#define PACKIO_HAS_MSGPACK __has_include(<msgpack.hpp>)
-#define PACKIO_HAS_NLOHMANN_JSON __has_include(<nlohmann/json.hpp>)
 
 namespace packio {
 
