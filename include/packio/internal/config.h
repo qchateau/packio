@@ -31,20 +31,6 @@
 #include <boost/asio.hpp>
 #endif // PACKIO_STANDALONE_ASIO
 
-namespace packio {
-
-#if PACKIO_STANDALONE_ASIO
-namespace net = ::asio;
-using error_code = std::error_code;
-using system_error = std::system_error;
-using error_category = std::error_category;
-#else // defined(PACKIO_STANDALONE_ASIO)
-namespace net = ::boost::asio;
-using error_code = boost::system::error_code;
-using system_error = boost::system::system_error;
-using error_category = boost::system::error_category;
-#endif // PACKIO_STANDALONE_ASIO
-
 #if defined(BOOST_ASIO_HAS_CO_AWAIT) || defined(ASIO_HAS_CO_AWAIT) \
     || defined(PACKIO_DOCUMENTATION)
 #define PACKIO_HAS_CO_AWAIT 1
@@ -87,6 +73,20 @@ using error_category = boost::system::error_category;
 #else
 #define PACKIO_COMPLETION_TOKEN_FOR(s) typename
 #endif // defined (BOOST_ASIO_COMPLETION_TOKEN_FOR)
+
+namespace packio {
+
+#if PACKIO_STANDALONE_ASIO
+namespace net = ::asio;
+using error_code = std::error_code;
+using system_error = std::system_error;
+using error_category = std::error_category;
+#else // defined(PACKIO_STANDALONE_ASIO)
+namespace net = ::boost::asio;
+using error_code = boost::system::error_code;
+using system_error = boost::system::system_error;
+using error_category = boost::system::error_category;
+#endif // PACKIO_STANDALONE_ASIO
 
 template <typename... Args>
 using default_map = std::unordered_map<Args...>;
