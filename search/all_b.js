@@ -1,5 +1,6 @@
 var searchData=
 [
-  ['operator_28_29_42',['operator()',['../classpackio_1_1completion__handler.html#a525d3e3037436d4f190a36fc2c7cf755',1,'packio::completion_handler::operator()(T &amp;&amp;return_value)'],['../classpackio_1_1completion__handler.html#a79fa456e381d5967c8ac5ba1df3acb74',1,'packio::completion_handler::operator()()']]],
-  ['operator_3d_43',['operator=',['../classpackio_1_1completion__handler.html#ad1351e8aee5a4bbf44a7d0e94f9a618e',1,'packio::completion_handler']]]
+  ['native_5ftype_40',['native_type',['../classpackio_1_1json__rpc_1_1rpc.html#a61d996eb03839cfbabb19f8799191d83',1,'packio::json_rpc::rpc::native_type()'],['../classpackio_1_1msgpack__rpc_1_1rpc.html#a34db8ce79c9de47fe5f8245eec851fdb',1,'packio::msgpack_rpc::rpc::native_type()'],['../classpackio_1_1nl__json__rpc_1_1rpc.html#a9d356881153c1ee2c93e7e31d49bde4b',1,'packio::nl_json_rpc::rpc::native_type()']]],
+  ['nl_5fjson_5frpc_2eh_41',['nl_json_rpc.h',['../nl__json__rpc_8h.html',1,'']]],
+  ['notifyhandler_42',['NotifyHandler',['../structpackio_1_1traits_1_1NotifyHandler.html',1,'packio::traits']]]
 ];
