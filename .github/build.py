@@ -148,6 +148,7 @@ def test_linux():
     builder.add(compiler=GCC, compiler_version="10", cppstd="17", options={"asio": "1.16.1", "packio:standalone_asio": True})
     builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"asio": "1.17.0", "packio:standalone_asio": True})
     builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"asio": "1.18.0", "packio:standalone_asio": True})
+    builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"asio": "1.18.1", "packio:standalone_asio": True})
 
     # Test logs and debug build
     builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"loglevel": "trace"}, build_type="Debug")
