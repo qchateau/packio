@@ -8,6 +8,10 @@
 
 #include <packio/packio.h>
 
+#if __has_include(<filesystem>)
+#include <filesystem>
+#endif
+
 #if PACKIO_HAS_MSGPACK
 namespace default_rpc = packio::msgpack_rpc;
 #elif PACKIO_HAS_NLOHMANN_JSON
@@ -32,8 +36,16 @@ template <>
 inline packio::net::local::stream_protocol::endpoint get_endpoint()
 {
     auto ts = std::chrono::system_clock::now().time_since_epoch().count();
-    // FIXME: make this cross platform
-    return {"/tmp/packio-" + std::to_string(ts)};
+#if __linux__ // gcc8 has <filesystem> but segfaults, just use hardcoded path on linux
+    auto path = "/tmp/packio-" + std::to_string(ts);
+#elif __has_include(<filesystem>)
+    auto path = (std::filesystem::temp_directory_path()
+                 / ("packio-" + std::to_string(ts)))
+                    .string();
+#else
+#error "Need std::filesystem or a linux system"
+#endif
+    return {path};
 }
 #endif // defined(PACKIO_HAS_LOCAL_SOCKETS)
 
