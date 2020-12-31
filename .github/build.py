@@ -101,7 +101,8 @@ class Packager(cpt.packager.ConanMultiPackager):
             and not WIN
         ):
             options["boost:header_only"] = True
-        else:
+        elif not MACOS:
+            # FIXME: We should be able to do it as well on MACOS
             LIBS_TO_KEEP = ["json", "container", "exception", "system"]
             for opt in [
                 f"without_{lib}"
@@ -161,11 +162,10 @@ def test_linux():
 def test_mac():
     builder = Packager()
     # fmt: off
-    # FIXME: boost.json is not working on macOS atm, disable it
-    builder.add(compiler=APPLE_CLANG, compiler_version="12.0", cppstd="17", build_type="Debug", options={"packio:boost_json": False})
-    builder.add(compiler=APPLE_CLANG, compiler_version="12.0", cppstd="17", options={"packio:boost_json": False})
-    builder.add(compiler=APPLE_CLANG, compiler_version="12.0", cppstd="20", build_type="Debug", options={"packio:boost_json": False})
-    builder.add(compiler=APPLE_CLANG, compiler_version="12.0", cppstd="20", options={"packio:boost_json": False})
+    builder.add(compiler=APPLE_CLANG, compiler_version="12.0", cppstd="17", build_type="Debug")
+    builder.add(compiler=APPLE_CLANG, compiler_version="12.0", cppstd="17")
+    builder.add(compiler=APPLE_CLANG, compiler_version="12.0", cppstd="20", build_type="Debug")
+    builder.add(compiler=APPLE_CLANG, compiler_version="12.0", cppstd="20")
     # fmt: on
     builder.run()
 
