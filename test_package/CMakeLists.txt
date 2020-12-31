@@ -49,7 +49,7 @@ else ()
 endif ()
 
 # Enable experimental coroutines support if needed
-if (CMAKE_CXX_STANDARD EQUAL 20)
+if (CMAKE_CXX_STANDARD GREATER_EQUAL 20)
     # Samples require coroutines
     set(BUILD_SAMPLES ON)
 
