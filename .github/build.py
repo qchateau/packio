@@ -101,8 +101,7 @@ class Packager(cpt.packager.ConanMultiPackager):
             and not WIN
         ):
             options["boost:header_only"] = True
-        elif not MACOS:
-            # FIXME: We should be able to do it as well on MACOS
+        else:
             LIBS_TO_KEEP = ["json", "container", "exception", "system"]
             for opt in [
                 f"without_{lib}"
