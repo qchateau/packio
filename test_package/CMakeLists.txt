@@ -48,6 +48,18 @@ else ()
     add_compile_definitions(_WIN32_WINNT=0x0A00) # win10
 endif ()
 
+# Enable experimental coroutines support if needed
+if (CMAKE_CXX_STANDARD EQUAL 20)
+    # Samples require coroutines
+    set(BUILD_SAMPLES ON)
+
+    # FIXME: gcc-11 will support coroutines by default with c++20
+    # remove this and use gcc-11 for c++20 when it is available
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        add_compile_options(-fcoroutines)
+    endif ()
+endif ()
+
 if (PACKIO_LOGGING)
     string(TOUPPER "${PACKIO_LOGGING}" LOGLEVEL)
     add_compile_definitions(PACKIO_LOGGING=1)
@@ -55,18 +67,11 @@ if (PACKIO_LOGGING)
     message(STATUS "Building with logs: ${LOGLEVEL}")
 endif ()
 
-if (PACKIO_COROUTINES)
-    message(STATUS "Building with coroutines")
-
-    set(BUILD_SAMPLES ON)
-
-    if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-        add_compile_options(-fcoroutines-ts)
-    endif ()
-endif ()
-
 add_executable(tests ${SOURCES})
 target_link_libraries(tests ${CONAN_LIBS})
+
+add_executable(perf samples/perf.cpp)
+target_link_libraries(perf ${CONAN_LIBS})
 
 if (BUILD_SAMPLES)
     message(STATUS "Building samples")
