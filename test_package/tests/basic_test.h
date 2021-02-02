@@ -12,6 +12,20 @@
 #include "misc.h"
 
 using BasicImplementations = ::testing::Types<
+#if HAS_BEAST
+    std::pair<
+        default_rpc::client<test_websocket<true>>,
+        default_rpc::server<test_websocket_acceptor<true>>>,
+#if PACKIO_HAS_NLOHMANN_JSON
+    std::pair<
+        packio::nl_json_rpc::client<test_websocket<true>>,
+        packio::nl_json_rpc::server<test_websocket_acceptor<true>>>,
+    std::pair<
+        packio::nl_json_rpc::client<test_websocket<false>>,
+        packio::nl_json_rpc::server<test_websocket_acceptor<false>>>,
+#endif // PACKIO_HAS_NLOHMANN_JSON
+#endif // HAS_BEAST
+
 // FIXME: local socket should work on windows for boost >= 1.75
 //  but there is problem with bind at the moment
 #if defined(PACKIO_HAS_LOCAL_SOCKETS) && !defined(_WIN32)
@@ -60,15 +74,16 @@ protected:
     using server_type = typename Impl::second_type;
     using protocol_type = typename client_type::protocol_type;
     using endpoint_type = typename protocol_type::endpoint;
-    using socket_type = typename protocol_type::socket;
-    using acceptor_type = typename protocol_type::acceptor;
+    using socket_type = typename client_type::socket_type;
+    using acceptor_type = typename server_type::acceptor_type;
     using completion_handler =
         packio::completion_handler<typename client_type::rpc_type>;
 
     BasicTest()
         : server_{std::make_shared<server_type>(
             acceptor_type(io_, get_endpoint<endpoint_type>()))},
-          client_{std::make_shared<client_type>(socket_type{io_})}
+          client_{std::make_shared<client_type>(
+              socket_type{io_, endpoint_type().protocol()})}
     {
     }
 
@@ -82,7 +97,7 @@ protected:
 
     void async_run()
     {
-        runner_ = std::thread{[this] { io_.run(); }};
+        runner_ = std::thread{[this] { EXPECT_NO_THROW(io_.run()); }};
     }
 
     void connect()

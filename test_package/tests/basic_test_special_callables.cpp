@@ -8,8 +8,8 @@ using namespace packio;
 
 TYPED_TEST(BasicTest, test_special_callables)
 {
-    using session_type = typename decltype(
-        this->server_)::element_type::session_type;
+    using session_type =
+        typename decltype(this->server_)::element_type::session_type;
     using completion_handler =
         typename std::decay_t<decltype(*this)>::completion_handler;
     using rpc_type = typename std::decay_t<decltype(*this)>::client_type::rpc_type;
@@ -42,8 +42,6 @@ TYPED_TEST(BasicTest, test_special_callables)
     // this test just needs to compile
     // test with move-only lambdas
     // and with move-only callables that have non-const operator()
-
-    this->connect();
 
     this->server_->dispatcher()->add_async(
         "move_only_lambda_async_001",

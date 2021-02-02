@@ -18,8 +18,8 @@ TYPED_TEST(BasicTest, test_typical_usage)
             session->start();
             connected.count_down();
         });
-        this->connect();
         this->async_run();
+        this->connect();
 
         ASSERT_TRUE(this->client_->socket().is_open());
         ASSERT_TRUE(connected.wait_for(1s));

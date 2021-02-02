@@ -12,8 +12,8 @@ TYPED_TEST(BasicTest, test_dispatcher)
         typename std::decay_t<decltype(*this)>::completion_handler;
 
     this->server_->async_serve_forever();
-    this->connect();
     this->async_run();
+    this->connect();
 
     ASSERT_TRUE(this->server_->dispatcher()->add_async(
         "f001", [](completion_handler handler) { handler(); }));

@@ -17,8 +17,8 @@ TYPED_TEST(BasicTest, test_shared_dispatcher)
         typename std::decay_t<decltype(*this)>::completion_handler;
 
     this->server_->async_serve_forever();
-    this->connect();
     this->async_run();
+    this->connect();
 
     // server2 is a different server but shares the same dispatcher as server_
     auto server2 = std::make_shared<server_type>(
@@ -28,8 +28,8 @@ TYPED_TEST(BasicTest, test_shared_dispatcher)
     auto client2 = std::make_shared<client_type>(socket_type{this->io_});
 
     auto ep = server2->acceptor().local_endpoint();
-    client2->socket().connect(ep);
     server2->async_serve_forever();
+    client2->socket().connect(ep);
 
     ASSERT_NE(
         this->server_->acceptor().local_endpoint(),

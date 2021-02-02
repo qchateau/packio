@@ -12,8 +12,8 @@ TYPED_TEST(BasicTest, test_response_after_disconnect)
         typename std::decay_t<decltype(*this)>::completion_handler;
 
     this->server_->async_serve_forever();
-    this->connect();
     this->async_run();
+    this->connect();
 
     // Use a unique_ptr here because MSVC's promise is bugged and required
     // default-constructible type

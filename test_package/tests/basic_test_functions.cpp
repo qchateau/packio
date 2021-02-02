@@ -15,8 +15,8 @@ TYPED_TEST(BasicTest, test_functions)
     using native_type = typename rpc_type::native_type;
 
     this->server_->async_serve_forever();
-    this->connect();
     this->async_run();
+    this->connect();
 
     this->server_->dispatcher()->add_async(
         "async_void_void", [](completion_handler handler) { handler(); });
