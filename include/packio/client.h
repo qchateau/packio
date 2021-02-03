@@ -239,37 +239,42 @@ private:
         PACKIO_TRACE("reading ... {} call(s) pending", pending_.size());
         socket_.async_read_some(
             buffer,
-            net::bind_executor(
-                call_strand_,
-                [self = shared_from_this(), parser = std::move(parser)](
-                    error_code ec, size_t length) mutable {
-                    // stop if there is an error or there is no more pending calls
-                    assert(self->call_strand_.running_in_this_thread());
+            [this, self = shared_from_this(), parser = std::move(parser)](
+                error_code ec, size_t length) mutable {
+                net::dispatch(
+                    call_strand_,
+                    [self = std::move(self),
+                     parser = std::move(parser),
+                     ec,
+                     length]() mutable {
+                        // stop if there is an error or there is no more pending calls
+                        assert(self->call_strand_.running_in_this_thread());
 
-                    if (ec) {
-                        PACKIO_WARN("read error: {}", ec.message());
-                        self->reading_ = false;
+                        if (ec) {
+                            PACKIO_WARN("read error: {}", ec.message());
+                            self->reading_ = false;
 
-                        // cancel all pending calls
-                        self->cancel_all_calls();
-                        return;
-                    }
+                            // cancel all pending calls
+                            self->cancel_all_calls();
+                            return;
+                        }
 
-                    PACKIO_TRACE("read: {}", length);
-                    parser.buffer_consumed(length);
+                        PACKIO_TRACE("read: {}", length);
+                        parser.buffer_consumed(length);
 
-                    while (auto response = parser.get_response()) {
-                        self->async_call_handler(std::move(*response));
-                    }
+                        while (auto response = parser.get_response()) {
+                            self->async_call_handler(std::move(*response));
+                        }
 
-                    if (self->pending_.empty()) {
-                        PACKIO_TRACE("done reading, no more pending calls");
-                        self->reading_ = false;
-                        return;
-                    }
+                        if (self->pending_.empty()) {
+                            PACKIO_TRACE("done reading, no more pending calls");
+                            self->reading_ = false;
+                            return;
+                        }
 
-                    self->async_read(std::move(parser));
-                }));
+                        self->async_read(std::move(parser));
+                    });
+            });
     }
 
     void async_call_handler(response_type&& response)
