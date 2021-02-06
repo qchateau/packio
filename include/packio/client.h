@@ -303,7 +303,6 @@ private:
 
                 auto handler = std::move(it->second);
                 self->pending_.erase(it);
-                self->maybe_stop_reading();
 
                 // handle the response asynchronously (post)
                 // to schedule the next read immediately
@@ -316,6 +315,15 @@ private:
                      response = std::move(response)]() mutable {
                         handler(ec, std::move(response));
                     });
+
+                // if this was the last pending call, we need to make
+                // sure we're not reading anymore. do this asynchronously
+                // to let all pending work drain before cancelling async ops
+                if (self->pending_.empty()) {
+                    net::post(self->socket_.get_executor(), [self]() {
+                        self->maybe_stop_reading();
+                    });
+                }
             });
     }
 
