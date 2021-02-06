@@ -84,6 +84,7 @@ public:
     //! @param id The call ID of the call to cancel
     void cancel(id_type id)
     {
+        PACKIO_TRACE("cancel {}", rpc_type::format_id(id));
         net::dispatch(call_strand_, [self = shared_from_this(), id] {
             auto ec = make_error_code(net::error::operation_aborted);
             self->async_call_handler(id, ec, {});
@@ -95,6 +96,7 @@ public:
     //! The associated handlers will be called with net::error::operation_aborted
     void cancel()
     {
+        PACKIO_TRACE("cancel all");
         net::dispatch(call_strand_, [self = shared_from_this()] {
             self->cancel_all_calls();
         });
