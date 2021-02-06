@@ -107,7 +107,11 @@ void set_no_delay(T&)
 template <>
 inline void set_no_delay(net::ip::tcp::socket& socket)
 {
-    socket.set_option(net::ip::tcp::no_delay{true});
+    error_code ec;
+    socket.set_option(net::ip::tcp::no_delay{true}, ec);
+    if (ec) {
+        PACKIO_WARN("error setting tcp nodelay option: {}", ec.message());
+    }
 }
 
 template <typename T>
