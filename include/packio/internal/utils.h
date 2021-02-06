@@ -99,6 +99,13 @@ struct decay_tuple<std::tuple<Args...>> {
 template <typename T>
 using decay_tuple_t = typename decay_tuple<T>::type;
 
+template <typename... Args>
+struct always_false : std::false_type {
+};
+
+template <typename... Args>
+constexpr auto always_false_v = always_false<Args...>::value;
+
 template <typename T>
 void set_no_delay(T&)
 {
