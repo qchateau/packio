@@ -425,11 +425,11 @@ private:
                             if (ec) {
                                 PACKIO_WARN("write error: {}", ec.message());
                                 self->async_call_handler(call_id, ec, {});
+                                return;
                             }
-                            else {
-                                PACKIO_TRACE("write: {}", length);
-                                (void)length;
-                            }
+
+                            PACKIO_TRACE("write: {}", length);
+                            (void)length;
                         });
                 });
         }
