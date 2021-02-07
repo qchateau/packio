@@ -7,8 +7,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        conan-current-page: [1, 2, 3, 4]
-        conan-total-pages: [4]
+        conan-current-page: [1, 2, 3, 4, 5, 6]
+        conan-total-pages: [6]
         os: [ubuntu-20.04]
         include:
           - os: windows-2019
@@ -19,7 +19,7 @@ jobs:
             conan-total-pages: 1
     runs-on: ${{ matrix.os }}
     env:
-      UNITY_BATCH: 10
+      UNITY_BATCH: 2
       CONAN_REQUEST_TIMEOUT: 300
       CONAN_TOTAL_PAGES: ${{ matrix.conan-total-pages }}
       CONAN_CURRENT_PAGE: ${{ matrix.conan-current-page }}
