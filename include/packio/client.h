@@ -88,7 +88,7 @@ public:
         net::dispatch(call_strand_, [self = shared_from_this(), id] {
             auto ec = make_error_code(net::error::operation_aborted);
             self->async_call_handler(id, ec, {});
-            self->maybe_stop_reading();
+            self->maybe_cancel_reading();
         });
     }
 
@@ -99,7 +99,11 @@ public:
     {
         PACKIO_TRACE("cancel all");
         net::dispatch(call_strand_, [self = shared_from_this()] {
-            self->cancel_all_calls();
+            auto ec = make_error_code(net::error::operation_aborted);
+            while (!self->pending_.empty()) {
+                self->async_call_handler(self->pending_.begin()->first, ec, {});
+            }
+            self->maybe_cancel_reading();
         });
     }
 
@@ -186,17 +190,21 @@ private:
     using async_call_handler_type =
         internal::movable_function<void(error_code, response_type)>;
 
-    void cancel_all_calls()
+    void close()
     {
-        assert(call_strand_.running_in_this_thread());
-        auto ec = make_error_code(net::error::operation_aborted);
-        while (!pending_.empty()) {
-            async_call_handler(pending_.begin()->first, ec, {});
-        }
-        maybe_stop_reading();
+        net::dispatch(call_strand_, [self = shared_from_this()] {
+            auto ec = make_error_code(net::error::operation_aborted);
+            while (!self->pending_.empty()) {
+                self->async_call_handler(self->pending_.begin()->first, ec, {});
+            }
+            self->socket_.close(ec);
+            if (ec) {
+                PACKIO_WARN("close failed: {}", ec.message());
+            }
+        });
     }
 
-    void maybe_stop_reading()
+    void maybe_cancel_reading()
     {
         assert(call_strand_.running_in_this_thread());
         if (reading_ && pending_.empty()) {
@@ -255,9 +263,8 @@ private:
                         if (ec) {
                             PACKIO_WARN("read error: {}", ec.message());
                             self->reading_ = false;
-
-                            // cancel all pending calls
-                            self->cancel_all_calls();
+                            if (ec != net::error::operation_aborted)
+                                self->close();
                             return;
                         }
 
@@ -350,16 +357,19 @@ private:
             );
             self_->async_send(
                 std::move(packer_buf),
-                [handler = std::forward<NotifyHandler>(handler)](
+                [handler = std::forward<NotifyHandler>(handler),
+                 self = self_->shared_from_this()](
                     error_code ec, std::size_t length) mutable {
                     if (ec) {
                         PACKIO_WARN("write error: {}", ec.message());
-                    }
-                    else {
-                        PACKIO_TRACE("write: {}", length);
-                        (void)length;
+                        handler(ec);
+                        if (ec != net::error::operation_aborted)
+                            self->close();
+                        return;
                     }
 
+                    PACKIO_TRACE("write: {}", length);
+                    (void)length;
                     handler(ec);
                 });
         }
@@ -425,8 +435,8 @@ private:
                             error_code ec, std::size_t length) mutable {
                             if (ec) {
                                 PACKIO_WARN("write error: {}", ec.message());
-                                self->async_call_handler(call_id, ec, {});
-                                self->maybe_stop_reading();
+                                if (ec != net::error::operation_aborted)
+                                    self->close();
                                 return;
                             }
 
