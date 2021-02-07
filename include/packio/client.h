@@ -88,6 +88,7 @@ public:
         net::dispatch(call_strand_, [self = shared_from_this(), id] {
             auto ec = make_error_code(net::error::operation_aborted);
             self->async_call_handler(id, ec, {});
+            self->maybe_stop_reading();
         });
     }
 
@@ -192,6 +193,7 @@ private:
         while (!pending_.empty()) {
             async_call_handler(pending_.begin()->first, ec, {});
         }
+        maybe_stop_reading();
     }
 
     void maybe_stop_reading()
@@ -315,15 +317,6 @@ private:
                      response = std::move(response)]() mutable {
                         handler(ec, std::move(response));
                     });
-
-                // if this was the last pending call, we need to make
-                // sure we're not reading anymore. do this asynchronously
-                // to let all pending work drain before cancelling async ops
-                if (self->pending_.empty()) {
-                    net::post(self->socket_.get_executor(), [self]() {
-                        self->maybe_stop_reading();
-                    });
-                }
             });
     }
 
@@ -433,6 +426,7 @@ private:
                             if (ec) {
                                 PACKIO_WARN("write error: {}", ec.message());
                                 self->async_call_handler(call_id, ec, {});
+                                self->maybe_stop_reading();
                                 return;
                             }
 
