@@ -12,6 +12,11 @@
 #include <filesystem>
 #endif
 
+#define HAS_BEAST __has_include(<boost/beast/core.hpp>)
+#if HAS_BEAST
+#include <packio/extra/websocket.h>
+#endif // HAS_BEAST
+
 #if PACKIO_HAS_MSGPACK
 namespace default_rpc = packio::msgpack_rpc;
 #elif PACKIO_HAS_NLOHMANN_JSON
@@ -48,6 +53,12 @@ inline packio::net::local::stream_protocol::endpoint get_endpoint()
     return {path};
 }
 #endif // defined(PACKIO_HAS_LOCAL_SOCKETS)
+
+template <typename Socket>
+constexpr bool supports_cancellation()
+{
+    return true;
+}
 
 class latch {
 public:
@@ -217,3 +228,55 @@ decltype(auto) safe_future_get(Future&& fut)
             ASSERT_EQ(net::error::operation_aborted, err.code()); \
         }                                                         \
     } while (false)
+
+#if HAS_BEAST
+template <bool kBinary>
+class test_websocket
+    : public packio::extra::websocket_adapter<
+          boost::beast::websocket::stream<boost::beast::tcp_stream>> {
+public:
+    template <typename... Args>
+    explicit test_websocket(Args&&... args)
+        : packio::extra::websocket_adapter<
+            boost::beast::websocket::stream<boost::beast::tcp_stream>>(
+            std::forward<Args>(args)...)
+    {
+        binary(kBinary);
+    }
+
+    template <typename Endpoint>
+    void connect(Endpoint ep)
+    {
+        next_layer().connect(ep);
+        handshake("localhost:" + std::to_string(ep.port()), "/");
+    }
+
+    template <typename... Args>
+    auto shutdown(Args&&... args)
+    {
+        return next_layer().socket().shutdown(std::forward<Args>(args)...);
+    }
+};
+
+template <>
+constexpr bool supports_cancellation<test_websocket<true>>()
+{
+    return false;
+}
+
+template <>
+constexpr bool supports_cancellation<test_websocket<false>>()
+{
+    return false;
+}
+
+template <bool kBinary>
+class test_websocket_acceptor : public packio::extra::websocket_acceptor_adapter<
+                                    boost::asio::ip::tcp::acceptor,
+                                    test_websocket<kBinary>> {
+public:
+    using packio::extra::websocket_acceptor_adapter<
+        boost::asio::ip::tcp::acceptor,
+        test_websocket<kBinary>>::websocket_acceptor_adapter;
+};
+#endif // HAS_BEAST

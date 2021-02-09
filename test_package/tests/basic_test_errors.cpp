@@ -16,8 +16,8 @@ TYPED_TEST(BasicTest, test_errors)
     const std::string kErrorMessage{"error message"};
 
     this->server_->async_serve_forever();
-    this->connect();
     this->async_run();
+    this->connect();
 
     ASSERT_TRUE(this->server_->dispatcher()->add_async(
         "error",

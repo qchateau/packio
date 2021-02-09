@@ -15,8 +15,8 @@ TYPED_TEST(BasicTest, test_named_arguments)
         std::is_same_v<rpc_type, packio::nl_json_rpc::rpc>;
 
     this->server_->async_serve_forever();
-    this->connect();
     this->async_run();
+    this->connect();
 
     this->server_->dispatcher()->add(
         "echo", {"a"}, [](std::string a) { return a; });

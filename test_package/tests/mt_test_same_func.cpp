@@ -22,8 +22,8 @@ TYPED_TEST(MtTest, test_same_func)
         for (auto& client : clients) {
             client->async_call(
                 "double", std::make_tuple(42), [&](auto ec, auto res) {
-                    ASSERT_FALSE(ec);
-                    ASSERT_EQ(84, get<int>(res.result));
+                    EXPECT_FALSE(ec);
+                    EXPECT_EQ(84, get<int>(res.result));
                     done.count_down();
                 });
         }

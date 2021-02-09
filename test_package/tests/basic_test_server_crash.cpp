@@ -20,8 +20,8 @@ TYPED_TEST(BasicTest, test_server_crash)
     this->server_->dispatcher()->add(
         "close", [&]() { session_ptr->socket().close(); });
 
-    this->connect();
     this->async_run();
+    this->connect();
 
     auto f = this->client_->async_call("close", use_future);
     ASSERT_FUTURE_THROW(f, std::exception);

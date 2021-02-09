@@ -99,6 +99,13 @@ struct decay_tuple<std::tuple<Args...>> {
 template <typename T>
 using decay_tuple_t = typename decay_tuple<T>::type;
 
+template <typename... Args>
+struct always_false : std::false_type {
+};
+
+template <typename... Args>
+constexpr auto always_false_v = always_false<Args...>::value;
+
 template <typename T>
 void set_no_delay(T&)
 {
@@ -107,7 +114,11 @@ void set_no_delay(T&)
 template <>
 inline void set_no_delay(net::ip::tcp::socket& socket)
 {
-    socket.set_option(net::ip::tcp::no_delay{true});
+    error_code ec;
+    socket.set_option(net::ip::tcp::no_delay{true}, ec);
+    if (ec) {
+        PACKIO_WARN("error setting tcp nodelay option: {}", ec.message());
+    }
 }
 
 template <typename T>

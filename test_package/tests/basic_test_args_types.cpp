@@ -9,8 +9,8 @@ using namespace packio;
 TYPED_TEST(BasicTest, test_args_types)
 {
     this->server_->async_serve_forever();
-    this->connect();
     this->async_run();
+    this->connect();
 
     this->server_->dispatcher()->add("add", [](int a, int b) { return a + b; });
 
