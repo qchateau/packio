@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['zone_71',['zone',['../structpackio_1_1msgpack__rpc_1_1internal_1_1request.html#ad05950fc46bacf68d602e20f83f4d64d',1,'packio::msgpack_rpc::internal::request::zone()'],['../structpackio_1_1msgpack__rpc_1_1internal_1_1response.html#ab86f414bf7f829e328923e78c77936be',1,'packio::msgpack_rpc::internal::response::zone()']]]
+  ['websocket_5facceptor_5fadapter_71',['websocket_acceptor_adapter',['../classpackio_1_1extra_1_1websocket__acceptor__adapter.html',1,'packio::extra']]],
+  ['websocket_5fadapter_72',['websocket_adapter',['../classpackio_1_1extra_1_1websocket__adapter.html',1,'packio::extra']]]
 ];
