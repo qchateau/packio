@@ -8,6 +8,8 @@
 
 #include <packio/packio.h>
 
+#include <packio/extra/ssl.h>
+
 #if __has_include(<filesystem>)
 #include <filesystem>
 #endif
@@ -229,6 +231,63 @@ decltype(auto) safe_future_get(Future&& fut)
         }                                                         \
     } while (false)
 
+using test_ssl_stream = packio::extra::ssl_stream_adapter<
+    packio::net::ssl::stream<packio::net::ip::tcp::socket>>;
+
+class test_client_ssl_stream : public test_ssl_stream {
+public:
+    template <typename... Args>
+    explicit test_client_ssl_stream(Args&&... args)
+        : test_ssl_stream(
+            packio::net::ip::tcp::socket(std::forward<Args>(args)...),
+            context())
+    {
+    }
+
+    template <typename Endpoint>
+    void connect(Endpoint ep)
+    {
+        lowest_layer().connect(ep);
+        handshake(client);
+    }
+
+private:
+    static packio::net::ssl::context& context()
+    {
+        static packio::net::ssl::context ctx(packio::net::ssl::context::sslv23);
+        ctx.set_verify_mode(packio::net::ssl::verify_none);
+        return ctx;
+    }
+};
+
+template <>
+constexpr bool supports_cancellation<test_client_ssl_stream>()
+{
+    return false;
+}
+
+class test_ssl_acceptor
+    : public packio::extra::ssl_acceptor_adapter<packio::net::ip::tcp::acceptor, test_ssl_stream> {
+public:
+    template <typename... Args>
+    explicit test_ssl_acceptor(Args&&... args)
+        : packio::extra::ssl_acceptor_adapter<packio::net::ip::tcp::acceptor, test_ssl_stream>(
+            packio::net::ip::tcp::acceptor(std::forward<Args>(args)...),
+            context())
+    {
+    }
+
+private:
+    static packio::net::ssl::context& context()
+    {
+        static packio::net::ssl::context ctx(packio::net::ssl::context::sslv23);
+        ctx.use_certificate_chain_file("certs/server.cert");
+        ctx.use_private_key_file(
+            "certs/server.key", packio::net::ssl::context::pem);
+        return ctx;
+    }
+};
+
 #if HAS_BEAST
 template <bool kBinary>
 class test_websocket
@@ -248,7 +307,7 @@ public:
     void connect(Endpoint ep)
     {
         next_layer().connect(ep);
-        handshake("localhost:" + std::to_string(ep.port()), "/");
+        handshake("127.0.0.1:" + std::to_string(ep.port()), "/");
     }
 };
 
@@ -265,12 +324,7 @@ constexpr bool supports_cancellation<test_websocket<false>>()
 }
 
 template <bool kBinary>
-class test_websocket_acceptor : public packio::extra::websocket_acceptor_adapter<
-                                    boost::asio::ip::tcp::acceptor,
-                                    test_websocket<kBinary>> {
-public:
-    using packio::extra::websocket_acceptor_adapter<
-        boost::asio::ip::tcp::acceptor,
-        test_websocket<kBinary>>::websocket_acceptor_adapter;
-};
+using test_websocket_acceptor = packio::extra::websocket_acceptor_adapter<
+    packio::net::ip::tcp::acceptor,
+    test_websocket<kBinary>>;
 #endif // HAS_BEAST

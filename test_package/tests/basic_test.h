@@ -45,26 +45,24 @@ using BasicImplementations = ::testing::Types<
             packio::msgpack_rpc::dispatcher<std::map, my_spinlock>>>,
     std::pair<
         packio::msgpack_rpc::client<packio::net::ip::tcp::socket, my_unordered_map>,
-        packio::msgpack_rpc::server<packio::net::ip::tcp::acceptor>>
-#if PACKIO_HAS_NLOHMANN_JSON || PACKIO_HAS_BOOST_JSON
-    ,
-#endif // PACKIO_HAS_NLOHMANN_JSON || PACKIO_HAS_BOOST_JSON
+        packio::msgpack_rpc::server<packio::net::ip::tcp::acceptor>>,
 #endif // PACKIO_HAS_MSGPACK
 
 #if PACKIO_HAS_NLOHMANN_JSON
     std::pair<
         packio::nl_json_rpc::client<packio::net::ip::tcp::socket>,
-        packio::nl_json_rpc::server<packio::net::ip::tcp::acceptor>>
-#if PACKIO_HAS_BOOST_JSON
-    ,
-#endif // PACKIO_HAS_BOOST_JSON
+        packio::nl_json_rpc::server<packio::net::ip::tcp::acceptor>>,
 #endif // PACKIO_HAS_NLOHMANN_JSON
 
 #if PACKIO_HAS_BOOST_JSON
     std::pair<
         packio::json_rpc::client<packio::net::ip::tcp::socket>,
-        packio::json_rpc::server<packio::net::ip::tcp::acceptor>>
+        packio::json_rpc::server<packio::net::ip::tcp::acceptor>>,
 #endif // PACKIO_HAS_BOOST_JSON
+
+    std::pair< //
+        default_rpc::client<test_client_ssl_stream>,
+        default_rpc::server<test_ssl_acceptor>> //
     >;
 
 template <class Impl>

@@ -2,6 +2,34 @@
 
 #include <packio/packio.h>
 
+#define HAS_BEAST __has_include(<boost/beast/core.hpp>)
+#if HAS_BEAST
+#include <packio/extra/websocket.h>
+
+class websocket : public packio::extra::websocket_adapter<
+                      boost::beast::websocket::stream<boost::beast::tcp_stream>> {
+public:
+    template <typename... Args>
+    explicit websocket(Args&&... args)
+        : packio::extra::websocket_adapter<
+            boost::beast::websocket::stream<boost::beast::tcp_stream>>(
+            std::forward<Args>(args)...)
+    {
+        binary(true);
+    }
+
+    template <typename Endpoint>
+    void connect(Endpoint ep)
+    {
+        next_layer().connect(ep);
+        handshake("127.0.0.1:" + std::to_string(ep.port()), "/");
+    }
+};
+
+using websocket_acceptor =
+    packio::extra::websocket_acceptor_adapter<packio::net::ip::tcp::acceptor, websocket>;
+#endif // HAS_BEAST
+
 constexpr auto N = 10000;
 
 template <typename S, typename C>
@@ -55,6 +83,7 @@ int main(int, char**)
     std::chrono::nanoseconds best = std::chrono::hours(1);
 
 #if PACKIO_HAS_MSGPACK
+    std::cout << "  msgpack ..." << std::endl;
     auto msgpack_server = packio::msgpack_rpc::make_server(
         packio::net::ip::tcp::acceptor{io, bind_ep});
     auto msgpack_client = packio::msgpack_rpc::make_client(
@@ -64,6 +93,7 @@ int main(int, char**)
 #endif // PACKIO_HAS_MSGPACK
 
 #if PACKIO_HAS_NLOHMANN_JSON
+    std::cout << "  nlohmann json ..." << std::endl;
     auto nl_json_server = packio::nl_json_rpc::make_server(
         packio::net::ip::tcp::acceptor{io, bind_ep});
     auto nl_json_client = packio::nl_json_rpc::make_client(
@@ -73,6 +103,7 @@ int main(int, char**)
 #endif // PACKIO_HAS_NLOHMANN_JSON
 
 #if PACKIO_HAS_BOOST_JSON
+    std::cout << "  boost json ..." << std::endl;
     auto json_server = packio::json_rpc::make_server(
         packio::net::ip::tcp::acceptor{io, bind_ep});
     auto json_client = packio::json_rpc::make_client(
@@ -80,6 +111,15 @@ int main(int, char**)
     const auto json_time = benchmark(json_server, json_client);
     best = std::min(best, json_time);
 #endif // PACKIO_HAS_BOOST_JSON
+
+#if HAS_BEAST
+    std::cout << "  msgpack over websockets ..." << std::endl;
+    auto ws_server = packio::msgpack_rpc::make_server(
+        websocket_acceptor{io, bind_ep});
+    auto ws_client = packio::msgpack_rpc::make_client(websocket{io});
+    const auto ws_time = benchmark(ws_server, ws_client);
+    best = std::min(best, ws_time);
+#endif // HAS_BEAST
 
 #if PACKIO_HAS_MSGPACK
     print_result("msgpack", msgpack_time, best);
@@ -90,6 +130,9 @@ int main(int, char**)
 #if PACKIO_HAS_BOOST_JSON
     print_result("json", json_time, best);
 #endif // PACKIO_HAS_NLOHMANN_JSON
+#if HAS_BEAST
+    print_result("ws", ws_time, best);
+#endif // HAS_BEAST
 
     io.stop();
     thread.join();
