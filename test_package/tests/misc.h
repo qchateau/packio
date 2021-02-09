@@ -250,12 +250,6 @@ public:
         next_layer().connect(ep);
         handshake("localhost:" + std::to_string(ep.port()), "/");
     }
-
-    template <typename... Args>
-    auto shutdown(Args&&... args)
-    {
-        return next_layer().socket().shutdown(std::forward<Args>(args)...);
-    }
 };
 
 template <>
