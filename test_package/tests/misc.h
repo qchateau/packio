@@ -14,10 +14,9 @@
 #include <filesystem>
 #endif
 
-#define HAS_BEAST __has_include(<boost/beast/core.hpp>)
-#if HAS_BEAST
+#if !PACKIO_STANDALONE_ASIO
 #include <packio/extra/websocket.h>
-#endif // HAS_BEAST
+#endif // !PACKIO_STANDALONE_ASIO
 
 #if PACKIO_HAS_MSGPACK
 namespace default_rpc = packio::msgpack_rpc;
@@ -288,7 +287,7 @@ private:
     }
 };
 
-#if HAS_BEAST
+#if !PACKIO_STANDALONE_ASIO
 template <bool kBinary>
 class test_websocket
     : public packio::extra::websocket_adapter<
@@ -327,4 +326,4 @@ template <bool kBinary>
 using test_websocket_acceptor = packio::extra::websocket_acceptor_adapter<
     packio::net::ip::tcp::acceptor,
     test_websocket<kBinary>>;
-#endif // HAS_BEAST
+#endif // !PACKIO_STANDALONE_ASIO

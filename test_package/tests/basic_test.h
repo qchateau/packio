@@ -12,7 +12,7 @@
 #include "misc.h"
 
 using BasicImplementations = ::testing::Types<
-#if HAS_BEAST
+#if !PACKIO_STANDALONE_ASIO
     std::pair<
         default_rpc::client<test_websocket<true>>,
         default_rpc::server<test_websocket_acceptor<true>>>,
@@ -24,7 +24,7 @@ using BasicImplementations = ::testing::Types<
         packio::nl_json_rpc::client<test_websocket<false>>,
         packio::nl_json_rpc::server<test_websocket_acceptor<false>>>,
 #endif // PACKIO_HAS_NLOHMANN_JSON
-#endif // HAS_BEAST
+#endif // !PACKIO_STANDALONE_ASIO
 
 // FIXME: local socket should work on windows for boost >= 1.75
 //  but there is problem with bind at the moment

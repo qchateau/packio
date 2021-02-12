@@ -30,6 +30,7 @@ public:
         typename socket_type::protocol_type; //!< The protocol type
     using executor_type =
         typename socket_type::executor_type; //!< The executor type
+
     using std::enable_shared_from_this<server_session<Rpc, Socket, Dispatcher>>::shared_from_this;
 
     //! The default size reserved by the reception buffer
@@ -38,7 +39,8 @@ public:
     server_session(socket_type sock, std::shared_ptr<Dispatcher> dispatcher_ptr)
         : socket_{std::move(sock)},
           dispatcher_ptr_{std::move(dispatcher_ptr)},
-          wstrand_{socket_.get_executor()}
+          strand_(socket_.get_executor()),
+          wstrand_{strand_}
     {
     }
 
@@ -62,7 +64,12 @@ public:
     }
 
     //! Start the session
-    void start() { this->async_read(parser_type{}); }
+    void start()
+    {
+        net::dispatch(strand_, [self = shared_from_this()]() {
+            self->async_read(parser_type{});
+        });
+    }
 
 private:
     using parser_type = typename Rpc::incremental_parser_type;
@@ -70,6 +77,8 @@ private:
 
     void async_read(parser_type&& parser)
     {
+        assert(strand_.running_in_this_thread());
+
         // abort R/W on error
         if (!socket_.is_open()) {
             return;
@@ -77,33 +86,38 @@ private:
 
         parser.reserve_buffer(buffer_reserve_size_);
         auto buffer = net::buffer(parser.buffer(), parser.buffer_capacity());
+
         socket_.async_read_some(
             buffer,
-            [self = shared_from_this(), parser = std::move(parser)](
-                error_code ec, size_t length) mutable {
-                if (ec) {
-                    PACKIO_WARN("read error: {}", ec.message());
-                    self->close_connection();
-                    return;
-                }
+            internal::bind_executor(
+                strand_,
+                [self = shared_from_this(), parser = std::move(parser)](
+                    error_code ec, size_t length) mutable {
+                    assert(self->strand_.running_in_this_thread());
 
-                PACKIO_TRACE("read: {}", length);
-                parser.buffer_consumed(length);
+                    if (ec) {
+                        PACKIO_WARN("read error: {}", ec.message());
+                        self->close_connection();
+                        return;
+                    }
 
-                while (auto request = parser.get_request()) {
-                    // handle the call asynchronously (post)
-                    // to schedule the next read immediately
-                    // this will allow parallel call handling
-                    // in multi-threaded environments
-                    net::post(
-                        self->get_executor(),
-                        [self, request = std::move(*request)]() mutable {
-                            self->async_handle_request(std::move(request));
-                        });
-                }
+                    PACKIO_TRACE("read: {}", length);
+                    parser.buffer_consumed(length);
 
-                self->async_read(std::move(parser));
-            });
+                    while (auto request = parser.get_request()) {
+                        // handle the call asynchronously (post)
+                        // to schedule the next read immediately
+                        // this will allow parallel call handling
+                        // in multi-threaded environments
+                        net::post(
+                            self->get_executor(),
+                            [self, request = std::move(*request)]() mutable {
+                                self->async_handle_request(std::move(request));
+                            });
+                    }
+
+                    self->async_read(std::move(parser));
+                }));
     }
 
     void async_handle_request(request_type&& request)
@@ -144,23 +158,26 @@ private:
         wstrand_.push([this,
                        self = shared_from_this(),
                        message_ptr = std::move(message_ptr)]() mutable {
+            assert(strand_.running_in_this_thread());
             auto buf = Rpc::buffer(*message_ptr);
             net::async_write(
                 socket_,
                 buf,
-                [self = std::move(self), message_ptr = std::move(message_ptr)](
-                    error_code ec, size_t length) {
-                    self->wstrand_.next();
+                internal::bind_executor(
+                    strand_,
+                    [self = std::move(self), message_ptr = std::move(message_ptr)](
+                        error_code ec, size_t length) {
+                        self->wstrand_.next();
 
-                    if (ec) {
-                        PACKIO_WARN("write error: {}", ec.message());
-                        self->close_connection();
-                        return;
-                    }
+                        if (ec) {
+                            PACKIO_WARN("write error: {}", ec.message());
+                            self->close_connection();
+                            return;
+                        }
 
-                    PACKIO_TRACE("write: {}", length);
-                    (void)length;
-                });
+                        PACKIO_TRACE("write: {}", length);
+                        (void)length;
+                    }));
         });
     }
 
@@ -176,7 +193,9 @@ private:
     socket_type socket_;
     std::size_t buffer_reserve_size_{kDefaultBufferReserveSize};
     std::shared_ptr<Dispatcher> dispatcher_ptr_;
-    internal::manual_strand<typename socket_type::executor_type> wstrand_;
+
+    net::strand<executor_type> strand_;
+    internal::manual_strand<executor_type> wstrand_;
 };
 
 } // packio

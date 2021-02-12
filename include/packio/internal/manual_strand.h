@@ -18,7 +18,7 @@ class manual_strand {
 public:
     using function_type = movable_function<void()>;
 
-    manual_strand(const Executor& executor) : strand_{executor} {}
+    explicit manual_strand(net::strand<Executor>& strand) : strand_{strand} {}
 
     void push(function_type function)
     {
@@ -50,7 +50,7 @@ private:
         function();
     }
 
-    net::strand<Executor> strand_;
+    net::strand<Executor>& strand_;
     std::queue<function_type> queue_;
     bool executing_{false};
 };

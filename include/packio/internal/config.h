@@ -92,6 +92,23 @@ template <typename... Args>
 using default_map = std::unordered_map<Args...>;
 using default_mutex = std::mutex;
 
+namespace internal {
+
+#if PACKIO_STANDALONE_ASIO
+#if ASIO_VERSION >= 101700
+using any_io_executor = net::any_io_executor;
+#else // ASIO_VERSION >= 101700
+using any_io_executor = net::executor;
+#endif // ASIO_VERSION >= 101700
+#else // PACKIO_STANDALONE_ASIO
+#if BOOST_VERSION >= 107400
+using any_io_executor = net::any_io_executor;
+#else // BOOST_VERSION >= 107400
+using any_io_executor = net::executor;
+#endif // BOOST_VERSION >= 107400
+#endif // PACKIO_STANDALONE_ASIO
+
+} // internal
 } // packio
 
 #endif // PACKIO_CONFIG_H

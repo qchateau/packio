@@ -127,6 +127,14 @@ std::unique_ptr<std::decay_t<T>> to_unique_ptr(T&& value)
     return std::make_unique<std::decay_t<T>>(std::forward<T>(value));
 }
 
+template <typename Executor, typename Obj>
+auto bind_executor(Executor&& executor, Obj&& obj)
+{
+    return net::bind_executor(
+        any_io_executor(std::forward<Executor>(executor)),
+        std::forward<Obj>(obj));
+}
+
 } // internal
 } // packio
 

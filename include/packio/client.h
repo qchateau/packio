@@ -44,6 +44,7 @@ public:
     using protocol_type = typename socket_type::protocol_type;
     //! The executor type
     using executor_type = typename socket_type::executor_type;
+
     using std::enable_shared_from_this<client<Rpc, Socket, Map>>::shared_from_this;
 
     //! The default size reserved by the reception buffer
@@ -52,9 +53,7 @@ public:
     //! The constructor
     //! @param socket The socket which the client will use. Can be connected or not
     explicit client(socket_type socket)
-        : socket_{std::move(socket)},
-          wstrand_{socket_.get_executor()},
-          call_strand_{socket_.get_executor()}
+        : socket_{std::move(socket)}, strand_{socket_.get_executor()}, wstrand_{strand_}
     {
     }
 
@@ -85,7 +84,7 @@ public:
     void cancel(id_type id)
     {
         PACKIO_TRACE("cancel {}", rpc_type::format_id(id));
-        net::dispatch(call_strand_, [self = shared_from_this(), id] {
+        net::dispatch(strand_, [self = shared_from_this(), id] {
             auto ec = make_error_code(net::error::operation_aborted);
             self->async_call_handler(id, ec, {});
             self->maybe_cancel_reading();
@@ -98,7 +97,7 @@ public:
     void cancel()
     {
         PACKIO_TRACE("cancel all");
-        net::dispatch(call_strand_, [self = shared_from_this()] {
+        net::dispatch(strand_, [self = shared_from_this()] {
             auto ec = make_error_code(net::error::operation_aborted);
             while (!self->pending_.empty()) {
                 self->async_call_handler(self->pending_.begin()->first, ec, {});
@@ -192,7 +191,7 @@ private:
 
     void close()
     {
-        net::dispatch(call_strand_, [self = shared_from_this()] {
+        net::dispatch(strand_, [self = shared_from_this()] {
             auto ec = make_error_code(net::error::operation_aborted);
             while (!self->pending_.empty()) {
                 self->async_call_handler(self->pending_.begin()->first, ec, {});
@@ -206,7 +205,7 @@ private:
 
     void maybe_cancel_reading()
     {
-        assert(call_strand_.running_in_this_thread());
+        assert(strand_.running_in_this_thread());
         if (reading_ && pending_.empty()) {
             PACKIO_DEBUG("stop reading");
             error_code ec;
@@ -223,19 +222,22 @@ private:
         wstrand_.push([self = shared_from_this(),
                        buffer_ptr = std::move(buffer_ptr),
                        handler = std::forward<WriteHandler>(handler)]() mutable {
+            assert(self->strand_.running_in_this_thread());
             internal::set_no_delay(self->socket_);
 
             auto buf = rpc_type::buffer(*buffer_ptr);
             net::async_write(
                 self->socket_,
                 buf,
-                [self,
-                 buffer_ptr = std::move(buffer_ptr),
-                 handler = std::forward<WriteHandler>(handler)](
-                    error_code ec, size_t length) mutable {
-                    self->wstrand_.next();
-                    handler(ec, length);
-                });
+                internal::bind_executor(
+                    self->strand_,
+                    [self,
+                     buffer_ptr = std::move(buffer_ptr),
+                     handler = std::forward<WriteHandler>(handler)](
+                        error_code ec, size_t length) mutable {
+                        self->wstrand_.next();
+                        handler(ec, length);
+                    }));
         });
     }
 
@@ -244,46 +246,42 @@ private:
         parser.reserve_buffer(buffer_reserve_size_);
         auto buffer = net::buffer(parser.buffer(), parser.buffer_capacity());
 
-        assert(call_strand_.running_in_this_thread());
+        assert(strand_.running_in_this_thread());
         reading_ = true;
         PACKIO_TRACE("reading ... {} call(s) pending", pending_.size());
         socket_.async_read_some(
             buffer,
-            [this, self = shared_from_this(), parser = std::move(parser)](
-                error_code ec, size_t length) mutable {
-                net::dispatch(
-                    call_strand_,
-                    [self = std::move(self),
-                     parser = std::move(parser),
-                     ec,
-                     length]() mutable {
-                        // stop if there is an error or there is no more pending calls
-                        assert(self->call_strand_.running_in_this_thread());
+            internal::bind_executor(
+                strand_,
+                [this, self = shared_from_this(), parser = std::move(parser)](
 
-                        if (ec) {
-                            PACKIO_WARN("read error: {}", ec.message());
-                            self->reading_ = false;
-                            if (ec != net::error::operation_aborted)
-                                self->close();
-                            return;
-                        }
+                    error_code ec, size_t length) mutable {
+                    // stop if there is an error or there is no more pending calls
+                    assert(self->strand_.running_in_this_thread());
 
-                        PACKIO_TRACE("read: {}", length);
-                        parser.buffer_consumed(length);
+                    if (ec) {
+                        PACKIO_WARN("read error: {}", ec.message());
+                        self->reading_ = false;
+                        if (ec != net::error::operation_aborted)
+                            self->close();
+                        return;
+                    }
 
-                        while (auto response = parser.get_response()) {
-                            self->async_call_handler(std::move(*response));
-                        }
+                    PACKIO_TRACE("read: {}", length);
+                    parser.buffer_consumed(length);
 
-                        if (self->pending_.empty()) {
-                            PACKIO_TRACE("done reading, no more pending calls");
-                            self->reading_ = false;
-                            return;
-                        }
+                    while (auto response = parser.get_response()) {
+                        self->async_call_handler(std::move(*response));
+                    }
 
-                        self->async_read(std::move(parser));
-                    });
-            });
+                    if (self->pending_.empty()) {
+                        PACKIO_TRACE("done reading, no more pending calls");
+                        self->reading_ = false;
+                        return;
+                    }
+
+                    self->async_read(std::move(parser));
+                }));
     }
 
     void async_call_handler(response_type&& response)
@@ -295,7 +293,7 @@ private:
     void async_call_handler(id_type id, error_code ec, response_type&& response)
     {
         net::dispatch(
-            call_strand_,
+            strand_,
             [ec,
              id,
              self = shared_from_this(),
@@ -303,7 +301,7 @@ private:
                 PACKIO_DEBUG(
                     "calling handler for id: {}", rpc_type::format_id(id));
 
-                assert(self->call_strand_.running_in_this_thread());
+                assert(self->strand_.running_in_this_thread());
                 auto it = self->pending_.find(id);
                 if (it == self->pending_.end()) {
                     PACKIO_WARN("unexisting id: {}", rpc_type::format_id(id));
@@ -412,14 +410,14 @@ private:
                 std::forward<ArgsTuple>(args)));
 
             net::dispatch(
-                self_->call_strand_,
+                self_->strand_,
                 [self = self_->shared_from_this(),
                  call_id,
                  handler = std::forward<CallHandler>(handler),
                  packer_buf = std::move(packer_buf)]() mutable {
                     // we must emplace the id and handler before sending data
                     // otherwise we might drop a fast response
-                    assert(self->call_strand_.running_in_this_thread());
+                    assert(self->strand_.running_in_this_thread());
                     self->pending_.try_emplace(call_id, std::move(handler));
 
                     // if we are not reading, start the read operation
@@ -454,9 +452,9 @@ private:
     std::size_t buffer_reserve_size_{kDefaultBufferReserveSize};
     std::atomic<uint64_t> id_{0};
 
+    net::strand<executor_type> strand_;
     internal::manual_strand<executor_type> wstrand_;
 
-    net::strand<executor_type> call_strand_;
     Map<id_type, async_call_handler_type> pending_;
     bool reading_{false};
 };

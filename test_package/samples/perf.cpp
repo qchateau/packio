@@ -2,8 +2,7 @@
 
 #include <packio/packio.h>
 
-#define HAS_BEAST __has_include(<boost/beast/core.hpp>)
-#if HAS_BEAST
+#if !PACKIO_STANDALONE_ASIO
 #include <packio/extra/websocket.h>
 
 class websocket : public packio::extra::websocket_adapter<
@@ -28,7 +27,7 @@ public:
 
 using websocket_acceptor =
     packio::extra::websocket_acceptor_adapter<packio::net::ip::tcp::acceptor, websocket>;
-#endif // HAS_BEAST
+#endif // !PACKIO_STANDALONE_ASIO
 
 constexpr auto N = 10000;
 
@@ -112,14 +111,14 @@ int main(int, char**)
     best = std::min(best, json_time);
 #endif // PACKIO_HAS_BOOST_JSON
 
-#if HAS_BEAST
+#if !PACKIO_STANDALONE_ASIO
     std::cout << "  msgpack over websockets ..." << std::endl;
     auto ws_server = packio::msgpack_rpc::make_server(
         websocket_acceptor{io, bind_ep});
     auto ws_client = packio::msgpack_rpc::make_client(websocket{io});
     const auto ws_time = benchmark(ws_server, ws_client);
     best = std::min(best, ws_time);
-#endif // HAS_BEAST
+#endif // !PACKIO_STANDALONE_ASIO
 
 #if PACKIO_HAS_MSGPACK
     print_result("msgpack", msgpack_time, best);
@@ -130,9 +129,9 @@ int main(int, char**)
 #if PACKIO_HAS_BOOST_JSON
     print_result("json", json_time, best);
 #endif // PACKIO_HAS_NLOHMANN_JSON
-#if HAS_BEAST
+#if !PACKIO_STANDALONE_ASIO
     print_result("ws", ws_time, best);
-#endif // HAS_BEAST
+#endif // !PACKIO_STANDALONE_ASIO
 
     io.stop();
     thread.join();
