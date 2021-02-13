@@ -1,4 +1,9 @@
 var searchData=
 [
-  ['_7ecompletion_5fhandler_135',['~completion_handler',['../classpackio_1_1completion__handler.html#ab171e21dd2e0508e96fd908a542b79b5',1,'packio::completion_handler']]]
+  ['server_149',['server',['../classpackio_1_1server.html#a4862f9f94b6112171ba8ac5549305084',1,'packio::server::server(acceptor_type acceptor, std::shared_ptr&lt; dispatcher_type &gt; dispatcher)'],['../classpackio_1_1server.html#a015f43f073e5bcbb1ae12a5489fcd6a5',1,'packio::server::server(acceptor_type acceptor)']]],
+  ['set_5fbuffer_5freserve_5fsize_150',['set_buffer_reserve_size',['../classpackio_1_1client.html#aa76167481dc66a2b7d0bda6ab7eead1d',1,'packio::client::set_buffer_reserve_size()'],['../classpackio_1_1server__session.html#a0ae604b3897fd019f8dbaa491ab4012c',1,'packio::server_session::set_buffer_reserve_size()']]],
+  ['set_5ferror_151',['set_error',['../classpackio_1_1completion__handler.html#adba2b11b3e079002662ca2756c856f0d',1,'packio::completion_handler::set_error(T &amp;&amp;error_value)'],['../classpackio_1_1completion__handler.html#a125d19c56aa53ccb9b7054cd7c2a8928',1,'packio::completion_handler::set_error()']]],
+  ['set_5fvalue_152',['set_value',['../classpackio_1_1completion__handler.html#a2f2b5f77586b631bf4426fd4c758bd15',1,'packio::completion_handler::set_value(T &amp;&amp;return_value)'],['../classpackio_1_1completion__handler.html#ae11f5b5410582755090957cabf6ddcc8',1,'packio::completion_handler::set_value()']]],
+  ['socket_153',['socket',['../classpackio_1_1client.html#a97dbdacc125af0464dca3a37761e4e18',1,'packio::client::socket() noexcept'],['../classpackio_1_1client.html#ab6f8392c2db28ce9bf67c8290837c011',1,'packio::client::socket() const noexcept'],['../classpackio_1_1server__session.html#a74cc5ac0eefaf0edfcef3bb9666359b9',1,'packio::server_session::socket()'],['../classpackio_1_1server__session.html#a1fa1898f17fb73ad8469987b4a81033f',1,'packio::server_session::socket() const']]],
+  ['start_154',['start',['../classpackio_1_1server__session.html#aca595d69b5e342e4b46e73adaa2969ba',1,'packio::server_session']]]
 ];

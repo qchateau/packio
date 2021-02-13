@@ -63,11 +63,12 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><a class="el" href="namespacepackio.html">packio</a></li><li class="navelem"><b>extra</b></li><li class="navelem"><a class="el" href="classpackio_1_1extra_1_1websocket__adapter.html">websocket_adapter</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespacepackio.html">packio</a></li><li class="navelem"><a class="el" href="namespacepackio_1_1extra.html">extra</a></li><li class="navelem"><a class="el" href="classpackio_1_1extra_1_1websocket__adapter.html">websocket_adapter</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
   <div class="summary">
+<a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="classpackio_1_1extra_1_1websocket__adapter-members.html">List of all members</a>  </div>
   <div class="headertitle">
 <div class="title">packio::extra::websocket_adapter&lt; Websocket &gt; Class Template Reference</div>  </div>
@@ -78,6 +79,25 @@ $(function() {
  <a href="classpackio_1_1extra_1_1websocket__adapter.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="websocket_8h_source.html">packio/extra/websocket.h</a>&gt;</code></p>
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
+Public Member Functions</h2></td></tr>
+<tr class="memitem:a134401e85794cf4bffb03b50550c1a0b"><td class="memTemplParams" colspan="2"><a id="a134401e85794cf4bffb03b50550c1a0b"></a>
+template&lt;typename Buffer , typename Handler &gt; </td></tr>
+<tr class="memitem:a134401e85794cf4bffb03b50550c1a0b"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classpackio_1_1extra_1_1websocket__adapter.html#a134401e85794cf4bffb03b50550c1a0b">async_write_some</a> (Buffer &amp;&amp;buffer, Handler &amp;&amp;handler)</td></tr>
+<tr class="memdesc:a134401e85794cf4bffb03b50550c1a0b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the no_delay option on the lowest layer and Write a websocket message. <br /></td></tr>
+<tr class="separator:a134401e85794cf4bffb03b50550c1a0b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad4defdcd37fb6cc679f83aba0cb78ff5"><td class="memTemplParams" colspan="2"><a id="ad4defdcd37fb6cc679f83aba0cb78ff5"></a>
+template&lt;typename... Args&gt; </td></tr>
+<tr class="memitem:ad4defdcd37fb6cc679f83aba0cb78ff5"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classpackio_1_1extra_1_1websocket__adapter.html#ad4defdcd37fb6cc679f83aba0cb78ff5">close</a> (Args &amp;&amp;... args)</td></tr>
+<tr class="memdesc:ad4defdcd37fb6cc679f83aba0cb78ff5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Close the lowest layer, closing a websocket is a blocking operation which packio does not expect. <br /></td></tr>
+<tr class="separator:ad4defdcd37fb6cc679f83aba0cb78ff5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4537d47b576b17169094ea96c24cdd3b"><td class="memTemplParams" colspan="2"><a id="a4537d47b576b17169094ea96c24cdd3b"></a>
+template&lt;typename... Args&gt; </td></tr>
+<tr class="memitem:a4537d47b576b17169094ea96c24cdd3b"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classpackio_1_1extra_1_1websocket__adapter.html#a4537d47b576b17169094ea96c24cdd3b">cancel</a> (Args &amp;&amp;...)</td></tr>
+<tr class="memdesc:a4537d47b576b17169094ea96c24cdd3b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Cancel is not possible on websockets, raise a compile-time error is the user tries to use it. <br /></td></tr>
+<tr class="separator:a4537d47b576b17169094ea96c24cdd3b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><h3>template&lt;typename Websocket&gt;<br />
 class packio::extra::websocket_adapter&lt; Websocket &gt;</h3>

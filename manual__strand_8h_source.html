@@ -91,7 +91,7 @@ $(function() {
 <div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="keyword">public</span>:</div>
 <div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;    <span class="keyword">using</span> function_type = movable_function&lt;void()&gt;;</div>
 <div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160; </div>
-<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;    manual_strand(<span class="keyword">const</span> Executor&amp; executor) : strand_{executor} {}</div>
+<div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;    <span class="keyword">explicit</span> manual_strand(net::strand&lt;Executor&gt;&amp; strand) : strand_{strand} {}</div>
 <div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160; </div>
 <div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;    <span class="keywordtype">void</span> push(function_type <span class="keyword">function</span>)</div>
 <div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;    {</div>
@@ -123,7 +123,7 @@ $(function() {
 <div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;        <span class="keyword">function</span>();</div>
 <div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;    }</div>
 <div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160; </div>
-<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;    net::strand&lt;Executor&gt; strand_;</div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;    net::strand&lt;Executor&gt;&amp; strand_;</div>
 <div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;    std::queue&lt;function_type&gt; queue_;</div>
 <div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;    <span class="keywordtype">bool</span> executing_{<span class="keyword">false</span>};</div>
 <div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;};</div>

@@ -63,11 +63,12 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><a class="el" href="namespacepackio.html">packio</a></li><li class="navelem"><b>extra</b></li><li class="navelem"><a class="el" href="classpackio_1_1extra_1_1websocket__acceptor__adapter.html">websocket_acceptor_adapter</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespacepackio.html">packio</a></li><li class="navelem"><a class="el" href="namespacepackio_1_1extra.html">extra</a></li><li class="navelem"><a class="el" href="classpackio_1_1extra_1_1websocket__acceptor__adapter.html">websocket_acceptor_adapter</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
   <div class="summary">
+<a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="classpackio_1_1extra_1_1websocket__acceptor__adapter-members.html">List of all members</a>  </div>
   <div class="headertitle">
 <div class="title">packio::extra::websocket_acceptor_adapter&lt; Acceptor, WebsocketAdapter &gt; Class Template Reference</div>  </div>
@@ -78,6 +79,18 @@ $(function() {
  <a href="classpackio_1_1extra_1_1websocket__acceptor__adapter.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="websocket_8h_source.html">packio/extra/websocket.h</a>&gt;</code></p>
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
+Public Member Functions</h2></td></tr>
+<tr class="memitem:ad8a1e9a70e1d10e87d86018baa032ca9"><td class="memItemLeft" align="right" valign="top"><a id="ad8a1e9a70e1d10e87d86018baa032ca9"></a>
+WebsocketAdapter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classpackio_1_1extra_1_1websocket__acceptor__adapter.html#ad8a1e9a70e1d10e87d86018baa032ca9">accept</a> ()</td></tr>
+<tr class="memdesc:ad8a1e9a70e1d10e87d86018baa032ca9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Don't need definition, but declaration is used to determine the socket type. <br /></td></tr>
+<tr class="separator:ad8a1e9a70e1d10e87d86018baa032ca9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1befaa34925c142cb4bd2d0b7124b064"><td class="memTemplParams" colspan="2">template&lt;typename Handler &gt; </td></tr>
+<tr class="memitem:a1befaa34925c142cb4bd2d0b7124b064"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classpackio_1_1extra_1_1websocket__acceptor__adapter.html#a1befaa34925c142cb4bd2d0b7124b064">async_accept</a> (Handler &amp;&amp;handler)</td></tr>
+<tr class="memdesc:a1befaa34925c142cb4bd2d0b7124b064"><td class="mdescLeft">&#160;</td><td class="mdescRight">Accept the low level connection and configure the recommended timeout settings.  <a href="classpackio_1_1extra_1_1websocket__acceptor__adapter.html#a1befaa34925c142cb4bd2d0b7124b064">More...</a><br /></td></tr>
+<tr class="separator:a1befaa34925c142cb4bd2d0b7124b064"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><h3>template&lt;typename Acceptor, typename WebsocketAdapter&gt;<br />
 class packio::extra::websocket_acceptor_adapter&lt; Acceptor, WebsocketAdapter &gt;</h3>
@@ -90,7 +103,41 @@ class packio::extra::websocket_acceptor_adapter&lt; Acceptor, WebsocketAdapter &
   </table>
   </dd>
 </dl>
-</div><hr/>The documentation for this class was generated from the following file:<ul>
+</div><h2 class="groupheader">Member Function Documentation</h2>
+<a id="a1befaa34925c142cb4bd2d0b7124b064"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1befaa34925c142cb4bd2d0b7124b064">&#9670;&nbsp;</a></span>async_accept()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Acceptor , typename WebsocketAdapter &gt; </div>
+<div class="memtemplate">
+template&lt;typename Handler &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="classpackio_1_1extra_1_1websocket__acceptor__adapter.html">packio::extra::websocket_acceptor_adapter</a>&lt; Acceptor, WebsocketAdapter &gt;::async_accept </td>
+          <td>(</td>
+          <td class="paramtype">Handler &amp;&amp;&#160;</td>
+          <td class="paramname"><em>handler</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Accept the low level connection and configure the recommended timeout settings. </p>
+<p>If you need to configure the websocket differently, you can either write your own adapter, of change the session socket options in <a class="el" href="classpackio_1_1server.html#a36cbd8c2767ca32a86dce40d40e95e3f">async_serve</a> </p>
+
+</div>
+</div>
+<hr/>The documentation for this class was generated from the following file:<ul>
 <li>packio/extra/<a class="el" href="websocket_8h_source.html">websocket.h</a></li>
 </ul>
 </div><!-- contents -->

@@ -192,13 +192,24 @@ $(function() {
 <li>Apple clang-12</li>
 </ul>
 <h1>Bonus</h1>
-<p>Let's compute fibonacci's numbers recursively using <code>packio</code> and coroutines on a single thread.</p>
+<p>Let's compute fibonacci's numbers recursively over SSL with coroutines on a single thread ... in less 100 lines of code.</p>
 <div class="fragment"><div class="line"><span class="preprocessor">#include &lt;iostream&gt;</span></div>
 <div class="line"> </div>
+<div class="line"><span class="preprocessor">#include &lt;<a class="code" href="ssl_8h.html">packio/extra/ssl.h</a>&gt;</span></div>
 <div class="line"><span class="preprocessor">#include &lt;<a class="code" href="packio_8h.html">packio/packio.h</a>&gt;</span></div>
 <div class="line"> </div>
+<div class="line"><span class="keyword">namespace </span>ssl = packio::net::ssl;</div>
 <div class="line"><span class="keyword">using</span> <a class="code" href="namespacepackio_1_1msgpack__rpc.html#a10bd3630d97339e416f5e407efece04d">packio::msgpack_rpc::make_client</a>;</div>
 <div class="line"><span class="keyword">using</span> <a class="code" href="namespacepackio_1_1msgpack__rpc.html#a437273529bff1d9196ae2afdf8233f9f">packio::msgpack_rpc::make_server</a>;</div>
+<div class="line"><span class="keyword">using</span> packio::net::ip::make_address;</div>
+<div class="line"> </div>
+<div class="line"><span class="keyword">using</span> tcp_socket = packio::net::ip::tcp::socket;</div>
+<div class="line"><span class="keyword">using</span> awaitable_tcp_socket = decltype(packio::net::use_awaitable_t&lt;&gt;::as_default_on(</div>
+<div class="line">    std::declval&lt;tcp_socket&gt;()));</div>
+<div class="line"><span class="keyword">using</span> ssl_socket =</div>
+<div class="line">    <a class="code" href="classpackio_1_1extra_1_1ssl__stream__adapter.html">packio::extra::ssl_stream_adapter&lt;ssl::stream&lt;awaitable_tcp_socket&gt;</a>&gt;;</div>
+<div class="line"><span class="keyword">using</span> tcp_acceptor = packio::net::ip::tcp::acceptor;</div>
+<div class="line"><span class="keyword">using</span> ssl_acceptor = <a class="code" href="classpackio_1_1extra_1_1ssl__acceptor__adapter.html">packio::extra::ssl_acceptor_adapter&lt;tcp_acceptor, ssl_socket&gt;</a>;</div>
 <div class="line"> </div>
 <div class="line"><span class="keywordtype">int</span> main(<span class="keywordtype">int</span> argc, <span class="keywordtype">char</span>** argv)</div>
 <div class="line">{</div>
@@ -208,12 +219,18 @@ $(function() {
 <div class="line">    }</div>
 <div class="line">    <span class="keyword">const</span> <span class="keywordtype">int</span> n = std::atoi(argv[1]);</div>
 <div class="line"> </div>
+<div class="line">    ssl::context server_ctx(ssl::context::sslv23);</div>
+<div class="line">    server_ctx.use_certificate_chain_file(<span class="stringliteral">&quot;certs/server.cert&quot;</span>);</div>
+<div class="line">    server_ctx.use_private_key_file(<span class="stringliteral">&quot;certs/server.key&quot;</span>, ssl::context::pem);</div>
+<div class="line"> </div>
+<div class="line">    ssl::context client_ctx(ssl::context::sslv23);</div>
+<div class="line">    client_ctx.set_verify_mode(ssl::verify_none);</div>
+<div class="line"> </div>
 <div class="line">    packio::net::io_context io;</div>
-<div class="line">    packio::net::ip::tcp::endpoint bind_ep{</div>
-<div class="line">        packio::net::ip::make_address(<span class="stringliteral">&quot;127.0.0.1&quot;</span>), 0};</div>
-<div class="line">    <span class="keyword">auto</span> <a class="code" href="namespacepackio_1_1json__rpc.html#a74aa78a5caec6991cc69186fd2d09e3d">server</a> = <a class="code" href="namespacepackio_1_1json__rpc.html#a7e7fd3d90b9f1970134ee6a843a0d549">make_server</a>(packio::net::ip::tcp::acceptor{io, bind_ep});</div>
-<div class="line">    <span class="keyword">auto</span> <a class="code" href="namespacepackio_1_1json__rpc.html#a6df79e8d6fbdd3ddc305f04fcc945d4a">client</a> = <a class="code" href="namespacepackio.html#a5a73a8453d35e9f6f0c29e9b87e93490">make_client</a>(packio::net::use_awaitable_t&lt;&gt;::as_default_on(</div>
-<div class="line">        packio::net::ip::tcp::socket{io}));</div>
+<div class="line">    packio::net::ip::tcp::endpoint bind_ep{make_address(<span class="stringliteral">&quot;127.0.0.1&quot;</span>), 0};</div>
+<div class="line"> </div>
+<div class="line">    <span class="keyword">auto</span> <a class="code" href="namespacepackio_1_1json__rpc.html#a74aa78a5caec6991cc69186fd2d09e3d">server</a> = <a class="code" href="namespacepackio_1_1json__rpc.html#a7e7fd3d90b9f1970134ee6a843a0d549">make_server</a>(ssl_acceptor{tcp_acceptor{io, bind_ep}, server_ctx});</div>
+<div class="line">    <span class="keyword">auto</span> <a class="code" href="namespacepackio_1_1json__rpc.html#a6df79e8d6fbdd3ddc305f04fcc945d4a">client</a> = <a class="code" href="namespacepackio.html#a5a73a8453d35e9f6f0c29e9b87e93490">make_client</a>(ssl_socket{io, client_ctx});</div>
 <div class="line"> </div>
 <div class="line">    <a class="code" href="namespacepackio_1_1json__rpc.html#a74aa78a5caec6991cc69186fd2d09e3d">server</a>-&gt;dispatcher()-&gt;add_coro(</div>
 <div class="line">        <span class="stringliteral">&quot;fibonacci&quot;</span>, io, [&amp;](<span class="keywordtype">int</span> n) -&gt; packio::net::awaitable&lt;int&gt; {</div>
@@ -227,17 +244,20 @@ $(function() {
 <div class="line">            co_return r1.result.as&lt;<span class="keywordtype">int</span>&gt;() + r2.result.as&lt;<span class="keywordtype">int</span>&gt;();</div>
 <div class="line">        });</div>
 <div class="line"> </div>
-<div class="line">    <a class="code" href="namespacepackio_1_1json__rpc.html#a6df79e8d6fbdd3ddc305f04fcc945d4a">client</a>-&gt;socket().connect(<a class="code" href="namespacepackio_1_1json__rpc.html#a74aa78a5caec6991cc69186fd2d09e3d">server</a>-&gt;acceptor().local_endpoint());</div>
-<div class="line">    <a class="code" href="namespacepackio_1_1json__rpc.html#a74aa78a5caec6991cc69186fd2d09e3d">server</a>-&gt;async_serve_forever();</div>
-<div class="line"> </div>
 <div class="line">    <span class="keywordtype">int</span> result = 0;</div>
-<div class="line"> </div>
-<div class="line">    <a class="code" href="namespacepackio_1_1json__rpc.html#a6df79e8d6fbdd3ddc305f04fcc945d4a">client</a>-&gt;async_call(</div>
-<div class="line">        <span class="stringliteral">&quot;fibonacci&quot;</span>, std::tuple{n}, [&amp;](packio::error_code, <span class="keyword">auto</span> r) {</div>
-<div class="line">            result = r.result.template as&lt;int&gt;();</div>
+<div class="line">    packio::net::co_spawn(</div>
+<div class="line">        io,</div>
+<div class="line">        [&amp;]() -&gt; packio::net::awaitable&lt;void&gt; {</div>
+<div class="line">            co_await <a class="code" href="namespacepackio_1_1json__rpc.html#a6df79e8d6fbdd3ddc305f04fcc945d4a">client</a>-&gt;socket().lowest_layer().async_connect(</div>
+<div class="line">                <a class="code" href="namespacepackio_1_1json__rpc.html#a74aa78a5caec6991cc69186fd2d09e3d">server</a>-&gt;acceptor().local_endpoint());</div>
+<div class="line">            co_await <a class="code" href="namespacepackio_1_1json__rpc.html#a6df79e8d6fbdd3ddc305f04fcc945d4a">client</a>-&gt;socket().async_handshake(<a class="code" href="namespacepackio_1_1json__rpc.html#a6df79e8d6fbdd3ddc305f04fcc945d4a">ssl_socket::client</a>);</div>
+<div class="line">            <span class="keyword">auto</span> ret = co_await <a class="code" href="namespacepackio_1_1json__rpc.html#a6df79e8d6fbdd3ddc305f04fcc945d4a">client</a>-&gt;async_call(<span class="stringliteral">&quot;fibonacci&quot;</span>, std::tuple{n});</div>
+<div class="line">            result = ret.result.template as&lt;int&gt;();</div>
 <div class="line">            io.stop();</div>
-<div class="line">        });</div>
+<div class="line">        },</div>
+<div class="line">        packio::net::detached);</div>
 <div class="line"> </div>
+<div class="line">    <a class="code" href="namespacepackio_1_1json__rpc.html#a74aa78a5caec6991cc69186fd2d09e3d">server</a>-&gt;async_serve_forever();</div>
 <div class="line">    io.run();</div>
 <div class="line"> </div>
 <div class="line">    std::cout &lt;&lt; <span class="stringliteral">&quot;F{&quot;</span> &lt;&lt; n &lt;&lt; <span class="stringliteral">&quot;} = &quot;</span> &lt;&lt; result &lt;&lt; std::endl;</div>
@@ -250,7 +270,9 @@ $(function() {
 <div class="ttc" id="anamespacepackio_1_1json__rpc_html_a6df79e8d6fbdd3ddc305f04fcc945d4a"><div class="ttname"><a href="namespacepackio_1_1json__rpc.html#a6df79e8d6fbdd3ddc305f04fcc945d4a">packio::json_rpc::client</a></div><div class="ttdeci">::packio::client&lt; rpc, Socket, Map &gt; client</div><div class="ttdoc">The client for JSON-RPC.</div><div class="ttdef"><b>Definition:</b> json_rpc.h:31</div></div>
 <div class="ttc" id="aclasspackio_1_1nl__json__rpc_1_1rpc_html"><div class="ttname"><a href="classpackio_1_1nl__json__rpc_1_1rpc.html">packio::nl_json_rpc::rpc</a></div><div class="ttdoc">The JSON-RPC protocol implementation.</div><div class="ttdef"><b>Definition:</b> rpc.h:174</div></div>
 <div class="ttc" id="anamespacepackio_1_1nl__json__rpc_html_a5e5b0abe3f0dbfc17fbd5d217df6b5e2"><div class="ttname"><a href="namespacepackio_1_1nl__json__rpc.html#a5e5b0abe3f0dbfc17fbd5d217df6b5e2">packio::nl_json_rpc::make_client</a></div><div class="ttdeci">auto make_client(Socket &amp;&amp;socket)</div><div class="ttdoc">The make_client function for JSON-RPC.</div><div class="ttdef"><b>Definition:</b> nl_json_rpc.h:35</div></div>
+<div class="ttc" id="aclasspackio_1_1extra_1_1ssl__acceptor__adapter_html"><div class="ttname"><a href="classpackio_1_1extra_1_1ssl__acceptor__adapter.html">packio::extra::ssl_acceptor_adapter</a></div><div class="ttdoc">Adapter class to support websockets servers.</div><div class="ttdef"><b>Definition:</b> ssl.h:64</div></div>
 <div class="ttc" id="anamespacepackio_1_1json__rpc_html_a7e7fd3d90b9f1970134ee6a843a0d549"><div class="ttname"><a href="namespacepackio_1_1json__rpc.html#a7e7fd3d90b9f1970134ee6a843a0d549">packio::json_rpc::make_server</a></div><div class="ttdeci">auto make_server(Acceptor &amp;&amp;acceptor)</div><div class="ttdoc">The make_server function for JSON-RPC.</div><div class="ttdef"><b>Definition:</b> json_rpc.h:46</div></div>
+<div class="ttc" id="assl_8h_html"><div class="ttname"><a href="ssl_8h.html">ssl.h</a></div></div>
 <div class="ttc" id="apackio_8h_html"><div class="ttname"><a href="packio_8h.html">packio.h</a></div></div>
 <div class="ttc" id="anamespacepackio_1_1msgpack__rpc_html_a10bd3630d97339e416f5e407efece04d"><div class="ttname"><a href="namespacepackio_1_1msgpack__rpc.html#a10bd3630d97339e416f5e407efece04d">packio::msgpack_rpc::make_client</a></div><div class="ttdeci">auto make_client(Socket &amp;&amp;socket)</div><div class="ttdoc">The make_client function for msgpack-RPC.</div><div class="ttdef"><b>Definition:</b> msgpack_rpc.h:33</div></div>
 <div class="ttc" id="anamespacepackio_1_1json__rpc_html_a74aa78a5caec6991cc69186fd2d09e3d"><div class="ttname"><a href="namespacepackio_1_1json__rpc.html#a74aa78a5caec6991cc69186fd2d09e3d">packio::json_rpc::server</a></div><div class="ttdeci">::packio::server&lt; rpc, Acceptor, Dispatcher &gt; server</div><div class="ttdoc">The server for JSON-RPC.</div><div class="ttdef"><b>Definition:</b> json_rpc.h:42</div></div>
@@ -258,7 +280,8 @@ $(function() {
 <div class="ttc" id="anamespacepackio_1_1json__rpc_html_acba160986fa0686f29de273c8501a49f"><div class="ttname"><a href="namespacepackio_1_1json__rpc.html#acba160986fa0686f29de273c8501a49f">packio::json_rpc::completion_handler</a></div><div class="ttdeci">completion_handler&lt; rpc &gt; completion_handler</div><div class="ttdoc">The completion_handler for JSON-RPC.</div><div class="ttdef"><b>Definition:</b> json_rpc.h:23</div></div>
 <div class="ttc" id="anamespacepackio_1_1nl__json__rpc_html_a55f9e2c9a4b823f4b1147413636c1e10"><div class="ttname"><a href="namespacepackio_1_1nl__json__rpc.html#a55f9e2c9a4b823f4b1147413636c1e10">packio::nl_json_rpc::make_server</a></div><div class="ttdeci">auto make_server(Acceptor &amp;&amp;acceptor)</div><div class="ttdoc">The make_server function for JSON-RPC.</div><div class="ttdef"><b>Definition:</b> nl_json_rpc.h:46</div></div>
 <div class="ttc" id="anamespacepackio_html_a4944e82d7f3dd2ee989a49d928cef3d3"><div class="ttname"><a href="namespacepackio.html#a4944e82d7f3dd2ee989a49d928cef3d3">packio::make_server</a></div><div class="ttdeci">auto make_server(Acceptor &amp;&amp;acceptor)</div><div class="ttdoc">Create a server from an acceptor.</div><div class="ttdef"><b>Definition:</b> server.h:150</div></div>
-<div class="ttc" id="anamespacepackio_html_a5a73a8453d35e9f6f0c29e9b87e93490"><div class="ttname"><a href="namespacepackio.html#a5a73a8453d35e9f6f0c29e9b87e93490">packio::make_client</a></div><div class="ttdeci">auto make_client(Socket &amp;&amp;socket)</div><div class="ttdoc">Create a client from a socket.</div><div class="ttdef"><b>Definition:</b> client.h:469</div></div>
+<div class="ttc" id="aclasspackio_1_1extra_1_1ssl__stream__adapter_html"><div class="ttname"><a href="classpackio_1_1extra_1_1ssl__stream__adapter.html">packio::extra::ssl_stream_adapter</a></div><div class="ttdoc">Adapter class to support SSL streams.</div><div class="ttdef"><b>Definition:</b> ssl.h:31</div></div>
+<div class="ttc" id="anamespacepackio_html_a5a73a8453d35e9f6f0c29e9b87e93490"><div class="ttname"><a href="namespacepackio.html#a5a73a8453d35e9f6f0c29e9b87e93490">packio::make_client</a></div><div class="ttdeci">auto make_client(Socket &amp;&amp;socket)</div><div class="ttdoc">Create a client from a socket.</div><div class="ttdef"><b>Definition:</b> client.h:467</div></div>
 <!-- HTML footer for doxygen 1.8.13-->
 <!-- start footer part -->
 </body>
