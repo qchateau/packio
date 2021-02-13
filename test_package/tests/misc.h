@@ -326,4 +326,72 @@ template <bool kBinary>
 using test_websocket_acceptor = packio::extra::websocket_acceptor_adapter<
     packio::net::ip::tcp::acceptor,
     test_websocket<kBinary>>;
+
 #endif // !PACKIO_STANDALONE_ASIO
+
+template <typename... Args>
+struct test_types;
+
+template <typename... Args>
+struct test_types<std::tuple<Args...>> {
+    using type = ::testing::Types<Args...>;
+};
+
+template <typename... Args>
+using test_types_t = typename test_types<Args...>::type;
+
+template <typename... Tuples>
+using tuple_cat_t = decltype(std::tuple_cat(std::declval<Tuples>()...));
+
+template <bool Condition, typename Tuple, typename... Tuples>
+using tuple_cat_if_t =
+    std::conditional_t<Condition, tuple_cat_t<Tuple, Tuples...>, Tuple>;
+
+using implementations0 = std::tuple<
+#if !PACKIO_STANDALONE_ASIO
+    std::pair<
+        default_rpc::client<test_websocket<true>>,
+        default_rpc::server<test_websocket_acceptor<true>>>,
+    std::pair<
+        packio::nl_json_rpc::client<test_websocket<false>>,
+        packio::nl_json_rpc::server<test_websocket_acceptor<false>>>,
+#endif // !PACKIO_STANDALONE_ASIO
+
+#if PACKIO_HAS_BOOST_JSON
+    std::pair<
+        packio::json_rpc::client<packio::net::ip::tcp::socket>,
+        packio::json_rpc::server<packio::net::ip::tcp::acceptor>>,
+#endif // PACKIO_HAS_BOOST_JSON
+
+// FIXME: local socket should work on windows for boost >= 1.75
+//  but there is problem with bind at the moment
+#if defined(PACKIO_HAS_LOCAL_SOCKETS) && !defined(_WIN32)
+    std::pair<
+        default_rpc::client<packio::net::local::stream_protocol::socket>,
+        default_rpc::server<packio::net::local::stream_protocol::acceptor>>,
+#endif // defined(PACKIO_HAS_LOCAL_SOCKETS)
+
+    std::pair<
+        packio::msgpack_rpc::client<packio::net::ip::tcp::socket>,
+        packio::msgpack_rpc::server<packio::net::ip::tcp::acceptor>>,
+    std::pair<
+        packio::msgpack_rpc::client<packio::net::ip::tcp::socket>,
+        packio::msgpack_rpc::server<
+            packio::net::ip::tcp::acceptor,
+            packio::msgpack_rpc::dispatcher<std::map, my_spinlock>>>,
+    std::pair<
+        packio::msgpack_rpc::client<packio::net::ip::tcp::socket, my_unordered_map>,
+        packio::msgpack_rpc::server<packio::net::ip::tcp::acceptor>>,
+
+    std::pair<
+        packio::nl_json_rpc::client<packio::net::ip::tcp::socket>,
+        packio::nl_json_rpc::server<packio::net::ip::tcp::acceptor>>>;
+
+using implementations_ssl = std::tuple<std::pair<
+    default_rpc::client<test_client_ssl_stream>,
+    default_rpc::server<test_ssl_acceptor>>>;
+
+using implementations =
+    tuple_cat_if_t<std::is_move_constructible_v<test_ssl_stream>, implementations0, implementations_ssl>;
+
+using test_implementations = test_types_t<implementations>;
