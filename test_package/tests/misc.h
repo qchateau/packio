@@ -8,14 +8,15 @@
 
 #include <packio/packio.h>
 
+#include <packio/extra/ssl.h>
+
 #if __has_include(<filesystem>)
 #include <filesystem>
 #endif
 
-#define HAS_BEAST __has_include(<boost/beast/core.hpp>)
-#if HAS_BEAST
+#if !PACKIO_STANDALONE_ASIO
 #include <packio/extra/websocket.h>
-#endif // HAS_BEAST
+#endif // !PACKIO_STANDALONE_ASIO
 
 #if PACKIO_HAS_MSGPACK
 namespace default_rpc = packio::msgpack_rpc;
@@ -229,7 +230,64 @@ decltype(auto) safe_future_get(Future&& fut)
         }                                                         \
     } while (false)
 
-#if HAS_BEAST
+using test_ssl_stream = packio::extra::ssl_stream_adapter<
+    packio::net::ssl::stream<packio::net::ip::tcp::socket>>;
+
+class test_client_ssl_stream : public test_ssl_stream {
+public:
+    template <typename... Args>
+    explicit test_client_ssl_stream(Args&&... args)
+        : test_ssl_stream(
+            packio::net::ip::tcp::socket(std::forward<Args>(args)...),
+            context())
+    {
+    }
+
+    template <typename Endpoint>
+    void connect(Endpoint ep)
+    {
+        lowest_layer().connect(ep);
+        handshake(client);
+    }
+
+private:
+    static packio::net::ssl::context& context()
+    {
+        static packio::net::ssl::context ctx(packio::net::ssl::context::sslv23);
+        ctx.set_verify_mode(packio::net::ssl::verify_none);
+        return ctx;
+    }
+};
+
+template <>
+constexpr bool supports_cancellation<test_client_ssl_stream>()
+{
+    return false;
+}
+
+class test_ssl_acceptor
+    : public packio::extra::ssl_acceptor_adapter<packio::net::ip::tcp::acceptor, test_ssl_stream> {
+public:
+    template <typename... Args>
+    explicit test_ssl_acceptor(Args&&... args)
+        : packio::extra::ssl_acceptor_adapter<packio::net::ip::tcp::acceptor, test_ssl_stream>(
+            packio::net::ip::tcp::acceptor(std::forward<Args>(args)...),
+            context())
+    {
+    }
+
+private:
+    static packio::net::ssl::context& context()
+    {
+        static packio::net::ssl::context ctx(packio::net::ssl::context::sslv23);
+        ctx.use_certificate_chain_file("certs/server.cert");
+        ctx.use_private_key_file(
+            "certs/server.key", packio::net::ssl::context::pem);
+        return ctx;
+    }
+};
+
+#if !PACKIO_STANDALONE_ASIO
 template <bool kBinary>
 class test_websocket
     : public packio::extra::websocket_adapter<
@@ -248,13 +306,7 @@ public:
     void connect(Endpoint ep)
     {
         next_layer().connect(ep);
-        handshake("localhost:" + std::to_string(ep.port()), "/");
-    }
-
-    template <typename... Args>
-    auto shutdown(Args&&... args)
-    {
-        return next_layer().socket().shutdown(std::forward<Args>(args)...);
+        handshake("127.0.0.1:" + std::to_string(ep.port()), "/");
     }
 };
 
@@ -271,12 +323,75 @@ constexpr bool supports_cancellation<test_websocket<false>>()
 }
 
 template <bool kBinary>
-class test_websocket_acceptor : public packio::extra::websocket_acceptor_adapter<
-                                    boost::asio::ip::tcp::acceptor,
-                                    test_websocket<kBinary>> {
-public:
-    using packio::extra::websocket_acceptor_adapter<
-        boost::asio::ip::tcp::acceptor,
-        test_websocket<kBinary>>::websocket_acceptor_adapter;
+using test_websocket_acceptor = packio::extra::websocket_acceptor_adapter<
+    packio::net::ip::tcp::acceptor,
+    test_websocket<kBinary>>;
+
+#endif // !PACKIO_STANDALONE_ASIO
+
+template <typename... Args>
+struct test_types;
+
+template <typename... Args>
+struct test_types<std::tuple<Args...>> {
+    using type = ::testing::Types<Args...>;
 };
-#endif // HAS_BEAST
+
+template <typename... Args>
+using test_types_t = typename test_types<Args...>::type;
+
+template <typename... Tuples>
+using tuple_cat_t = decltype(std::tuple_cat(std::declval<Tuples>()...));
+
+template <bool Condition, typename Tuple, typename... Tuples>
+using tuple_cat_if_t =
+    std::conditional_t<Condition, tuple_cat_t<Tuple, Tuples...>, Tuple>;
+
+using implementations0 = std::tuple<
+#if !PACKIO_STANDALONE_ASIO
+    std::pair<
+        default_rpc::client<test_websocket<true>>,
+        default_rpc::server<test_websocket_acceptor<true>>>,
+    std::pair<
+        packio::nl_json_rpc::client<test_websocket<false>>,
+        packio::nl_json_rpc::server<test_websocket_acceptor<false>>>,
+#endif // !PACKIO_STANDALONE_ASIO
+
+#if PACKIO_HAS_BOOST_JSON
+    std::pair<
+        packio::json_rpc::client<packio::net::ip::tcp::socket>,
+        packio::json_rpc::server<packio::net::ip::tcp::acceptor>>,
+#endif // PACKIO_HAS_BOOST_JSON
+
+// FIXME: local socket should work on windows for boost >= 1.75
+//  but there is problem with bind at the moment
+#if defined(PACKIO_HAS_LOCAL_SOCKETS) && !defined(_WIN32)
+    std::pair<
+        default_rpc::client<packio::net::local::stream_protocol::socket>,
+        default_rpc::server<packio::net::local::stream_protocol::acceptor>>,
+#endif // defined(PACKIO_HAS_LOCAL_SOCKETS)
+
+    std::pair<
+        packio::msgpack_rpc::client<packio::net::ip::tcp::socket>,
+        packio::msgpack_rpc::server<packio::net::ip::tcp::acceptor>>,
+    std::pair<
+        packio::msgpack_rpc::client<packio::net::ip::tcp::socket>,
+        packio::msgpack_rpc::server<
+            packio::net::ip::tcp::acceptor,
+            packio::msgpack_rpc::dispatcher<std::map, my_spinlock>>>,
+    std::pair<
+        packio::msgpack_rpc::client<packio::net::ip::tcp::socket, my_unordered_map>,
+        packio::msgpack_rpc::server<packio::net::ip::tcp::acceptor>>,
+
+    std::pair<
+        packio::nl_json_rpc::client<packio::net::ip::tcp::socket>,
+        packio::nl_json_rpc::server<packio::net::ip::tcp::acceptor>>>;
+
+using implementations_ssl = std::tuple<std::pair<
+    default_rpc::client<test_client_ssl_stream>,
+    default_rpc::server<test_ssl_acceptor>>>;
+
+using implementations =
+    tuple_cat_if_t<std::is_move_constructible_v<test_ssl_stream>, implementations0, implementations_ssl>;
+
+using test_implementations = test_types_t<implementations>;

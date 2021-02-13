@@ -5,6 +5,13 @@
 #ifndef PACKIO_EXTRA_WEBSOCKET_H
 #define PACKIO_EXTRA_WEBSOCKET_H
 
+//! @dir
+//! Namespace @ref packio::extra
+//! @file
+//! Adapters for websockets
+//! @namespace packio::extra
+//! Optional utilities that are not included by default
+
 #include "../internal/config.h"
 #include "../internal/utils.h"
 
@@ -24,6 +31,7 @@ public:
 
     using Websocket::Websocket;
 
+    //! Set the no_delay option on the lowest layer and Write a websocket message.
     template <typename Buffer, typename Handler>
     auto async_write_some(Buffer&& buffer, Handler&& handler)
     {
@@ -32,15 +40,17 @@ public:
             std::forward<Buffer>(buffer), std::forward<Handler>(handler));
     }
 
+    //! Close the lowest layer, closing a websocket is a blocking operation
+    //! which packio does not expect.
     template <typename... Args>
     auto close(Args&&... args)
     {
-        // close the lowest layer, closing a websocket is a blocking operation
-        // which packio does not expect
         return boost::beast::get_lowest_layer(*this).socket().close(
             std::forward<Args>(args)...);
     }
 
+    //! Cancel is not possible on websockets, raise a compile-time error is the
+    //! user tries to use it.
     template <typename... Args>
     auto cancel(Args&&...)
     {
@@ -60,19 +70,25 @@ class websocket_acceptor_adapter : public Acceptor {
 public:
     using Acceptor::Acceptor;
 
-    // Don't need definition, only used to determine the socket type
+    //! Don't need definition, but declaration is used to determine the socket type
     WebsocketAdapter accept();
 
+    //! Accept the low level connection and configure the recommended timeout
+    //! settings. If you need to configure the websocket differently, you can
+    //! either write your own adapter, of change the session socket options in
+    //! @ref packio::server::async_serve "async_serve"
     template <typename Handler>
     void async_accept(Handler&& handler)
     {
         Acceptor::async_accept([handler = std::forward<Handler>(handler)](
-                                   auto ec, auto tcp_sock) mutable {
+                                   auto ec, auto sock) mutable {
             if (ec) {
-                handler(ec, WebsocketAdapter(std::move(tcp_sock)));
+                handler(ec, WebsocketAdapter(std::move(sock)));
                 return;
             }
-            auto ws = std::make_unique<WebsocketAdapter>(std::move(tcp_sock));
+            auto ws = std::make_unique<WebsocketAdapter>(std::move(sock));
+            ws->set_option(boost::beast::websocket::stream_base::timeout::suggested(
+                boost::beast::role_type::server));
             ws->async_accept([handler = std::forward<Handler>(handler),
                               ws = std::move(ws)](auto ec) mutable {
                 handler(ec, std::move(*ws));

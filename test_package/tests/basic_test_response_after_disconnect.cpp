@@ -27,6 +27,6 @@ TYPED_TEST(BasicTest, test_response_after_disconnect)
 
     this->client_->async_call("block", [&](auto, auto) {});
     auto complete_ptr = safe_future_get(future);
-    this->client_->socket().shutdown(ip::tcp::socket::shutdown_both);
+    this->client_->socket().close();
     (*complete_ptr)();
 }

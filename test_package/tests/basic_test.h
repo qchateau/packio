@@ -11,62 +11,6 @@
 
 #include "misc.h"
 
-using BasicImplementations = ::testing::Types<
-#if HAS_BEAST
-    std::pair<
-        default_rpc::client<test_websocket<true>>,
-        default_rpc::server<test_websocket_acceptor<true>>>,
-#if PACKIO_HAS_NLOHMANN_JSON
-    std::pair<
-        packio::nl_json_rpc::client<test_websocket<true>>,
-        packio::nl_json_rpc::server<test_websocket_acceptor<true>>>,
-    std::pair<
-        packio::nl_json_rpc::client<test_websocket<false>>,
-        packio::nl_json_rpc::server<test_websocket_acceptor<false>>>,
-#endif // PACKIO_HAS_NLOHMANN_JSON
-#endif // HAS_BEAST
-
-// FIXME: local socket should work on windows for boost >= 1.75
-//  but there is problem with bind at the moment
-#if defined(PACKIO_HAS_LOCAL_SOCKETS) && !defined(_WIN32)
-    std::pair<
-        default_rpc::client<packio::net::local::stream_protocol::socket>,
-        default_rpc::server<packio::net::local::stream_protocol::acceptor>>,
-#endif // defined(PACKIO_HAS_LOCAL_SOCKETS)
-
-#if PACKIO_HAS_MSGPACK
-    std::pair<
-        packio::msgpack_rpc::client<packio::net::ip::tcp::socket>,
-        packio::msgpack_rpc::server<packio::net::ip::tcp::acceptor>>,
-    std::pair<
-        packio::msgpack_rpc::client<packio::net::ip::tcp::socket>,
-        packio::msgpack_rpc::server<
-            packio::net::ip::tcp::acceptor,
-            packio::msgpack_rpc::dispatcher<std::map, my_spinlock>>>,
-    std::pair<
-        packio::msgpack_rpc::client<packio::net::ip::tcp::socket, my_unordered_map>,
-        packio::msgpack_rpc::server<packio::net::ip::tcp::acceptor>>
-#if PACKIO_HAS_NLOHMANN_JSON || PACKIO_HAS_BOOST_JSON
-    ,
-#endif // PACKIO_HAS_NLOHMANN_JSON || PACKIO_HAS_BOOST_JSON
-#endif // PACKIO_HAS_MSGPACK
-
-#if PACKIO_HAS_NLOHMANN_JSON
-    std::pair<
-        packio::nl_json_rpc::client<packio::net::ip::tcp::socket>,
-        packio::nl_json_rpc::server<packio::net::ip::tcp::acceptor>>
-#if PACKIO_HAS_BOOST_JSON
-    ,
-#endif // PACKIO_HAS_BOOST_JSON
-#endif // PACKIO_HAS_NLOHMANN_JSON
-
-#if PACKIO_HAS_BOOST_JSON
-    std::pair<
-        packio::json_rpc::client<packio::net::ip::tcp::socket>,
-        packio::json_rpc::server<packio::net::ip::tcp::acceptor>>
-#endif // PACKIO_HAS_BOOST_JSON
-    >;
-
 template <class Impl>
 class BasicTest : public ::testing::Test {
 protected:
@@ -112,4 +56,4 @@ protected:
     std::thread runner_;
 };
 
-TYPED_TEST_SUITE(BasicTest, BasicImplementations);
+TYPED_TEST_SUITE(BasicTest, test_implementations);

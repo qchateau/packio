@@ -25,8 +25,8 @@ TYPED_TEST(MtTest, test_big_msg)
         for (auto& client : clients) {
             client->async_call(
                 "echo", std::make_tuple(big_msg), [&](auto ec, auto res) {
-                    ASSERT_FALSE(ec);
-                    ASSERT_EQ(big_msg, get<std::string>(res.result));
+                    EXPECT_FALSE(ec);
+                    EXPECT_EQ(big_msg, get<std::string>(res.result));
                     done.count_down();
                 });
         }
