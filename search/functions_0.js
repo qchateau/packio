@@ -10,5 +10,5 @@ var searchData=
   ['async_5fnotify_129',['async_notify',['../classpackio_1_1client.html#ac4f5950217f8977497b872f7a2fd0d36',1,'packio::client::async_notify(std::string_view name, ArgsTuple &amp;&amp;args, NotifyHandler &amp;&amp;handler=typename net::default_completion_token&lt; executor_type &gt;::type())'],['../classpackio_1_1client.html#aac8c2e52f17c577d6bb002a8bfc119d9',1,'packio::client::async_notify(std::string_view name, NotifyHandler &amp;&amp;handler=typename net::default_completion_token&lt; executor_type &gt;::type())']]],
   ['async_5fserve_130',['async_serve',['../classpackio_1_1server.html#a36cbd8c2767ca32a86dce40d40e95e3f',1,'packio::server']]],
   ['async_5fserve_5fforever_131',['async_serve_forever',['../classpackio_1_1server.html#a6a8930268e678fc7d6809cf55a9831a4',1,'packio::server']]],
-  ['async_5fwrite_5fsome_132',['async_write_some',['../classpackio_1_1extra_1_1websocket__adapter.html#a134401e85794cf4bffb03b50550c1a0b',1,'packio::extra::websocket_adapter']]]
+  ['async_5fwrite_5fsome_132',['async_write_some',['../classpackio_1_1extra_1_1websocket__adapter.html#a9f070245ef38ec559cf2c5e73bba4cb6',1,'packio::extra::websocket_adapter']]]
 ];
