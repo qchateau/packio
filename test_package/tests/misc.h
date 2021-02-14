@@ -291,22 +291,18 @@ private:
 template <bool kBinary>
 class test_websocket
     : public packio::extra::websocket_adapter<
-          boost::beast::websocket::stream<boost::beast::tcp_stream>> {
+          boost::beast::websocket::stream<boost::beast::tcp_stream>,
+          kBinary> {
 public:
-    template <typename... Args>
-    explicit test_websocket(Args&&... args)
-        : packio::extra::websocket_adapter<
-            boost::beast::websocket::stream<boost::beast::tcp_stream>>(
-            std::forward<Args>(args)...)
-    {
-        binary(kBinary);
-    }
+    using packio::extra::websocket_adapter<
+        boost::beast::websocket::stream<boost::beast::tcp_stream>,
+        kBinary>::websocket_adapter;
 
     template <typename Endpoint>
     void connect(Endpoint ep)
     {
-        next_layer().connect(ep);
-        handshake("127.0.0.1:" + std::to_string(ep.port()), "/");
+        this->next_layer().connect(ep);
+        this->handshake("127.0.0.1:" + std::to_string(ep.port()), "/");
     }
 };
 
