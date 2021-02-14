@@ -363,9 +363,7 @@ using implementations0 = std::tuple<
         packio::json_rpc::server<packio::net::ip::tcp::acceptor>>,
 #endif // PACKIO_HAS_BOOST_JSON
 
-// FIXME: local socket should work on windows for boost >= 1.75
-//  but there is problem with bind at the moment
-#if defined(PACKIO_HAS_LOCAL_SOCKETS) && !defined(_WIN32)
+#if defined(PACKIO_HAS_LOCAL_SOCKETS)
     std::pair<
         default_rpc::client<packio::net::local::stream_protocol::socket>,
         default_rpc::server<packio::net::local::stream_protocol::acceptor>>,
