@@ -50,9 +50,6 @@ endif ()
 
 # Enable experimental coroutines support if needed
 if (CMAKE_CXX_STANDARD GREATER_EQUAL 20)
-    # Samples require coroutines
-    set(BUILD_SAMPLES ON)
-
     # FIXME: gcc-11 will support coroutines by default with c++20
     # remove this and use gcc-11 for c++20 when it is available
     if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -78,6 +75,9 @@ if (BUILD_SAMPLES)
 
     add_executable(basic samples/basic.cpp)
     target_link_libraries(basic ${CONAN_LIBS})
+
+    add_executable(ssl_stream samples/ssl.cpp)
+    target_link_libraries(ssl_stream ${CONAN_LIBS})
 
     add_executable(fibonacci samples/fibonacci.cpp)
     target_link_libraries(fibonacci ${CONAN_LIBS})

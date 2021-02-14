@@ -23,13 +23,18 @@ namespace extra {
 
 //! Adapter class to support websockets
 //! @tparam Websocket The websocket type to adapt.
+//! @tparam kBinary Configure the websocket in binary mode.
 //! Most likely a boost::beast::websocket::stream<boost::beast::tcp_stream>
-template <typename Websocket>
+template <typename Websocket, bool kBinary = false>
 class websocket_adapter : public Websocket {
 public:
     using protocol_type = typename Websocket::next_layer_type::protocol_type;
 
-    using Websocket::Websocket;
+    template <typename... Args>
+    websocket_adapter(Args&&... args) : Websocket(std::forward<Args>(args)...)
+    {
+        Websocket::binary(kBinary);
+    }
 
     //! Set the no_delay option on the lowest layer and Write a websocket message.
     template <typename Buffer, typename Handler>
