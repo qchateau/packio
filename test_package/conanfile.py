@@ -15,6 +15,7 @@ class PackioConan(ConanFile):
         "loglevel": [None, "trace", "debug", "info", "warn", "error"],
         "cppstd": ["17", "20"],
         "unity_batch": "ANY",
+        "build_samples": [None, True, False],
     }
     default_options = {
         "boost": None,
@@ -22,6 +23,7 @@ class PackioConan(ConanFile):
         "loglevel": None,
         "cppstd": "17",
         "unity_batch": None,
+        "build_samples": None,
     }
 
     def configure(self):
@@ -29,6 +31,8 @@ class PackioConan(ConanFile):
         self.options["packio"].standalone_asio = bool(self.options.asio)
 
     def requirements(self):
+        if self.options.build_samples is None:
+            self.options.build_samples = self._can_build_samples()
         if self.options.boost:
             self.requires("boost/{}".format(self.options.boost))
         if self.options.asio:
@@ -47,6 +51,8 @@ class PackioConan(ConanFile):
         if self.options.unity_batch:
             defs["CMAKE_UNITY_BUILD"] = "1"
             defs["CMAKE_UNITY_BUILD_BATCH_SIZE"] = str(self.options.unity_batch)
+        if self.options.build_samples:
+            defs["BUILD_SAMPLES"] = "1"
         cmake.configure(defs=defs)
         cmake.build()
 
@@ -64,3 +70,21 @@ class PackioConan(ConanFile):
             if not os.path.exists(path):
                 continue
             self.run(f"{path} {args}", cwd=TEST_PACKAGE_DIR)
+
+    def _can_build_samples(self):
+        if self.options.cppstd == "17":
+            return False
+        if self.options.boost and self._numeric_version(
+            self.options.boost
+        ) < self._numeric_version("1.74.0"):
+            return False
+        if self.options.asio and self._numeric_version(
+            self.options.asio
+        ) < self._numeric_version("1.17.0"):
+            return False
+        return True
+
+    @staticmethod
+    def _numeric_version(ver_str):
+        major, minor, patch = ver_str.split(".")
+        return major * 1e6 + minor * 1e3 + patch
