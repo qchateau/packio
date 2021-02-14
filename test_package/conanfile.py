@@ -51,10 +51,16 @@ class PackioConan(ConanFile):
         cmake.build()
 
     def test(self):
-        if not tools.cross_building(self.settings):
-            os.chdir("bin")
-            self.run(os.path.abspath("tests"), cwd=TEST_PACKAGE_DIR)
-            if os.path.exists(os.path.abspath("basic")):
-                self.run(os.path.abspath("basic"), cwd=TEST_PACKAGE_DIR)
-            if os.path.exists(os.path.abspath("fibonacci")):
-                self.run(os.path.abspath("fibonacci") + " 5", cwd=TEST_PACKAGE_DIR)
+        if tools.cross_building(self.settings):
+            return
+
+        os.chdir("bin")
+        for path, args in [
+            (os.path.abspath("tests"), ""),
+            (os.path.abspath("basic"), ""),
+            (os.path.abspath("ssl"), ""),
+            (os.path.abspath("fibonacci"), "5"),
+        ]:
+            if not os.path.exists(path):
+                continue
+            self.run(f"{path} {args}", cwd=TEST_PACKAGE_DIR)

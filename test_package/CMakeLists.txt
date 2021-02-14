@@ -79,6 +79,9 @@ if (BUILD_SAMPLES)
     add_executable(basic samples/basic.cpp)
     target_link_libraries(basic ${CONAN_LIBS})
 
+    add_executable(ssl_stream samples/ssl.cpp)
+    target_link_libraries(ssl_stream ${CONAN_LIBS})
+
     add_executable(fibonacci samples/fibonacci.cpp)
     target_link_libraries(fibonacci ${CONAN_LIBS})
 endif ()
