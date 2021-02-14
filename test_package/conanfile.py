@@ -29,8 +29,6 @@ class PackioConan(ConanFile):
         self.options["packio"].standalone_asio = bool(self.options.asio)
 
     def requirements(self):
-        if self.options.build_samples == "default":
-            self.options.build_samples = self._can_build_samples()
         if self.options.boost:
             self.requires("boost/{}".format(self.options.boost))
         if self.options.asio:

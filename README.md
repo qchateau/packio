@@ -4,7 +4,7 @@ This library requires C++17 and is designed as an extension to `boost.asio`. It 
 
 The project is hosted on [GitHub](https://github.com/qchateau/packio/) and available on [Conan Center](https://conan.io/center/). Documentation is available on [GitHub Pages](https://qchateau.github.io/packio/).
 
-## Primer
+## Overview
 
 ```cpp
 #include <iostream>
@@ -97,13 +97,33 @@ int main(int, char**)
 - nlohmann_json >= 3.9.1
 - boost.asio >= 1.70.0 or asio >= 1.13.0
 
-Older version of `msgpack` and `nlohmann_json` are probably compatible
-but they are not tested on the CI.
+Older versions of `msgpack` and `nlohmann_json` are probably compatible but they are not tested on the CI.
 
-### Standalone or boost asio
+## Configurations
 
-By default, `packio` uses `boost.asio`. It is also compatible with standalone `asio`. To use the standalone version, the preprocessor macro `PACKIO_STANDALONE_ASIO=1` must be defined.
+### Standalone or Boost.Asio
+
+By default, `packio` uses `boost::asio`. It is also compatible with standalone `asio`. To use the standalone version, the preprocessor macro `PACKIO_STANDALONE_ASIO=1` must be defined.
+
 If you are using the conan package, you can use the option `standalone_asio=True`.
+
+Depending on your choice, the namespace `packio::net` will be an alias for either `boost::asio` or `asio`.
+
+### RPC components
+
+You can define the following preprocessor macros to either 0 or 1 to force-disable or force-enable components of `packio`:
+
+- `PACKIO_HAS_MSGPACK`
+- `PACKIO_HAS_NLOHMANN_JSON`
+- `PACKIO_HAS_BOOST_JSON`
+
+If you're using the conan package, use the associated options instead, conan will define these macros accordingly.
+
+If you're not using the conan package, `packio` will try to auto-detect whether these components are available on your system. Define the macros to the appropriate value if you encounter any issue.
+
+### Boost before 1.75
+
+If you're using the conan package with a boost version older than 1.75, you need to manually disable `Boost.Json` with the options `boost_json=False`.
 
 ## Tested compilers
 
@@ -141,7 +161,7 @@ Coroutines are tested for the following compilers:
 - clang-11 (with libc++)
 - Apple clang-12
 
-## Sample
+## Samples
 
 You will find some samples in `test_package/samples/` to help you get a hand on `packio`.
 
