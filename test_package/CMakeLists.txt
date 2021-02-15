@@ -37,7 +37,7 @@ add_compile_definitions(ASIO_NO_DEPRECATED=1)
 add_compile_definitions(BOOST_ASIO_NO_DEPRECATED=1)
 
 if (UNIX)
-    add_compile_options(-Wall -Wextra -Werror)
+    add_compile_options(-Wall -Wextra -Werror -fdiagnostics-color)
 else ()
     add_compile_options(/W4 /WX /Zc:__cplusplus /bigobj)
     # C4715 is raised in nlohmann::json

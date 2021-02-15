@@ -46,6 +46,7 @@ class Packager(cpt.packager.ConanMultiPackager):
         settings = settings or {}
         settings["compiler"] = compiler
         settings["compiler.version"] = compiler_version
+        settings["compiler.cppstd"] = cppstd
         settings["build_type"] = build_type
 
         if compiler == CLANG and compiler_version == "11" and cppstd == "20":
@@ -57,7 +58,6 @@ class Packager(cpt.packager.ConanMultiPackager):
             options.update(self._get_boost_options(options.get("boost")))
         options["msgpack:cpp_api"] = True
         options["msgpack:c_api"] = False
-        options["cppstd"] = cppstd
 
         unity_batch = os.environ.get("UNITY_BATCH", None)
         if unity_batch:
@@ -124,7 +124,7 @@ def test_linux():
     builder.add(compiler=GCC, compiler_version="7", cppstd="17")
     builder.add(compiler=GCC, compiler_version="8", cppstd="17")
     builder.add(compiler=GCC, compiler_version="9", cppstd="17")
-    builder.add(compiler=GCC, compiler_version="10", cppstd="20")
+    builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"build_samples": True})
 
     # Test supported clang versions
     builder.add(compiler=CLANG, compiler_version="6.0", cppstd="17")
@@ -132,14 +132,14 @@ def test_linux():
     builder.add(compiler=CLANG, compiler_version="8", cppstd="17")
     builder.add(compiler=CLANG, compiler_version="9", cppstd="17")
     builder.add(compiler=CLANG, compiler_version="10", cppstd="17")
-    builder.add(compiler=CLANG, compiler_version="11", cppstd="20")
+    builder.add(compiler=CLANG, compiler_version="11", cppstd="20", options={"build_samples": True})
 
     # Test supported boost versions, with C++20 and coroutines from 1.74.0
-    builder.add(compiler=GCC, compiler_version="10", cppstd="17", options={"boost": "1.70.0"})
-    builder.add(compiler=GCC, compiler_version="10", cppstd="17", options={"boost": "1.71.0"})
-    builder.add(compiler=GCC, compiler_version="10", cppstd="17", options={"boost": "1.72.0"})
-    builder.add(compiler=GCC, compiler_version="10", cppstd="17", options={"boost": "1.73.0"})
-    builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"boost": "1.74.0"})
+    builder.add(compiler=GCC, compiler_version="10", cppstd="17", options={"boost": "1.70.0", "packio:boost_json": False})
+    builder.add(compiler=GCC, compiler_version="10", cppstd="17", options={"boost": "1.71.0", "packio:boost_json": False})
+    builder.add(compiler=GCC, compiler_version="10", cppstd="17", options={"boost": "1.72.0", "packio:boost_json": False})
+    builder.add(compiler=GCC, compiler_version="10", cppstd="17", options={"boost": "1.73.0", "packio:boost_json": False})
+    builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"boost": "1.74.0", "packio:boost_json": False})
     builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"boost": "1.75.0"})
 
     # Test supported asio versions, with C++20 and coroutines from 1.17.0
@@ -164,7 +164,7 @@ def test_mac():
     builder.add(compiler=APPLE_CLANG, compiler_version="12.0", cppstd="17", build_type="Debug")
     builder.add(compiler=APPLE_CLANG, compiler_version="12.0", cppstd="17")
     builder.add(compiler=APPLE_CLANG, compiler_version="12.0", cppstd="20", build_type="Debug")
-    builder.add(compiler=APPLE_CLANG, compiler_version="12.0", cppstd="20")
+    builder.add(compiler=APPLE_CLANG, compiler_version="12.0", cppstd="20", options={"build_samples": True})
     # fmt: on
     builder.run()
 

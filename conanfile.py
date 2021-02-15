@@ -25,19 +25,19 @@ class PackioConan(ConanFile):
         "standalone_asio": [True, False],
         "msgpack": [True, False],
         "nlohmann_json": [True, False],
-        "boost_json": [True, False, None],
+        "boost_json": [True, False, "default"],
     }
     default_options = {
         "standalone_asio": False,
         "msgpack": True,
         "nlohmann_json": True,
-        "boost_json": None,  # defaults to True if using boost, False if using asio
+        "boost_json": "default",  # defaults to True if using boost, False if using asio
     }
 
     def requirements(self):
         boost_require = None
 
-        if self.options.boost_json is None:
+        if self.options.boost_json == "default":
             self.options.boost_json = not self.options.standalone_asio
 
         if self.options.msgpack:
