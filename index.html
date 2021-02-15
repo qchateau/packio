@@ -69,7 +69,7 @@ $(function() {
 <div class="contents">
 <div class="textblock"><p>This library requires C++17 and is designed as an extension to <code>boost.asio</code>. It will let you build asynchronous servers or client for JSON-RPC or msgpack-RPC.</p>
 <p>The project is hosted on <a href="https://github.com/qchateau/packio/">GitHub</a> and available on <a href="https://conan.io/center/">Conan Center</a>. Documentation is available on <a href="https://qchateau.github.io/packio/">GitHub Pages</a>.</p>
-<h1>Primer</h1>
+<h1>Overview</h1>
 <div class="fragment"><div class="line"><span class="preprocessor">#include &lt;iostream&gt;</span></div>
 <div class="line"> </div>
 <div class="line"><span class="preprocessor">#include &lt;<a class="code" href="packio_8h.html">packio/packio.h</a>&gt;</span></div>
@@ -158,9 +158,23 @@ $(function() {
 <li>nlohmann_json &gt;= 3.9.1</li>
 <li>boost.asio &gt;= 1.70.0 or asio &gt;= 1.13.0</li>
 </ul>
-<p>Older version of <code>msgpack</code> and <code>nlohmann_json</code> are probably compatible but they are not tested on the CI.</p>
-<h2>Standalone or boost asio</h2>
-<p>By default, <code>packio</code> uses <code>boost.asio</code>. It is also compatible with standalone <code>asio</code>. To use the standalone version, the preprocessor macro <code>PACKIO_STANDALONE_ASIO=1</code> must be defined. If you are using the conan package, you can use the option <code>standalone_asio=True</code>.</p>
+<p>Older versions of <code>msgpack</code> and <code>nlohmann_json</code> are probably compatible but they are not tested on the CI.</p>
+<h1>Configurations</h1>
+<h2>Standalone or Boost.Asio</h2>
+<p>By default, <code>packio</code> uses <code>boost::asio</code>. It is also compatible with standalone <code>asio</code>. To use the standalone version, the preprocessor macro <code>PACKIO_STANDALONE_ASIO=1</code> must be defined.</p>
+<p>If you are using the conan package, you can use the option <code>standalone_asio=True</code>.</p>
+<p>Depending on your choice, the namespace <code>packio::net</code> will be an alias for either <code>boost::asio</code> or <code>asio</code>.</p>
+<h2>RPC components</h2>
+<p>You can define the following preprocessor macros to either 0 or 1 to force-disable or force-enable components of <code>packio</code>:</p>
+<ul>
+<li><code>PACKIO_HAS_MSGPACK</code></li>
+<li><code>PACKIO_HAS_NLOHMANN_JSON</code></li>
+<li><code>PACKIO_HAS_BOOST_JSON</code></li>
+</ul>
+<p>If you're using the conan package, use the associated options instead, conan will define these macros accordingly.</p>
+<p>If you're not using the conan package, <code>packio</code> will try to auto-detect whether these components are available on your system. Define the macros to the appropriate value if you encounter any issue.</p>
+<h2>Boost before 1.75</h2>
+<p>If you're using the conan package with a boost version older than 1.75, you need to manually disable <code>Boost.Json</code> with the options <code>boost_json=False</code>.</p>
 <h1>Tested compilers</h1>
 <ul>
 <li>gcc-7</li>
@@ -191,7 +205,7 @@ $(function() {
 <li>clang-11 (with libc++)</li>
 <li>Apple clang-12</li>
 </ul>
-<h1>Sample</h1>
+<h1>Samples</h1>
 <p>You will find some samples in <code>test_package/samples/</code> to help you get a hand on <code>packio</code>.</p>
 <h1>Bonus</h1>
 <p>Let's compute fibonacci's numbers recursively over websockets with coroutines on a single thread ... in 65 lines of code.</p>
