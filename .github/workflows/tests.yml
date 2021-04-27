@@ -7,19 +7,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        conan-current-page: [1, 2, 3, 4, 5, 6]
-        conan-total-pages: [6]
-        conan-cpu-count: [2]
-        os: [ubuntu-20.04]
+        # conan-current-page: [1, 2, 3, 4, 5, 6]
+        # conan-total-pages: [6]
+        # conan-cpu-count: [2]
+        # os: [ubuntu-20.04]
         include:
           - os: windows-2019
             conan-current-page: 1
             conan-total-pages: 1
             conan-cpu-count: 1
-          - os: macos-11.0
-            conan-current-page: 1
-            conan-total-pages: 1
-            conan-cpu-count: 3
+          # - os: macos-11.0
+          #   conan-current-page: 1
+          #   conan-total-pages: 1
+          #   conan-cpu-count: 3
     runs-on: ${{ matrix.os }}
     env:
       CONAN_REQUEST_TIMEOUT: 300
