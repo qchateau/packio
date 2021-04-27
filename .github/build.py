@@ -172,7 +172,8 @@ def test_mac():
 def test_windows():
     builder = Packager()
     # fmt: off
-    # FIXME: Compile with C++20 and coroutines
+    builder.add(compiler=MSVC, compiler_version="16", cppstd="20", build_type="Debug")
+    builder.add(compiler=MSVC, compiler_version="16", cppstd="20")
     builder.add(compiler=MSVC, compiler_version="16", cppstd="17", build_type="Debug")
     builder.add(compiler=MSVC, compiler_version="16", cppstd="17")
     # fmt: on
