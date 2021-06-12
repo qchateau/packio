@@ -131,14 +131,16 @@ If you're using the conan package with a boost version older than 1.75, you need
 - gcc-8
 - gcc-9
 - gcc-10
+- gcc-11
 - clang-6
 - clang-7
 - clang-8
 - clang-9
 - clang-10
 - clang-11
+- clang-12
 - Apple clang-12
-- Visual Studio 2019 Version 16.8
+- Visual Studio 2019 Version 16.10
 
 Older compilers may be compatible but are not tested.
 
@@ -157,8 +159,8 @@ conan install packio/x.x.x
 
 Coroutines are tested for the following compilers:
 
-- gcc-10 (with -fcoroutines)
-- clang-11 (with libc++)
+- gcc-11
+- clang-12
 - Apple clang-12
 
 ## Samples

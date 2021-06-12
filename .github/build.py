@@ -1,5 +1,6 @@
 import os
 import sys
+import psutil
 import platform
 import subprocess
 import cpt.packager
@@ -14,6 +15,8 @@ MSVC = "Visual Studio"
 LINUX = platform.system() == "Linux"
 MACOS = platform.system() == "Darwin"
 WIN = platform.system() == "Windows"
+
+REQUIRED_MEM_PER_JOB = 2e9
 
 
 def get_packio_reference():
@@ -49,8 +52,8 @@ class Packager(cpt.packager.ConanMultiPackager):
         settings["compiler.cppstd"] = cppstd
         settings["build_type"] = build_type
 
-        if compiler == CLANG and compiler_version == "11" and cppstd == "20":
-            # FIXME: Clang 11 needs libc++ to have coroutines support
+        if compiler == CLANG and compiler_version == "12" and cppstd == "20":
+            # FIXME: Clang 12 needs libc++ to have coroutines support
             settings["compiler.libcxx"] = "libc++"
 
         options = options or {}
@@ -77,18 +80,6 @@ class Packager(cpt.packager.ConanMultiPackager):
                     "CC": f"clang-{compiler_version}",
                 }
             )
-        elif compiler == APPLE_CLANG:
-            # This does not look good but its only designed to work
-            # within github actions: at the moment clang 12 is detected
-            # by default at a non-specified path and clang 11 is available
-            # as clang-11
-            if compiler_version == "11.0":
-                env_vars.update(
-                    {
-                        "CXX": "clang-11",
-                        "CC": "clang-11",
-                    }
-                )
 
         super().add(settings, options, env_vars)
 
@@ -124,7 +115,8 @@ def test_linux():
     builder.add(compiler=GCC, compiler_version="7", cppstd="17")
     builder.add(compiler=GCC, compiler_version="8", cppstd="17")
     builder.add(compiler=GCC, compiler_version="9", cppstd="17")
-    builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"build_samples": True})
+    builder.add(compiler=GCC, compiler_version="10", cppstd="17")
+    builder.add(compiler=GCC, compiler_version="11", cppstd="20", options={"build_samples": True})
 
     # Test supported clang versions
     builder.add(compiler=CLANG, compiler_version="6.0", cppstd="17")
@@ -132,27 +124,28 @@ def test_linux():
     builder.add(compiler=CLANG, compiler_version="8", cppstd="17")
     builder.add(compiler=CLANG, compiler_version="9", cppstd="17")
     builder.add(compiler=CLANG, compiler_version="10", cppstd="17")
-    builder.add(compiler=CLANG, compiler_version="11", cppstd="20", options={"build_samples": True})
+    builder.add(compiler=CLANG, compiler_version="11", cppstd="17")
+    builder.add(compiler=CLANG, compiler_version="12", cppstd="20", options={"build_samples": True})
 
     # Test supported boost versions, with C++20 and coroutines from 1.74.0
-    builder.add(compiler=GCC, compiler_version="10", cppstd="17", options={"boost": "1.70.0", "packio:boost_json": False})
-    builder.add(compiler=GCC, compiler_version="10", cppstd="17", options={"boost": "1.71.0", "packio:boost_json": False})
-    builder.add(compiler=GCC, compiler_version="10", cppstd="17", options={"boost": "1.72.0", "packio:boost_json": False})
-    builder.add(compiler=GCC, compiler_version="10", cppstd="17", options={"boost": "1.73.0", "packio:boost_json": False})
-    builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"boost": "1.74.0", "packio:boost_json": False})
-    builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"boost": "1.75.0"})
+    builder.add(compiler=GCC, compiler_version="11", cppstd="17", options={"boost": "1.70.0", "packio:boost_json": False})
+    builder.add(compiler=GCC, compiler_version="11", cppstd="17", options={"boost": "1.71.0", "packio:boost_json": False})
+    builder.add(compiler=GCC, compiler_version="11", cppstd="17", options={"boost": "1.72.0", "packio:boost_json": False})
+    builder.add(compiler=GCC, compiler_version="11", cppstd="17", options={"boost": "1.73.0", "packio:boost_json": False})
+    builder.add(compiler=GCC, compiler_version="11", cppstd="20", options={"boost": "1.74.0", "packio:boost_json": False})
+    builder.add(compiler=GCC, compiler_version="11", cppstd="20", options={"boost": "1.75.0"})
 
     # Test supported asio versions, with C++20 and coroutines from 1.17.0
-    builder.add(compiler=GCC, compiler_version="10", cppstd="17", options={"asio": "1.13.0", "packio:standalone_asio": True})
-    builder.add(compiler=GCC, compiler_version="10", cppstd="17", options={"asio": "1.14.1", "packio:standalone_asio": True})
-    builder.add(compiler=GCC, compiler_version="10", cppstd="17", options={"asio": "1.16.1", "packio:standalone_asio": True})
-    builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"asio": "1.17.0", "packio:standalone_asio": True})
-    builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"asio": "1.18.0", "packio:standalone_asio": True})
-    builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"asio": "1.18.1", "packio:standalone_asio": True})
+    builder.add(compiler=GCC, compiler_version="11", cppstd="17", options={"asio": "1.13.0", "packio:standalone_asio": True})
+    builder.add(compiler=GCC, compiler_version="11", cppstd="17", options={"asio": "1.14.1", "packio:standalone_asio": True})
+    builder.add(compiler=GCC, compiler_version="11", cppstd="17", options={"asio": "1.16.1", "packio:standalone_asio": True})
+    builder.add(compiler=GCC, compiler_version="11", cppstd="20", options={"asio": "1.17.0", "packio:standalone_asio": True})
+    builder.add(compiler=GCC, compiler_version="11", cppstd="20", options={"asio": "1.18.0", "packio:standalone_asio": True})
+    builder.add(compiler=GCC, compiler_version="11", cppstd="20", options={"asio": "1.18.1", "packio:standalone_asio": True})
 
     # Test logs and debug build
-    builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"loglevel": "trace"}, build_type="Debug")
-    builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"loglevel": "trace"})
+    builder.add(compiler=GCC, compiler_version="11", cppstd="20", options={"loglevel": "trace"}, build_type="Debug")
+    builder.add(compiler=GCC, compiler_version="11", cppstd="20", options={"loglevel": "trace"})
     # fmt: on
 
     builder.run()
@@ -182,6 +175,15 @@ def test_windows():
 
 def main():
     clear_local_cache()
+
+    available_memory = psutil.virtual_memory().available
+    max_jobs = max(1, int(available_memory / REQUIRED_MEM_PER_JOB))
+    jobs = min(max_jobs, os.cpu_count())
+    print(f"Available memory: {(available_memory/1e9):.3f} GB")
+    print(f"Recommended parallel jobs: {jobs}")
+    if "CONAN_CPU_COUNT" not in os.environ:
+        os.environ["CONAN_CPU_COUNT"] = str(jobs)
+    print(f"Parallel jobs: {os.environ['CONAN_CPU_COUNT']}")
 
     if LINUX:
         test_linux()
