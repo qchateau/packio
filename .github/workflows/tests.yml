@@ -10,7 +10,7 @@ jobs:
         conan-current-page: [1, 2, 3, 4, 5, 6]
         conan-total-pages: [6]
         conan-cpu-count: [2]
-        os: [ubuntu-20.04]
+        os: [ubuntu-22.04]
         include:
           - os: windows-2019
             conan-current-page: 1
@@ -34,18 +34,27 @@ jobs:
         run: python -m pip install -U conan conan_package_tools
 
       - name: Install Ubuntu compilers
-        if: matrix.os == 'ubuntu-20.04'
+        if: matrix.os == 'ubuntu-22.04'
         run: |
-          echo "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-11 main" | sudo tee /etc/apt/sources.list.d/llvm-11.list
-          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
           sudo apt-get update
-          sudo apt-get install -y clang-6.0 clang-7 clang-11 libc++-11-dev libc++-11-dev libc++abi-11-dev
+          sudo apt-get install -y \
+            g++-9 \
+            g++-10 \
+            g++-11 \
+            g++-12 \
+            clang-11 \
+            clang-12 \
+            clang-13 \
+            clang-14 \
+            libc++-14-dev \
+            libc++-14-dev \
+            libc++abi-14-dev
 
       - name: Build
         run: python .github/build.py
 
   docs:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v2.3.1

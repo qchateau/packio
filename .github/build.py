@@ -121,38 +121,48 @@ def test_linux():
 
     # fmt: off
     # Test supported GCC versions
-    builder.add(compiler=GCC, compiler_version="7", cppstd="17")
-    builder.add(compiler=GCC, compiler_version="8", cppstd="17")
     builder.add(compiler=GCC, compiler_version="9", cppstd="17")
     builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"build_samples": True})
+    builder.add(compiler=GCC, compiler_version="11", cppstd="20", options={"build_samples": True})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"build_samples": True})
 
     # Test supported clang versions
-    builder.add(compiler=CLANG, compiler_version="6.0", cppstd="17")
-    builder.add(compiler=CLANG, compiler_version="7.0", cppstd="17")
-    builder.add(compiler=CLANG, compiler_version="8", cppstd="17")
-    builder.add(compiler=CLANG, compiler_version="9", cppstd="17")
-    builder.add(compiler=CLANG, compiler_version="10", cppstd="17")
+    builder.add(compiler=CLANG, compiler_version="11", cppstd="17", options={"build_samples": True})
     builder.add(compiler=CLANG, compiler_version="11", cppstd="20", options={"build_samples": True})
+    builder.add(compiler=CLANG, compiler_version="12", cppstd="20", options={"build_samples": True})
+    builder.add(compiler=CLANG, compiler_version="13", cppstd="20", options={"build_samples": True})
+    builder.add(compiler=CLANG, compiler_version="14", cppstd="20", options={"build_samples": True})
 
     # Test supported boost versions, with C++20 and coroutines from 1.74.0
-    builder.add(compiler=GCC, compiler_version="10", cppstd="17", options={"boost": "1.70.0", "packio:boost_json": False})
-    builder.add(compiler=GCC, compiler_version="10", cppstd="17", options={"boost": "1.71.0", "packio:boost_json": False})
-    builder.add(compiler=GCC, compiler_version="10", cppstd="17", options={"boost": "1.72.0", "packio:boost_json": False})
-    builder.add(compiler=GCC, compiler_version="10", cppstd="17", options={"boost": "1.73.0", "packio:boost_json": False})
-    builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"boost": "1.74.0", "packio:boost_json": False})
-    builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"boost": "1.75.0"})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="17", options={"boost": "1.70.0", "packio:boost_json": False})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="17", options={"boost": "1.71.0", "packio:boost_json": False})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="17", options={"boost": "1.72.0", "packio:boost_json": False})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="17", options={"boost": "1.73.0", "packio:boost_json": False})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"boost": "1.74.0", "packio:boost_json": False})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"boost": "1.75.0"})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"boost": "1.76.0"})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"boost": "1.77.0"})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"boost": "1.78.0"})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"boost": "1.79.0"})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"boost": "1.80.0"})
 
     # Test supported asio versions, with C++20 and coroutines from 1.17.0
-    builder.add(compiler=GCC, compiler_version="10", cppstd="17", options={"asio": "1.13.0", "packio:standalone_asio": True})
-    builder.add(compiler=GCC, compiler_version="10", cppstd="17", options={"asio": "1.14.1", "packio:standalone_asio": True})
-    builder.add(compiler=GCC, compiler_version="10", cppstd="17", options={"asio": "1.16.1", "packio:standalone_asio": True})
-    builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"asio": "1.17.0", "packio:standalone_asio": True})
-    builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"asio": "1.18.0", "packio:standalone_asio": True})
-    builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"asio": "1.18.1", "packio:standalone_asio": True})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="17", options={"asio": "1.13.0", "packio:standalone_asio": True})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="17", options={"asio": "1.14.1", "packio:standalone_asio": True})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="17", options={"asio": "1.16.1", "packio:standalone_asio": True})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"asio": "1.17.0", "packio:standalone_asio": True})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"asio": "1.18.2", "packio:standalone_asio": True})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"asio": "1.18.2", "packio:standalone_asio": True})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"asio": "1.19.2", "packio:standalone_asio": True})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"asio": "1.20.0", "packio:standalone_asio": True})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"asio": "1.21.0", "packio:standalone_asio": True})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"asio": "1.22.1", "packio:standalone_asio": True})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"asio": "1.23.0", "packio:standalone_asio": True})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"asio": "1.24.0", "packio:standalone_asio": True})
 
     # Test logs and debug build
-    builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"loglevel": "trace"}, build_type="Debug")
-    builder.add(compiler=GCC, compiler_version="10", cppstd="20", options={"loglevel": "trace"})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"loglevel": "trace"}, build_type="Debug")
+    builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"loglevel": "trace"})
     # fmt: on
 
     builder.run()
