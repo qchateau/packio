@@ -48,15 +48,6 @@ else ()
     add_compile_definitions(_WIN32_WINNT=0x0A00) # win10
 endif ()
 
-# Enable experimental coroutines support if needed
-if (CMAKE_CXX_STANDARD GREATER_EQUAL 20)
-    # FIXME: gcc-11 will support coroutines by default with c++20
-    # remove this and use gcc-11 for c++20 when it is available
-    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-        add_compile_options(-fcoroutines)
-    endif ()
-endif ()
-
 if (PACKIO_LOGGING)
     string(TOUPPER "${PACKIO_LOGGING}" LOGLEVEL)
     add_compile_definitions(PACKIO_LOGGING=1)

@@ -7,6 +7,7 @@
 
 #include <mutex>
 #include <unordered_map>
+#include <utility>
 
 #if !defined(PACKIO_HAS_MSGPACK)
 #define PACKIO_HAS_MSGPACK __has_include(<msgpack.hpp>)
