@@ -39,6 +39,7 @@ class Packager(cpt.packager.ConanMultiPackager):
         compiler,
         compiler_version,
         cppstd,
+        libcxx=None,
         build_type="Release",
         settings=None,
         options=None,
@@ -49,11 +50,8 @@ class Packager(cpt.packager.ConanMultiPackager):
         settings["compiler.cppstd"] = cppstd
         settings["build_type"] = build_type
 
-        if compiler == CLANG and compiler_version == "14" and cppstd == "20":
-            # ASIO with coroutines on clang+libstdc++ will only be supported from 1.25
-            # Until then, we need libc++ - but we can only install a single version of it
-            # so let's just use the latest: 14 at this time
-            settings["compiler.libcxx"] = "libc++"
+        if libcxx is not None:
+            settings["compiler.libcxx"] = libcxx
 
         options = options or {}
         if "asio" not in options:
@@ -71,8 +69,6 @@ class Packager(cpt.packager.ConanMultiPackager):
                 {"CXX": f"g++-{compiler_version}", "CC": f"gcc-{compiler_version}"}
             )
         elif compiler == CLANG:
-            if compiler_version == "7.0":
-                compiler_version = "7"
             env_vars.update(
                 {
                     "CXX": f"clang++-{compiler_version}",
@@ -128,11 +124,11 @@ def test_linux():
     builder.add(compiler=GCC, compiler_version="11", cppstd="20", options={"build_samples": True})
     builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"build_samples": True})
 
-    # Test supported clang versions, samples requires non-experimental coroutines, supported from clang-14
+    # Test supported clang versions, samples requires coroutines which requires libc++
     builder.add(compiler=CLANG, compiler_version="11", cppstd="17")
     builder.add(compiler=CLANG, compiler_version="12", cppstd="20")
     builder.add(compiler=CLANG, compiler_version="13", cppstd="20")
-    builder.add(compiler=CLANG, compiler_version="14", cppstd="20", options={"build_samples": True})
+    builder.add(compiler=CLANG, compiler_version="14", cppstd="20", libcxx="libc++", options={"build_samples": True})
 
     # Test supported boost versions, with C++20 and coroutines from 1.74.0
     # Note: use older versions of GCC for older versions of Boost to avoid unexpected compiler warnings
@@ -174,7 +170,7 @@ def test_mac():
     # fmt: off
     builder.add(compiler=APPLE_CLANG, compiler_version="13.0", cppstd="17", build_type="Debug")
     builder.add(compiler=APPLE_CLANG, compiler_version="13.0", cppstd="17")
-    builder.add(compiler=APPLE_CLANG, compiler_version="13.0", cppstd="20", build_type="Debug")
+    builder.add(compiler=APPLE_CLANG, compiler_version="13.0", cppstd="20", options={"build_samples": True}, build_type="Debug")
     builder.add(compiler=APPLE_CLANG, compiler_version="13.0", cppstd="20", options={"build_samples": True})
     # fmt: on
     builder.run()
@@ -183,9 +179,12 @@ def test_mac():
 def test_windows():
     builder = Packager()
     # fmt: off
-    # FIXME: Compile with C++20 and coroutines
-    builder.add(compiler=MSVC, compiler_version="16", cppstd="17", build_type="Debug")
-    builder.add(compiler=MSVC, compiler_version="16", cppstd="17")
+    # only one compiler version per os in github, read it from the nv
+    compiler_version = os.environ["PACKIO_WINDOWS_COMPILER_VERSION"]
+    builder.add(compiler=MSVC, compiler_version=compiler_version, cppstd="17", build_type="Debug")
+    builder.add(compiler=MSVC, compiler_version=compiler_version, cppstd="17")
+    builder.add(compiler=MSVC, compiler_version=compiler_version, cppstd="20", options={"build_samples": True}, build_type="Debug")
+    builder.add(compiler=MSVC, compiler_version=compiler_version, cppstd="20", options={"build_samples": True})
     # fmt: on
     builder.run()
 

@@ -135,8 +135,9 @@ If you're using the conan package with a boost version older than 1.75, you need
 - clang-12
 - clang-13
 - clang-14
-- Apple clang-12
-- Visual Studio 2019 Version 16.8
+- Apple clang-13
+- Visual Studio 2019 Version 16
+- Visual Studio 2022 Version 17
 
 Older compilers may be compatible but are not tested.
 
