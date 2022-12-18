@@ -3,6 +3,7 @@
 .clangd/
 build/
 __pycache__/
+.venv/
 
 docs/*
 !docs/sources/
