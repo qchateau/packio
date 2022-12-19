@@ -16,10 +16,14 @@ jobs:
             conan-current-page: 1
             conan-total-pages: 1
             conan-cpu-count: 1
+          - os: windows-2022
+            conan-current-page: 1
+            conan-total-pages: 1
+            conan-cpu-count: 1
           - os: macos-11.0
             conan-current-page: 1
             conan-total-pages: 1
-            conan-cpu-count: 3
+            conan-cpu-count: 2
     runs-on: ${{ matrix.os }}
     env:
       CONAN_REQUEST_TIMEOUT: 300
@@ -47,12 +51,23 @@ jobs:
             clang-13 \
             clang-14 \
             libc++-14-dev \
-            libc++-14-dev \
             libc++abi-14-dev
 
       - name: Build
+        if: ${{ !startsWith(matrix.os, 'windows-') }}
         run: python .github/build.py
 
+      - name: Build windows 2019
+        if: matrix.os == 'windows-2019'
+        env:
+          PACKIO_WINDOWS_COMPILER_VERSION: 16
+        run: python .github/build.py
+
+      - name: Build windows 2022
+        if: matrix.os == 'windows-2022'
+        env:
+          PACKIO_WINDOWS_COMPILER_VERSION: 17
+        run: python .github/build.py
   docs:
     runs-on: ubuntu-22.04
     steps:
