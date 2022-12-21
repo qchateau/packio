@@ -328,14 +328,14 @@ public:
         return net::const_buffer(buf.data(), buf.size());
     }
 
-    template <typename T, typename NamesContainer>
+    template <typename T, typename... ArgSpecs>
     static std::optional<T> extract_args(
         boost::json::value&& args,
-        const NamesContainer& names)
+        const std::tuple<ArgSpecs...>& args_specs)
     {
         try {
             if (args.is_array()) {
-                if (args.get_array().size() != std::tuple_size_v<T>) {
+                if (args.get_array().size() > std::tuple_size_v<T>) {
                     // keep this check otherwise the converter
                     // may silently drop arguments
                     PACKIO_WARN(
@@ -343,10 +343,10 @@ public:
                     return std::nullopt;
                 }
 
-                return convert_positional_args<T>(args.get_array());
+                return convert_positional_args<T>(args.get_array(), args_specs);
             }
             else if (args.is_object()) {
-                return convert_named_args<T>(args.get_object(), names);
+                return convert_named_args<T>(args.get_object(), args_specs);
             }
             else {
                 PACKIO_ERROR("arguments are not a structured type");
@@ -361,39 +361,53 @@ public:
     }
 
 private:
-    template <typename T>
-    static constexpr T convert_positional_args(const boost::json::array& array)
-    {
-        return convert_positional_args<T>(
-            array, std::make_index_sequence<std::tuple_size_v<T>>());
-    }
-
-    template <typename T, std::size_t... Idxs>
+    template <typename T, typename... ArgSpecs>
     static constexpr T convert_positional_args(
         const boost::json::array& array,
-        std::index_sequence<Idxs...>)
+        const std::tuple<ArgSpecs...>& args_specs)
     {
-        return {boost::json::value_to<std::tuple_element_t<Idxs, T>>(
-            array.at(Idxs))...};
+        return convert_positional_args<T>(
+            array, args_specs, std::make_index_sequence<std::tuple_size_v<T>>());
     }
 
-    template <typename T, typename NamesContainer>
+    template <typename T, typename... ArgSpecs, std::size_t... Idxs>
+    static constexpr T convert_positional_args(
+        const boost::json::array& array,
+        const std::tuple<ArgSpecs...>& args_specs,
+        std::index_sequence<Idxs...>)
+    {
+        return {[&]() {
+            if (Idxs < array.size()) {
+                return boost::json::value_to<std::tuple_element_t<Idxs, T>>(
+                    array.at(Idxs));
+            }
+            return std::get<Idxs>(args_specs).default_value();
+        }()...};
+    }
+
+    template <typename T, typename... ArgSpecs>
     static constexpr T convert_named_args(
         const boost::json::object& args,
-        const NamesContainer& names)
+        const std::tuple<ArgSpecs...>& args_specs)
     {
         return convert_named_args<T>(
-            args, names, std::make_index_sequence<std::tuple_size_v<T>>());
+            args, args_specs, std::make_index_sequence<std::tuple_size_v<T>>());
     }
 
-    template <typename T, typename NamesContainer, std::size_t... Idxs>
+    template <typename T, typename... ArgSpecs, std::size_t... Idxs>
     static constexpr T convert_named_args(
         const boost::json::object& args,
-        const NamesContainer& names,
+        const std::tuple<ArgSpecs...>& args_specs,
         std::index_sequence<Idxs...>)
     {
-        return T{boost::json::value_to<std::tuple_element_t<Idxs, T>>(
-            args.at(names.at(Idxs)))...};
+        return T{[&]() {
+            auto it = args.find(std::get<Idxs>(args_specs).name());
+            if (it != args.end()) {
+                return boost::json::value_to<std::tuple_element_t<Idxs, T>>(
+                    it->value());
+            }
+            return std::get<Idxs>(args_specs).default_value();
+        }()...};
     }
 };
 

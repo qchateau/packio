@@ -230,6 +230,21 @@ decltype(auto) safe_future_get(Future&& fut)
         }                                                         \
     } while (false)
 
+#define ASSERT_ERROR_MESSAGE(client, message, procedure, ...)                 \
+    {                                                                         \
+        std::promise<std::string> p;                                          \
+        auto f = p.get_future();                                              \
+                                                                              \
+        client->async_call(                                                   \
+            procedure, std::make_tuple(__VA_ARGS__), [&](auto ec, auto res) { \
+                ASSERT_FALSE(ec);                                             \
+                ASSERT_TRUE(is_error_response(res));                          \
+                p.set_value(get_error_message(res.error));                    \
+            });                                                               \
+                                                                              \
+        ASSERT_EQ(message, safe_future_get(std::move(f)));                    \
+    };
+
 using test_ssl_stream = packio::extra::ssl_stream_adapter<
     packio::net::ssl::stream<packio::net::ip::tcp::socket>>;
 
@@ -344,6 +359,7 @@ using tuple_cat_if_t =
     std::conditional_t<Condition, tuple_cat_t<Tuple, Tuples...>, Tuple>;
 
 using implementations0 = std::tuple<
+
 #if !PACKIO_STANDALONE_ASIO
     std::pair<
         default_rpc::client<test_websocket<true>>,

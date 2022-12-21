@@ -291,28 +291,54 @@ public:
         return net::const_buffer(buf.data(), buf.size());
     }
 
-    template <typename T, typename NamesContainer>
+    template <typename T, typename... ArgSpecs>
     static std::optional<T> extract_args(
         const ::msgpack::object& args,
-        const NamesContainer&)
+        const std::tuple<ArgSpecs...>& args_specs)
     {
         if (args.type != ::msgpack::type::ARRAY) {
             PACKIO_ERROR("arguments is not an array");
             return std::nullopt;
         }
 
-        if (args.via.array.size != std::tuple_size_v<T>) {
+        if (args.via.array.size > std::tuple_size_v<T>) {
             // keep this check otherwise msgpack unpacker
             // may silently drop arguments
             return std::nullopt;
         }
 
         try {
-            return args.as<T>();
+            return convert_positional_args<T>(args.via.array, args_specs);
         }
-        catch (::msgpack::type_error&) {
+        catch (::msgpack::type_error& exc) {
+            PACKIO_WARN("cannot convert args: {}", exc.what());
+            (void)exc;
             return std::nullopt;
         }
+    }
+
+private:
+    template <typename T, typename... ArgSpecs>
+    static constexpr T convert_positional_args(
+        const ::msgpack::object_array& array,
+        const std::tuple<ArgSpecs...>& args_specs)
+    {
+        return convert_positional_args<T>(
+            array, args_specs, std::make_index_sequence<std::tuple_size_v<T>>());
+    }
+
+    template <typename T, typename... ArgSpecs, std::size_t... Idxs>
+    static constexpr T convert_positional_args(
+        const ::msgpack::object_array& array,
+        const std::tuple<ArgSpecs...>& args_specs,
+        std::index_sequence<Idxs...>)
+    {
+        return {[&]() {
+            if (Idxs < array.size) {
+                return array.ptr[Idxs].as<std::tuple_element_t<Idxs, T>>();
+            }
+            return std::get<Idxs>(args_specs).default_value();
+        }()...};
     }
 };
 
