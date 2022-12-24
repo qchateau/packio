@@ -55,6 +55,6 @@ TYPED_TEST(BasicTest, test_coroutine)
             p.set_value();
         },
         detached);
-    ASSERT_FUTURE_NO_THROW(p.get_future());
+    EXPECT_FUTURE_NO_THROW(p.get_future());
 }
 #endif // defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_FORCE_COROUTINES)

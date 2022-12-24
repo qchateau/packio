@@ -34,24 +34,24 @@ TYPED_TEST(BasicTest, test_errors)
         "add_named", {"a", "b"}, [](int a, int b) { return a + b; }));
 
     // clang-format off
-    ASSERT_ERROR_MESSAGE(this->client_, kErrorMessage, "error");
-    ASSERT_ERROR_MESSAGE(this->client_, "Unknown error", "empty_error");
-    ASSERT_ERROR_MESSAGE(this->client_, "Call finished with no result", "no_result");
-    ASSERT_ERROR_MESSAGE(this->client_, "Unknown function", "unexisting");
-    ASSERT_ERROR_MESSAGE(this->client_, "Incompatible arguments", "add", 1, "two");
-    ASSERT_ERROR_MESSAGE(this->client_, "Incompatible arguments", "add");
-    ASSERT_ERROR_MESSAGE(this->client_, "Incompatible arguments", "add", 1, 2, 3);
-    ASSERT_ERROR_MESSAGE(this->client_, "Incompatible arguments", "add_sync", 1, "two");
-    ASSERT_ERROR_MESSAGE(this->client_, "Incompatible arguments", "add_sync");
-    ASSERT_ERROR_MESSAGE(this->client_, "Incompatible arguments", "add_sync", 1, 2, 3);
+    EXPECT_ERROR_MESSAGE(this->client_, kErrorMessage, "error");
+    EXPECT_ERROR_MESSAGE(this->client_, "unknown error", "empty_error");
+    EXPECT_ERROR_MESSAGE(this->client_, "call finished with no result", "no_result");
+    EXPECT_ERROR_MESSAGE(this->client_, "unknown function", "unexisting");
+    EXPECT_ERROR_MESSAGE(this->client_, "Incompatible arguments", "add", 1, "two");
+    EXPECT_ERROR_MESSAGE(this->client_, "Incompatible arguments", "add");
+    EXPECT_ERROR_MESSAGE(this->client_, "Incompatible arguments", "add", 1, 2, 3);
+    EXPECT_ERROR_MESSAGE(this->client_, "Incompatible arguments", "add_sync", 1, "two");
+    EXPECT_ERROR_MESSAGE(this->client_, "Incompatible arguments", "add_sync");
+    EXPECT_ERROR_MESSAGE(this->client_, "Incompatible arguments", "add_sync", 1, 2, 3);
 
     if constexpr (has_named_args) {
-        ASSERT_ERROR_MESSAGE(this->client_, "Incompatible arguments", "add", arg("a") = 1, arg("b") = 2);
-        ASSERT_ERROR_MESSAGE(this->client_, "Incompatible arguments", "add_named", arg("c") = 1, arg("d") = 2);
-        ASSERT_ERROR_MESSAGE(this->client_, "Incompatible arguments", "add_named", arg("a") = 1, arg("c") = 2);
-        ASSERT_ERROR_MESSAGE(this->client_, "Incompatible arguments", "add_named", arg("c") = 1, arg("b") = 2);
-        ASSERT_ERROR_MESSAGE(this->client_, "Incompatible arguments", "add_named", arg("a") = 1);
-        ASSERT_ERROR_MESSAGE(this->client_, "Incompatible arguments", "add_named", arg("c") = 1);
+        EXPECT_ERROR_MESSAGE(this->client_, "Incompatible arguments", "add", arg("a") = 1, arg("b") = 2);
+        EXPECT_ERROR_MESSAGE(this->client_, "Incompatible arguments", "add_named", arg("c") = 1, arg("d") = 2);
+        EXPECT_ERROR_MESSAGE(this->client_, "Incompatible arguments", "add_named", arg("a") = 1, arg("c") = 2);
+        EXPECT_ERROR_MESSAGE(this->client_, "Incompatible arguments", "add_named", arg("c") = 1, arg("b") = 2);
+        EXPECT_ERROR_MESSAGE(this->client_, "Incompatible arguments", "add_named", arg("a") = 1);
+        EXPECT_ERROR_MESSAGE(this->client_, "Incompatible arguments", "add_named", arg("c") = 1);
     }
     // clang-format on
 }

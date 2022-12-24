@@ -26,7 +26,7 @@ TYPED_TEST(BasicTest, test_response_after_disconnect)
         });
 
     this->client_->async_call("block", [&](auto, auto) {});
-    auto complete_ptr = safe_future_get(future);
+    ASSERT_FUTURE_NO_BLOCK(future, std::chrono::seconds{1});
     this->client_->socket().close();
-    (*complete_ptr)();
+    (*future.get())();
 }

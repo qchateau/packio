@@ -108,64 +108,64 @@ TYPED_TEST(BasicTest, test_default_arguments)
 
     for (const auto& prefix : prefixes) {
         // -- add_all_default --
-        ASSERT_RESULT_EQ(
+        EXPECT_RESULT_EQ(
             this->client_->async_call(
                 prefix + "add_all_default", std::make_tuple(), use_future),
             11000);
-        ASSERT_RESULT_EQ(
+        EXPECT_RESULT_EQ(
             this->client_->async_call(
                 prefix + "add_all_default", std::make_tuple(12), use_future),
             10012);
-        ASSERT_RESULT_EQ(
+        EXPECT_RESULT_EQ(
             this->client_->async_call(
                 prefix + "add_all_default", std::make_tuple(12, 13), use_future),
             25);
-        ASSERT_ERROR_MESSAGE(
+        EXPECT_ERROR_MESSAGE(
             this->client_,
-            "Incompatible arguments",
+            "cannot convert arguments: too many arguments",
             prefix + "add_all_default",
             1,
             2,
             3);
 
         // -- add_first_default --
-        ASSERT_ERROR_MESSAGE(
+        EXPECT_ERROR_MESSAGE(
             this->client_,
             "Incompatible arguments",
             prefix + "add_first_default");
-        ASSERT_ERROR_MESSAGE(
+        EXPECT_ERROR_MESSAGE(
             this->client_,
             "Incompatible arguments",
             prefix + "add_first_default",
             1);
-        ASSERT_RESULT_EQ(
+        EXPECT_RESULT_EQ(
             this->client_->async_call(
                 prefix + "add_first_default", std::make_tuple(12, 13), use_future),
             25);
-        ASSERT_ERROR_MESSAGE(
+        EXPECT_ERROR_MESSAGE(
             this->client_,
-            "Incompatible arguments",
+            "cannot convert arguments: too many arguments",
             prefix + "add_first_default",
             1,
             2,
             3);
 
         // -- add_second_default --
-        ASSERT_ERROR_MESSAGE(
+        EXPECT_ERROR_MESSAGE(
             this->client_,
             "Incompatible arguments",
             prefix + "add_second_default");
-        ASSERT_RESULT_EQ(
+        EXPECT_RESULT_EQ(
             this->client_->async_call(
                 prefix + "add_second_default", std::make_tuple(12), use_future),
             112);
-        ASSERT_RESULT_EQ(
+        EXPECT_RESULT_EQ(
             this->client_->async_call(
                 prefix + "add_second_default", std::make_tuple(12, 13), use_future),
             25);
-        ASSERT_ERROR_MESSAGE(
+        EXPECT_ERROR_MESSAGE(
             this->client_,
-            "Incompatible arguments",
+            "cannot convert arguments: too many arguments",
             prefix + "add_second_default",
             1,
             2,
@@ -173,79 +173,79 @@ TYPED_TEST(BasicTest, test_default_arguments)
 
         if constexpr (has_named_args) {
             // -- add_all_default --
-            ASSERT_RESULT_EQ(
+            EXPECT_RESULT_EQ(
                 this->client_->async_call(
                     prefix + "add_all_default",
                     std::make_tuple(arg("a") = 12),
                     use_future),
                 10012);
-            ASSERT_RESULT_EQ(
+            EXPECT_RESULT_EQ(
                 this->client_->async_call(
                     prefix + "add_all_default",
                     std::make_tuple(arg("b") = 13),
                     use_future),
                 1013);
-            ASSERT_RESULT_EQ(
+            EXPECT_RESULT_EQ(
                 this->client_->async_call(
                     prefix + "add_all_default",
                     std::make_tuple(arg("a") = 12, arg("b") = 13),
                     use_future),
                 25);
-            ASSERT_ERROR_MESSAGE(
+            EXPECT_ERROR_MESSAGE(
                 this->client_,
-                "Incompatible arguments",
+                "cannot convert arguments: too many arguments",
                 prefix + "add_all_default",
                 arg("a") = 1,
                 arg("b") = 2,
                 arg("c") = 3);
 
             // -- add_first_default --
-            ASSERT_ERROR_MESSAGE(
+            EXPECT_ERROR_MESSAGE(
                 this->client_,
                 "Incompatible arguments",
                 prefix + "add_first_default",
                 arg("a") = 12);
-            ASSERT_RESULT_EQ(
+            EXPECT_RESULT_EQ(
                 this->client_->async_call(
                     prefix + "add_first_default",
                     std::make_tuple(arg("b") = 13),
                     use_future),
                 23);
-            ASSERT_RESULT_EQ(
+            EXPECT_RESULT_EQ(
                 this->client_->async_call(
                     prefix + "add_first_default",
                     std::make_tuple(arg("a") = 12, arg("b") = 13),
                     use_future),
                 25);
-            ASSERT_ERROR_MESSAGE(
+            EXPECT_ERROR_MESSAGE(
                 this->client_,
-                "Incompatible arguments",
+                "cannot convert arguments: too many arguments",
                 prefix + "add_first_default",
                 arg("a") = 1,
                 arg("b") = 2,
                 arg("c") = 3);
 
             // -- add_second_default --
-            ASSERT_RESULT_EQ(
+            EXPECT_RESULT_EQ(
                 this->client_->async_call(
                     prefix + "add_second_default",
                     std::make_tuple(arg("a") = 12),
                     use_future),
                 112);
-            ASSERT_ERROR_MESSAGE(
+            EXPECT_ERROR_MESSAGE(
                 this->client_,
                 "Incompatible arguments",
                 prefix + "add_second_default",
                 arg("b") = 13);
-            ASSERT_RESULT_EQ(
+            EXPECT_RESULT_EQ(
                 this->client_->async_call(
                     prefix + "add_second_default",
                     std::make_tuple(arg("a") = 12, arg("b") = 13),
                     use_future),
                 25);
-            ASSERT_ERROR_MESSAGE(
+            EXPECT_ERROR_MESSAGE(
                 this->client_,
-                "Incompatible arguments",
+                "cannot convert arguments: too many arguments",
                 prefix + "add_second_default",
                 arg("a") = 1,
                 arg("b") = 2,

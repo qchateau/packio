@@ -73,81 +73,81 @@ TYPED_TEST(BasicTest, test_functions)
     this->server_->dispatcher()->add(
         "sync_native", [](native_type native) { return native; });
 
-    ASSERT_RESULT_IS_OK(this->client_->async_call("async_void_void", use_future));
+    EXPECT_RESULT_IS_OK(this->client_->async_call("async_void_void", use_future));
 
-    ASSERT_RESULT_EQ(this->client_->async_call("async_int_void", use_future), 42);
-    ASSERT_RESULT_IS_OK(this->client_->async_call(
+    EXPECT_RESULT_EQ(this->client_->async_call("async_int_void", use_future), 42);
+    EXPECT_RESULT_IS_OK(this->client_->async_call(
         "async_void_int", std::tuple{42}, use_future));
-    ASSERT_RESULT_EQ(
+    EXPECT_RESULT_EQ(
         this->client_->async_call("async_int_int", std ::tuple{42}, use_future),
         42);
-    ASSERT_RESULT_EQ(
+    EXPECT_RESULT_EQ(
         this->client_->async_call("async_int_intref", std::tuple{42}, use_future),
         42);
-    ASSERT_RESULT_EQ(
+    EXPECT_RESULT_EQ(
         this->client_->async_call(
             "async_int_intref_int", std::tuple{42, 24}, use_future),
         42);
-    ASSERT_RESULT_EQ(
+    EXPECT_RESULT_EQ(
         this->client_->async_call(
             "async_str_str", std::make_tuple("foobar"), use_future),
         "foobar"s);
-    ASSERT_RESULT_EQ(
+    EXPECT_RESULT_EQ(
         this->client_->async_call(
             "async_str_strref", std::make_tuple("foobar"), use_future),
         "foobar"s);
-    ASSERT_RESULT_EQ(
+    EXPECT_RESULT_EQ(
         this->client_->async_call(
             "async_tuple_int_str",
             std::make_tuple(std::make_tuple(42, "foobar")),
             use_future),
         tuple_int_str(42, "foobar"));
-    ASSERT_RESULT_EQ(
+    EXPECT_RESULT_EQ(
         this->client_->async_call(
             "async_tuple_int_strref",
             std::make_tuple(std::make_tuple(42, "foobar")),
             use_future),
         tuple_int_str(42, "foobar"));
-    ASSERT_RESULT_EQ(
+    EXPECT_RESULT_EQ(
         this->client_->async_call(
             "async_native", std::make_tuple("foobar"), use_future),
         "foobar"s);
 
-    ASSERT_RESULT_IS_OK(this->client_->async_call("sync_void_void", use_future));
-    ASSERT_RESULT_EQ(this->client_->async_call("sync_int_void", use_future), 42);
-    ASSERT_RESULT_IS_OK(
+    EXPECT_RESULT_IS_OK(this->client_->async_call("sync_void_void", use_future));
+    EXPECT_RESULT_EQ(this->client_->async_call("sync_int_void", use_future), 42);
+    EXPECT_RESULT_IS_OK(
         this->client_->async_call("sync_void_int", std::tuple{42}, use_future));
-    ASSERT_RESULT_EQ(
+    EXPECT_RESULT_EQ(
         this->client_->async_call("sync_int_int", std::tuple{42}, use_future),
         42);
-    ASSERT_RESULT_EQ(
+    EXPECT_RESULT_EQ(
         this->client_->async_call("sync_int_intref", std::tuple{42}, use_future),
         42);
-    ASSERT_RESULT_EQ(
+    EXPECT_RESULT_EQ(
         this->client_->async_call(
             "sync_int_intref_int", std::tuple{42, 24}, use_future),
         42);
-    ASSERT_RESULT_EQ(
+    EXPECT_RESULT_EQ(
         this->client_->async_call(
             "sync_str_str", std::make_tuple("foobar"), use_future),
         "foobar"s);
-    ASSERT_RESULT_EQ(
+    EXPECT_RESULT_EQ(
         this->client_->async_call(
             "sync_str_strref", std::make_tuple("foobar"), use_future),
         "foobar"s);
-    ASSERT_RESULT_EQ(
+    EXPECT_RESULT_EQ(
         this->client_->async_call(
             "sync_tuple_int_str",
             std::make_tuple(std::make_tuple(42, "foobar")),
             use_future),
         tuple_int_str(42, "foobar"));
-    ASSERT_RESULT_EQ(
+    EXPECT_RESULT_EQ(
         this->client_->async_call(
             "sync_tuple_int_strref",
             std::make_tuple(std::make_tuple(42, "foobar")),
             use_future),
         tuple_int_str(42, "foobar"));
-    ASSERT_RESULT_EQ(
+    EXPECT_RESULT_EQ(
         this->client_->async_call(
             "sync_native", std::make_tuple("foobar"), use_future),
         "foobar"s);

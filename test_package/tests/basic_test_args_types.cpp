@@ -15,26 +15,26 @@ TYPED_TEST(BasicTest, test_args_types)
     this->server_->dispatcher()->add("add", [](int a, int b) { return a + b; });
 
     // rvalue tuple
-    ASSERT_RESULT_EQ(
+    EXPECT_RESULT_EQ(
         this->client_->async_call("add", std::tuple{12, 23}, use_future), 35);
 
     // lvalue tuple
     std::tuple tup{12, 23};
-    ASSERT_RESULT_EQ(this->client_->async_call("add", tup, use_future), 35);
+    EXPECT_RESULT_EQ(this->client_->async_call("add", tup, use_future), 35);
 
     // rvalue array
-    ASSERT_RESULT_EQ(
+    EXPECT_RESULT_EQ(
         this->client_->async_call("add", std::array{12, 23}, use_future), 35);
 
     // lvalue array
     std::array arr{12, 23};
-    ASSERT_RESULT_EQ(this->client_->async_call("add", arr, use_future), 35);
+    EXPECT_RESULT_EQ(this->client_->async_call("add", arr, use_future), 35);
 
     // rvalue pair
-    ASSERT_RESULT_EQ(
+    EXPECT_RESULT_EQ(
         this->client_->async_call("add", std::pair{12, 23}, use_future), 35);
 
     // lvalue pair
     std::pair pair{12, 23};
-    ASSERT_RESULT_EQ(this->client_->async_call("add", pair, use_future), 35);
+    EXPECT_RESULT_EQ(this->client_->async_call("add", pair, use_future), 35);
 }

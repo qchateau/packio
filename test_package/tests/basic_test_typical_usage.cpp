@@ -38,7 +38,7 @@ TYPED_TEST(BasicTest, test_typical_usage)
         call_latch.reset(1);
 
         auto f = this->client_->async_notify("echo", std::tuple{42}, use_future);
-        ASSERT_FUTURE_NO_THROW(f);
+        EXPECT_FUTURE_NO_THROW(f);
         ASSERT_TRUE(call_latch.wait_for(1s));
         ASSERT_EQ(42, call_arg_received.load());
     }
@@ -48,7 +48,7 @@ TYPED_TEST(BasicTest, test_typical_usage)
         call_arg_received = 0;
 
         auto f = this->client_->async_call("echo", std::tuple{42}, use_future);
-        ASSERT_RESULT_EQ(f, 42);
+        EXPECT_RESULT_EQ(f, 42);
         ASSERT_EQ(42, call_arg_received.load());
     }
 }

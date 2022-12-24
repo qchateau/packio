@@ -24,5 +24,5 @@ TYPED_TEST(BasicTest, test_server_crash)
     this->connect();
 
     auto f = this->client_->async_call("close", use_future);
-    ASSERT_FUTURE_THROW(f, std::exception);
+    EXPECT_FUTURE_THROW(f, std::exception);
 }

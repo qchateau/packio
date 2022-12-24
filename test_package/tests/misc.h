@@ -199,50 +199,50 @@ inline bool is_error_response(const packio::json_rpc::rpc::response_type& resp)
     ASSERT_EQ(std::future_status::ready, fut.wait_for(duration)) \
         << "future was not ready"
 
-#define ASSERT_RESULT_EQ(fut, value)                                       \
+#define EXPECT_RESULT_EQ(fut, value)                                       \
     do {                                                                   \
         ASSERT_FUTURE_NO_BLOCK(fut, std::chrono::seconds{1});              \
-        ASSERT_NO_THROW(ASSERT_EQ(                                         \
+        EXPECT_NO_THROW(EXPECT_EQ(                                         \
             get<std::decay_t<decltype(value)>>(fut.get().result), value)); \
     } while (false)
 
-#define ASSERT_RESULT_IS_OK(fut)                                     \
+#define EXPECT_RESULT_IS_OK(fut)                                     \
     do {                                                             \
         ASSERT_FUTURE_NO_BLOCK(fut, std::chrono::seconds{1});        \
-        ASSERT_NO_THROW(ASSERT_FALSE(is_error_response(fut.get()))); \
+        EXPECT_NO_THROW(EXPECT_FALSE(is_error_response(fut.get()))); \
     } while (false)
 
-#define ASSERT_RESULT_IS_ERROR(fut)                                 \
+#define EXPECT_RESULT_IS_ERROR(fut)                                 \
     do {                                                            \
         ASSERT_FUTURE_NO_BLOCK(fut, std::chrono::seconds{1});       \
-        ASSERT_NO_THROW(ASSERT_TRUE(is_error_response(fut.get()))); \
+        EXPECT_NO_THROW(EXPECT_TRUE(is_error_response(fut.get()))); \
     } while (false)
 
-#define ASSERT_FUTURE_THROW(fut, exc)                         \
+#define EXPECT_FUTURE_THROW(fut, exc)                         \
     do {                                                      \
         ASSERT_FUTURE_NO_BLOCK(fut, std::chrono::seconds{1}); \
-        ASSERT_THROW(fut.get(), exc);                         \
+        EXPECT_THROW(fut.get(), exc);                         \
     } while (false)
 
-#define ASSERT_FUTURE_NO_THROW(fut)                           \
+#define EXPECT_FUTURE_NO_THROW(fut)                           \
     do {                                                      \
         ASSERT_FUTURE_NO_BLOCK(fut, std::chrono::seconds{1}); \
-        ASSERT_NO_THROW(fut.get());                           \
+        EXPECT_NO_THROW(fut.get());                           \
     } while (false)
 
-#define ASSERT_FUTURE_CANCELLED(fut)                                  \
+#define EXPECT_FUTURE_CANCELLED(fut)                                  \
     do {                                                              \
         try {                                                         \
             ASSERT_FUTURE_NO_BLOCK(fut, std::chrono::seconds{1});     \
-            ASSERT_NO_THROW(fut.get());                               \
-            ASSERT_FALSE(true) << "future not cancelled as expected"; \
+            EXPECT_NO_THROW(fut.get());                               \
+            EXPECT_FALSE(true) << "future not cancelled as expected"; \
         }                                                             \
         catch (system_error & err) {                                  \
-            ASSERT_EQ(net::error::operation_aborted, err.code());     \
+            EXPECT_EQ(net::error::operation_aborted, err.code());     \
         }                                                             \
     } while (false)
 
-#define ASSERT_ERROR_MESSAGE(client, message, procedure, ...)                 \
+#define EXPECT_ERROR_MESSAGE(client, message, procedure, ...)                 \
     do {                                                                      \
         std::promise<std::string> p;                                          \
         auto f = p.get_future();                                              \
@@ -255,7 +255,7 @@ inline bool is_error_response(const packio::json_rpc::rpc::response_type& resp)
             });                                                               \
                                                                               \
         ASSERT_FUTURE_NO_BLOCK(f, std::chrono::seconds{1});                   \
-        ASSERT_NO_THROW(ASSERT_EQ(message, f.get()));                         \
+        EXPECT_NO_THROW(EXPECT_EQ(message, f.get()));                         \
     } while (false)
 
 using test_ssl_stream = packio::extra::ssl_stream_adapter<
