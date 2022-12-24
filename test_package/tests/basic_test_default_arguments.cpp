@@ -13,7 +13,7 @@ TYPED_TEST(BasicTest, test_default_arguments)
         typename std::decay_t<decltype(*this)>::completion_handler;
     using rpc_type = typename std::decay_t<decltype(*this)>::client_type::rpc_type;
     constexpr bool has_named_args =
-        std::is_same_v<rpc_type, packio::nl_json_rpc::rpc>;
+        !std::is_same_v<rpc_type, packio::msgpack_rpc::rpc>;
 
     this->server_->async_serve_forever();
     this->async_run();
@@ -131,11 +131,11 @@ TYPED_TEST(BasicTest, test_default_arguments)
         // -- add_first_default --
         EXPECT_ERROR_MESSAGE(
             this->client_,
-            "Incompatible arguments",
+            "cannot convert arguments: no value for argument b",
             prefix + "add_first_default");
         EXPECT_ERROR_MESSAGE(
             this->client_,
-            "Incompatible arguments",
+            "cannot convert arguments: no value for argument b",
             prefix + "add_first_default",
             1);
         EXPECT_RESULT_EQ(
@@ -153,7 +153,7 @@ TYPED_TEST(BasicTest, test_default_arguments)
         // -- add_second_default --
         EXPECT_ERROR_MESSAGE(
             this->client_,
-            "Incompatible arguments",
+            "cannot convert arguments: no value for argument a",
             prefix + "add_second_default");
         EXPECT_RESULT_EQ(
             this->client_->async_call(
@@ -193,7 +193,12 @@ TYPED_TEST(BasicTest, test_default_arguments)
                 25);
             EXPECT_ERROR_MESSAGE(
                 this->client_,
-                "cannot convert arguments: too many arguments",
+                "cannot convert arguments: unexpected argument c",
+                prefix + "add_all_default",
+                arg("c") = 3);
+            EXPECT_ERROR_MESSAGE(
+                this->client_,
+                "cannot convert arguments: unexpected argument c",
                 prefix + "add_all_default",
                 arg("a") = 1,
                 arg("b") = 2,
@@ -202,7 +207,7 @@ TYPED_TEST(BasicTest, test_default_arguments)
             // -- add_first_default --
             EXPECT_ERROR_MESSAGE(
                 this->client_,
-                "Incompatible arguments",
+                "cannot convert arguments: no value for argument b",
                 prefix + "add_first_default",
                 arg("a") = 12);
             EXPECT_RESULT_EQ(
@@ -219,7 +224,7 @@ TYPED_TEST(BasicTest, test_default_arguments)
                 25);
             EXPECT_ERROR_MESSAGE(
                 this->client_,
-                "cannot convert arguments: too many arguments",
+                "cannot convert arguments: unexpected argument c",
                 prefix + "add_first_default",
                 arg("a") = 1,
                 arg("b") = 2,
@@ -234,7 +239,7 @@ TYPED_TEST(BasicTest, test_default_arguments)
                 112);
             EXPECT_ERROR_MESSAGE(
                 this->client_,
-                "Incompatible arguments",
+                "cannot convert arguments: no value for argument a",
                 prefix + "add_second_default",
                 arg("b") = 13);
             EXPECT_RESULT_EQ(
@@ -245,7 +250,7 @@ TYPED_TEST(BasicTest, test_default_arguments)
                 25);
             EXPECT_ERROR_MESSAGE(
                 this->client_,
-                "cannot convert arguments: too many arguments",
+                "cannot convert arguments: unexpected argument c",
                 prefix + "add_second_default",
                 arg("a") = 1,
                 arg("b") = 2,
