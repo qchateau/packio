@@ -11,6 +11,7 @@
 
 #include "../arg.h"
 #include "../internal/config.h"
+#include "../internal/expected.h"
 #include "../internal/log.h"
 #include "../internal/rpc.h"
 #include "incremental_buffers.h"
@@ -27,6 +28,8 @@ constexpr bool named_args_v = sizeof...(Args) > 0 && (is_arg_v<Args> && ...);
 
 using id_type = nlohmann::json;
 using native_type = nlohmann::json;
+using packio::internal::expected;
+using packio::internal::unexpected;
 
 //! The object representing a client request
 struct request {
@@ -46,22 +49,22 @@ struct response {
 //! The incremental parser for JSON-RPC objects
 class incremental_parser {
 public:
-    std::optional<request> get_request()
+    expected<request, std::string> get_request()
     {
         try_parse_object();
         if (!parsed_) {
-            return std::nullopt;
+            return unexpected{"no request parsed"};
         }
         auto object = std::move(*parsed_);
         parsed_.reset();
         return parse_request(std::move(object));
     }
 
-    std::optional<response> get_response()
+    expected<response, std::string> get_response()
     {
         try_parse_object();
         if (!parsed_) {
-            return std::nullopt;
+            return unexpected{"no response parsed"};
         }
         auto object = std::move(*parsed_);
         parsed_.reset();
@@ -100,66 +103,61 @@ private:
         }
     }
 
-    static std::optional<response> parse_response(nlohmann::json&& res)
+    static expected<response, std::string> parse_response(nlohmann::json&& res)
     {
         auto id_it = res.find("id");
         auto result_it = res.find("result");
         auto error_it = res.find("error");
 
         if (id_it == end(res)) {
-            PACKIO_ERROR("missing id field");
-            return std::nullopt;
+            return unexpected{"missing id field"};
         }
         if (result_it == end(res) && error_it == end(res)) {
-            PACKIO_ERROR("missing error and result field");
-            return std::nullopt;
+            return unexpected{"missing error and result field"};
         }
 
-        std::optional<response> parsed{std::in_place};
-        parsed->id = std::move(*id_it);
+        response parsed;
+        parsed.id = std::move(*id_it);
         if (error_it != end(res)) {
-            parsed->error = std::move(*error_it);
+            parsed.error = std::move(*error_it);
         }
         if (result_it != end(res)) {
-            parsed->result = std::move(*result_it);
+            parsed.result = std::move(*result_it);
         }
         return parsed;
     }
 
-    static std::optional<request> parse_request(nlohmann::json&& req)
+    static expected<request, std::string> parse_request(nlohmann::json&& req)
     {
         auto id_it = req.find("id");
         auto method_it = req.find("method");
         auto params_it = req.find("params");
 
         if (method_it == end(req)) {
-            PACKIO_ERROR("missing method field");
-            return std::nullopt;
+            return unexpected{"missing method field"};
         }
         if (!method_it->is_string()) {
-            PACKIO_ERROR("method field is not a string");
-            return std::nullopt;
+            return unexpected{"method field is not a string"};
         }
 
-        std::optional<request> parsed{std::in_place};
-        parsed->method = method_it->get<std::string>();
+        request parsed;
+        parsed.method = method_it->get<std::string>();
         if (params_it == end(req) || params_it->is_null()) {
-            parsed->args = nlohmann::json::array();
+            parsed.args = nlohmann::json::array();
         }
         else if (!params_it->is_array() && !params_it->is_object()) {
-            PACKIO_ERROR("non-structured arguments are not supported");
-            return std::nullopt;
+            return unexpected{"non-structured arguments are not supported"};
         }
         else {
-            parsed->args = std::move(*params_it);
+            parsed.args = std::move(*params_it);
         }
 
         if (id_it == end(req) || id_it->is_null()) {
-            parsed->type = call_type::notification;
+            parsed.type = call_type::notification;
         }
         else {
-            parsed->type = call_type::request;
-            parsed->id = std::move(*id_it);
+            parsed.type = call_type::request;
+            parsed.id = std::move(*id_it);
         }
         return parsed;
     }
@@ -320,7 +318,7 @@ public:
     }
 
     template <typename T, typename... ArgSpecs>
-    static std::optional<T> extract_args(
+    static internal::expected<T, std::string> extract_args(
         const nlohmann::json& args,
         const std::tuple<ArgSpecs...>& args_specs)
     {
@@ -329,9 +327,8 @@ public:
                 if (args.size() > std::tuple_size_v<T>) {
                     // keep this check otherwise the converter
                     // may silently drop arguments
-                    PACKIO_WARN(
-                        "cannot convert args: wrong number of arguments");
-                    return std::nullopt;
+                    return internal::unexpected{
+                        "cannot convert args: too many arguments"};
                 }
 
                 return convert_positional_args<T>(args, args_specs);
@@ -340,14 +337,13 @@ public:
                 return convert_named_args<T>(args, args_specs);
             }
             else {
-                PACKIO_ERROR("arguments are not a structured type");
-                return std::nullopt;
+                return internal::unexpected{
+                    "arguments are not a structured type"};
             }
         }
         catch (const std::exception& exc) {
-            PACKIO_WARN("cannot convert args: {}", exc.what());
-            (void)exc;
-            return std::nullopt;
+            return internal::unexpected{
+                std::string{"cannot convert args: "} + exc.what()};
         }
     }
 

@@ -11,6 +11,7 @@
 
 #include "../arg.h"
 #include "../internal/config.h"
+#include "../internal/expected.h"
 #include "../internal/log.h"
 #include "../internal/rpc.h"
 #include "converters.h"
@@ -29,6 +30,8 @@ constexpr bool named_args_v = sizeof...(Args) > 0 && (is_arg_v<Args> && ...);
 using id_type = boost::json::value;
 using native_type = boost::json::value;
 using string_type = boost::json::string;
+using packio::internal::expected;
+using packio::internal::unexpected;
 
 //! The object representing a client request
 struct request {
@@ -54,20 +57,20 @@ public:
         parser_->reset();
     }
 
-    std::optional<request> get_request()
+    expected<request, std::string> get_request()
     {
         if (parsed_.empty()) {
-            return std::nullopt;
+            return unexpected{"no request parsed"};
         }
         auto object = std::move(parsed_.front());
         parsed_.pop();
         return parse_request(std::move(object.as_object()));
     }
 
-    std::optional<response> get_response()
+    expected<response, std::string> get_response()
     {
         if (parsed_.empty()) {
-            return std::nullopt;
+            return unexpected{"no response parsed"};
         }
         auto object = std::move(parsed_.front());
         parsed_.pop();
@@ -103,69 +106,64 @@ public:
     }
 
 private:
-    static std::optional<response> parse_response(boost::json::object&& res)
+    static expected<response, std::string> parse_response(boost::json::object&& res)
     {
         auto id_it = res.find("id");
         auto result_it = res.find("result");
         auto error_it = res.find("error");
 
         if (id_it == res.end()) {
-            PACKIO_ERROR("missing id field");
-            return std::nullopt;
+            return unexpected{"missing id field"};
         }
         if (result_it == res.end() && error_it == res.end()) {
-            PACKIO_ERROR("missing error and result field");
-            return std::nullopt;
+            return unexpected{"missing error and result field"};
         }
 
-        std::optional<response> parsed{std::in_place};
-        parsed->id = std::move(id_it->value());
+        response parsed;
+        parsed.id = std::move(id_it->value());
         if (error_it != res.end()) {
-            parsed->error = std::move(error_it->value());
+            parsed.error = std::move(error_it->value());
         }
         if (result_it != res.end()) {
-            parsed->result = std::move(result_it->value());
+            parsed.result = std::move(result_it->value());
         }
         return parsed;
     }
 
-    static std::optional<request> parse_request(boost::json::object&& req)
+    static expected<request, std::string> parse_request(boost::json::object&& req)
     {
         auto id_it = req.find("id");
         auto method_it = req.find("method");
         auto params_it = req.find("params");
 
         if (method_it == req.end()) {
-            PACKIO_ERROR("missing method field");
-            return std::nullopt;
+            return unexpected{"missing method field"};
         }
         if (!method_it->value().is_string()) {
-            PACKIO_ERROR("method field is not a string");
-            return std::nullopt;
+            return unexpected{"method field is not a string"};
         }
 
-        std::optional<request> parsed{std::in_place};
-        parsed->method = std::string{
+        request parsed;
+        parsed.method = std::string{
             method_it->value().get_string().data(),
             method_it->value().get_string().size(),
         };
         if (params_it == req.end() || params_it->value().is_null()) {
-            parsed->args = boost::json::array{};
+            parsed.args = boost::json::array{};
         }
         else if (!params_it->value().is_array() && !params_it->value().is_object()) {
-            PACKIO_ERROR("non-structured arguments are not supported");
-            return std::nullopt;
+            return unexpected{"non-structured arguments are not supported"};
         }
         else {
-            parsed->args = std::move(params_it->value());
+            parsed.args = std::move(params_it->value());
         }
 
         if (id_it == req.end() || id_it->value().is_null()) {
-            parsed->type = call_type::notification;
+            parsed.type = call_type::notification;
         }
         else {
-            parsed->type = call_type::request;
-            parsed->id = std::move(id_it->value());
+            parsed.type = call_type::request;
+            parsed.id = std::move(id_it->value());
         }
         return parsed;
     }
@@ -329,7 +327,7 @@ public:
     }
 
     template <typename T, typename... ArgSpecs>
-    static std::optional<T> extract_args(
+    static internal::expected<T, std::string> extract_args(
         boost::json::value&& args,
         const std::tuple<ArgSpecs...>& args_specs)
     {
@@ -338,9 +336,8 @@ public:
                 if (args.get_array().size() > std::tuple_size_v<T>) {
                     // keep this check otherwise the converter
                     // may silently drop arguments
-                    PACKIO_WARN(
-                        "cannot convert args: wrong number of arguments");
-                    return std::nullopt;
+                    return internal::unexpected{
+                        "cannot convert args: too many arguments"};
                 }
 
                 return convert_positional_args<T>(args.get_array(), args_specs);
@@ -349,14 +346,13 @@ public:
                 return convert_named_args<T>(args.get_object(), args_specs);
             }
             else {
-                PACKIO_ERROR("arguments are not a structured type");
-                return std::nullopt;
+                return internal::unexpected{
+                    "arguments are not a structured type"};
             }
         }
         catch (const std::exception& exc) {
-            PACKIO_WARN("cannot convert args: {}", exc.what());
-            (void)exc;
-            return std::nullopt;
+            return internal::unexpected{
+                std::string{"cannot convert args: "} + exc.what()};
         }
     }
 

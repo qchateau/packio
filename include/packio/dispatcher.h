@@ -247,8 +247,8 @@ private:
                 auto typed_args = rpc_type::template extract_args<value_args>(
                     std::move(args), args_specs);
                 if (!typed_args) {
-                    PACKIO_DEBUG("incompatible arguments");
-                    handler.set_error("Incompatible arguments");
+                    PACKIO_DEBUG(typed_args.error());
+                    handler.set_error(typed_args.error());
                     return;
                 }
 
@@ -276,8 +276,8 @@ private:
                 auto typed_args = rpc_type::template extract_args<value_args>(
                     std::move(args), args_specs);
                 if (!typed_args) {
-                    PACKIO_DEBUG("incompatible arguments");
-                    handler.set_error("Incompatible arguments");
+                    PACKIO_DEBUG(typed_args.error());
+                    handler.set_error(typed_args.error());
                     return;
                 }
 
@@ -308,8 +308,8 @@ private:
             auto typed_args = rpc_type::template extract_args<value_args>(
                 std::move(args), args_specs);
             if (!typed_args) {
-                PACKIO_DEBUG("incompatible arguments");
-                handler.set_error("Incompatible arguments");
+                PACKIO_DEBUG(typed_args.error());
+                handler.set_error(typed_args.error());
                 return;
             }
 

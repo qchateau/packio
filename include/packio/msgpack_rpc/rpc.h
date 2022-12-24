@@ -9,6 +9,7 @@
 
 #include "../arg.h"
 #include "../internal/config.h"
+#include "../internal/expected.h"
 #include "../internal/log.h"
 #include "../internal/rpc.h"
 
@@ -23,6 +24,8 @@ enum class msgpack_rpc_type { request = 0, response = 1, notification = 2 };
 
 using id_type = uint32_t;
 using native_type = ::msgpack::object;
+using packio::internal::expected;
+using packio::internal::unexpected;
 
 //! The object representing a client request
 struct request {
@@ -48,22 +51,22 @@ class incremental_parser {
 public:
     incremental_parser() : unpacker_{std::make_unique<::msgpack::unpacker>()} {}
 
-    std::optional<request> get_request()
+    expected<request, std::string> get_request()
     {
         try_parse_object();
         if (!parsed_) {
-            return std::nullopt;
+            return unexpected{"no request parsed"};
         }
         auto object = std::move(*parsed_);
         parsed_.reset();
         return parse_request(std::move(object));
     }
 
-    std::optional<response> get_response()
+    expected<response, std::string> get_response()
     {
         try_parse_object();
         if (!parsed_) {
-            return std::nullopt;
+            return unexpected{"no response parsed"};
         }
         auto object = std::move(*parsed_);
         parsed_.reset();
@@ -96,45 +99,45 @@ private:
         }
     }
 
-    static std::optional<response> parse_response(::msgpack::object_handle&& res)
+    static expected<response, std::string> parse_response(
+        ::msgpack::object_handle&& res)
     {
         if (res->type != ::msgpack::type::ARRAY) {
-            PACKIO_ERROR("unexpected message type: {}", res->type);
-            return std::nullopt;
+            return unexpected{
+                "unexpected message type: " + std::to_string(res->type)};
         }
         if (res->via.array.size != 4) {
-            PACKIO_ERROR("unexpected message size: {}", res->via.array.size);
-            return std::nullopt;
+            return unexpected{
+                "unexpected message size: " + std::to_string(res->via.array.size)};
         }
         int type = res->via.array.ptr[0].as<int>();
         if (type != static_cast<int>(msgpack_rpc_type::response)) {
-            PACKIO_ERROR("unexpected type: {}", type);
-            return std::nullopt;
+            return unexpected{"unexpected type: " + std::to_string(type)};
         }
 
-        std::optional<response> parsed{std::in_place};
-        parsed->zone = std::move(res.zone());
+        response parsed;
+        parsed.zone = std::move(res.zone());
         const auto& array = res->via.array.ptr;
 
-        parsed->id = array[1].as<id_type>();
+        parsed.id = array[1].as<id_type>();
         if (array[2].type != ::msgpack::type::NIL) {
-            parsed->error = array[2];
+            parsed.error = array[2];
         }
         else {
-            parsed->result = array[3];
+            parsed.result = array[3];
         }
         return parsed;
     }
 
-    static std::optional<request> parse_request(::msgpack::object_handle&& req)
+    static expected<request, std::string> parse_request(::msgpack::object_handle&& req)
     {
         if (req->type != ::msgpack::type::ARRAY || req->via.array.size < 3) {
-            PACKIO_ERROR("unexpected message type: {}", req->type);
-            return std::nullopt;
+            return unexpected{
+                "unexpected message type: " + std::to_string(req->type)};
         }
 
-        std::optional<request> parsed{std::in_place};
-        parsed->zone = std::move(req.zone());
+        request parsed;
+        parsed.zone = std::move(req.zone());
         const auto& array = req->via.array.ptr;
         auto array_size = req->via.array.size;
         ;
@@ -147,33 +150,32 @@ private:
             std::size_t expected_size;
             switch (type) {
             case msgpack_rpc_type::request:
-                parsed->id = array[idx++].as<id_type>();
+                parsed.id = array[idx++].as<id_type>();
                 expected_size = 4;
-                parsed->type = call_type::request;
+                parsed.type = call_type::request;
                 break;
             case msgpack_rpc_type::notification:
                 expected_size = 3;
-                parsed->type = call_type::notification;
+                parsed.type = call_type::notification;
                 break;
             default:
-                PACKIO_ERROR("unexpected type: {}", type);
-                return std::nullopt;
+                return unexpected{
+                    "unexpected type: " + std::to_string(static_cast<int>(type))};
             }
 
             if (array_size != expected_size) {
-                PACKIO_ERROR("unexpected message size: {}", array_size);
-                return std::nullopt;
+                return unexpected{
+                    "unexpected message size: " + std::to_string(array_size)};
             }
 
-            parsed->method = array[idx++].as<std::string>();
-            parsed->args = array[idx++];
+            parsed.method = array[idx++].as<std::string>();
+            parsed.args = array[idx++];
 
             return parsed;
         }
         catch (::msgpack::type_error& exc) {
-            PACKIO_ERROR("unexpected message content: {}", exc.what());
-            (void)exc;
-            return std::nullopt;
+            return unexpected{
+                std::string{"unexpected message content: "} + exc.what()};
         }
     }
 
@@ -292,28 +294,26 @@ public:
     }
 
     template <typename T, typename... ArgSpecs>
-    static std::optional<T> extract_args(
+    static internal::expected<T, std::string> extract_args(
         const ::msgpack::object& args,
         const std::tuple<ArgSpecs...>& args_specs)
     {
         if (args.type != ::msgpack::type::ARRAY) {
-            PACKIO_ERROR("arguments is not an array");
-            return std::nullopt;
+            return internal::unexpected{"arguments is not an array"};
         }
 
         if (args.via.array.size > std::tuple_size_v<T>) {
             // keep this check otherwise msgpack unpacker
             // may silently drop arguments
-            return std::nullopt;
+            return internal::unexpected{"too many arguments"};
         }
 
         try {
             return convert_positional_args<T>(args.via.array, args_specs);
         }
         catch (::msgpack::type_error& exc) {
-            PACKIO_WARN("cannot convert args: {}", exc.what());
-            (void)exc;
-            return std::nullopt;
+            return internal::unexpected{
+                std::string{"cannot convert args: "} + exc.what()};
         }
     }
 

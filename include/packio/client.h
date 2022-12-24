@@ -270,7 +270,12 @@ private:
                     PACKIO_TRACE("read: {}", length);
                     parser.buffer_consumed(length);
 
-                    while (auto response = parser.get_response()) {
+                    while (true) {
+                        auto response = parser.get_response();
+                        if (!response) {
+                            PACKIO_INFO("stop reading: {}", response.error());
+                            break;
+                        }
                         self->async_call_handler(std::move(*response));
                     }
 
