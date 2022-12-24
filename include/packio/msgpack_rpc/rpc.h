@@ -299,13 +299,15 @@ public:
         const std::tuple<ArgSpecs...>& args_specs)
     {
         if (args.type != ::msgpack::type::ARRAY) {
-            return internal::unexpected{"arguments is not an array"};
+            return internal::unexpected{
+                "cannot convert arguments: arguments is not an array"};
         }
 
         if (args.via.array.size > std::tuple_size_v<T>) {
             // keep this check otherwise msgpack unpacker
             // may silently drop arguments
-            return internal::unexpected{"too many arguments"};
+            return internal::unexpected{
+                "cannot convert arguments: too many arguments"};
         }
 
         try {
@@ -313,7 +315,7 @@ public:
         }
         catch (::msgpack::type_error& exc) {
             return internal::unexpected{
-                std::string{"cannot convert args: "} + exc.what()};
+                std::string{"cannot convert arguments: "} + exc.what()};
         }
     }
 

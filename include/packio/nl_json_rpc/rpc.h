@@ -304,7 +304,7 @@ public:
                      error["message"] = error["data"];
                  }
                  else {
-                     error["message"] = "Unknown error";
+                     error["message"] = "unknown error";
                  }
                  return error;
              }()},
@@ -328,7 +328,7 @@ public:
                     // keep this check otherwise the converter
                     // may silently drop arguments
                     return internal::unexpected{
-                        "cannot convert args: too many arguments"};
+                        "cannot convert arguments: too many arguments"};
                 }
 
                 return convert_positional_args<T>(args, args_specs);
@@ -338,12 +338,13 @@ public:
             }
             else {
                 return internal::unexpected{
-                    "arguments are not a structured type"};
+                    "cannot convert arguments: arguments are not a structured "
+                    "type"};
             }
         }
         catch (const std::exception& exc) {
             return internal::unexpected{
-                std::string{"cannot convert args: "} + exc.what()};
+                std::string{"cannot convert arguments: "} + exc.what()};
         }
     }
 

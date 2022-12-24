@@ -146,7 +146,7 @@ private:
         }
         else {
             PACKIO_DEBUG("unknown function {}", request.method);
-            handler.set_error("Unknown function");
+            handler.set_error("unknown function");
         }
     }
 

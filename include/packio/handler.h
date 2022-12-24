@@ -27,8 +27,8 @@ template <typename Rpc>
 class completion_handler {
 public:
     using id_type = typename Rpc::id_type;
-    using response_buffer_type = decltype(
-        Rpc::serialize_response(std::declval<id_type>()));
+    using response_buffer_type =
+        decltype(Rpc::serialize_response(std::declval<id_type>()));
     using function_type = std::function<void(response_buffer_type&&)>;
 
     template <typename F>
@@ -41,7 +41,7 @@ public:
     ~completion_handler()
     {
         if (handler_) {
-            set_error("Call finished with no result");
+            set_error("call finished with no result");
         }
     }
 
@@ -59,7 +59,7 @@ public:
     completion_handler& operator=(completion_handler&& other)
     {
         if (handler_) {
-            set_error("Call finished with no result");
+            set_error("call finished with no result");
         }
         id_ = other.id_;
         handler_ = std::move(other.handler_);
@@ -89,7 +89,7 @@ public:
     //! @overload
     void set_error()
     {
-        complete(Rpc::serialize_error_response(id_, "Unknown error"));
+        complete(Rpc::serialize_error_response(id_, "unknown error"));
     }
 
     //! Same as @ref set_value
