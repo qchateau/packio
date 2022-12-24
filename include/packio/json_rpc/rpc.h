@@ -5,6 +5,7 @@
 #ifndef PACKIO_JSON_RPC_RPC_H
 #define PACKIO_JSON_RPC_RPC_H
 
+#include <array>
 #include <queue>
 
 #include <boost/json.hpp>
@@ -333,22 +334,13 @@ public:
     {
         try {
             if (args.is_array()) {
-                if (args.get_array().size() > std::tuple_size_v<T>) {
-                    // keep this check otherwise the converter
-                    // may silently drop arguments
-                    return internal::unexpected{
-                        "cannot convert arguments: too many arguments"};
-                }
-
                 return convert_positional_args<T>(args.get_array(), args_specs);
             }
             else if (args.is_object()) {
                 return convert_named_args<T>(args.get_object(), args_specs);
             }
             else {
-                return internal::unexpected{
-                    "cannot convert arguments: arguments are not a structured "
-                    "type"};
+                throw std::runtime_error{"arguments are not a structured type"};
             }
         }
         catch (const std::exception& exc) {
@@ -373,12 +365,21 @@ private:
         const std::tuple<ArgSpecs...>& args_specs,
         std::index_sequence<Idxs...>)
     {
+        if (array.size() > std::tuple_size_v<T>) {
+            // keep this check otherwise the converter
+            // may silently drop arguments
+            throw std::runtime_error{"too many arguments"};
+        }
         return {[&]() {
             if (Idxs < array.size()) {
                 return boost::json::value_to<std::tuple_element_t<Idxs, T>>(
                     array.at(Idxs));
             }
-            return std::get<Idxs>(args_specs).default_value();
+            if (const auto& value = std::get<Idxs>(args_specs).default_value()) {
+                return *value;
+            }
+            throw std::runtime_error{
+                "no value for argument " + std::get<Idxs>(args_specs).name()};
         }()...};
     }
 
@@ -388,7 +389,7 @@ private:
         const std::tuple<ArgSpecs...>& args_specs)
     {
         return convert_named_args<T>(
-            args, args_specs, std::make_index_sequence<std::tuple_size_v<T>>());
+            args, args_specs, std::make_index_sequence<sizeof...(ArgSpecs)>());
     }
 
     template <typename T, typename... ArgSpecs, std::size_t... Idxs>
@@ -397,13 +398,30 @@ private:
         const std::tuple<ArgSpecs...>& args_specs,
         std::index_sequence<Idxs...>)
     {
+        const std::array<const std::string*, sizeof...(Idxs)> available_arguments = {
+            &std::get<Idxs>(args_specs).name()...};
+        for (const auto& item : args) {
+            auto it = std::find_if(
+                available_arguments.begin(),
+                available_arguments.end(),
+                [&](const std::string* arg) { return *arg == item.key(); });
+            if (it == available_arguments.end()) {
+                throw std::runtime_error{
+                    "unexpected argument " + std::string(item.key())};
+            }
+        }
+
         return T{[&]() {
             auto it = args.find(std::get<Idxs>(args_specs).name());
             if (it != args.end()) {
                 return boost::json::value_to<std::tuple_element_t<Idxs, T>>(
                     it->value());
             }
-            return std::get<Idxs>(args_specs).default_value();
+            if (const auto& value = std::get<Idxs>(args_specs).default_value()) {
+                return *value;
+            }
+            throw std::runtime_error{
+                "no value for argument " + std::get<Idxs>(args_specs).name()};
         }()...};
     }
 };

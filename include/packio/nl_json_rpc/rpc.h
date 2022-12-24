@@ -5,7 +5,7 @@
 #ifndef PACKIO_NL_JSON_RPC_RPC_H
 #define PACKIO_NL_JSON_RPC_RPC_H
 
-#include <deque>
+#include <array>
 
 #include <nlohmann/json.hpp>
 
@@ -324,22 +324,13 @@ public:
     {
         try {
             if (args.is_array()) {
-                if (args.size() > std::tuple_size_v<T>) {
-                    // keep this check otherwise the converter
-                    // may silently drop arguments
-                    return internal::unexpected{
-                        "cannot convert arguments: too many arguments"};
-                }
-
                 return convert_positional_args<T>(args, args_specs);
             }
             else if (args.is_object()) {
                 return convert_named_args<T>(args, args_specs);
             }
             else {
-                return internal::unexpected{
-                    "cannot convert arguments: arguments are not a structured "
-                    "type"};
+                throw std::runtime_error{"arguments are not a structured type"};
             }
         }
         catch (const std::exception& exc) {
@@ -364,11 +355,20 @@ private:
         const std::tuple<ArgSpecs...>& args_specs,
         std::index_sequence<Idxs...>)
     {
+        if (array.size() > std::tuple_size_v<T>) {
+            // keep this check otherwise the converter
+            // may silently drop arguments
+            throw std::runtime_error{"too many arguments"};
+        }
         return {[&]() {
             if (Idxs < array.size()) {
                 return array.at(Idxs).get<std::tuple_element_t<Idxs, T>>();
             }
-            return std::get<Idxs>(args_specs).default_value();
+            if (const auto& value = std::get<Idxs>(args_specs).default_value()) {
+                return *value;
+            }
+            throw std::runtime_error{
+                "no value for argument " + std::get<Idxs>(args_specs).name()};
         }()...};
     }
 
@@ -378,7 +378,7 @@ private:
         const std::tuple<ArgSpecs...>& args_specs)
     {
         return convert_named_args<T>(
-            args, args_specs, std::make_index_sequence<std::tuple_size_v<T>>{});
+            args, args_specs, std::make_index_sequence<sizeof...(ArgSpecs)>{});
     }
 
     template <typename T, typename... ArgSpecs, std::size_t... Idxs>
@@ -387,12 +387,28 @@ private:
         const std::tuple<ArgSpecs...>& args_specs,
         std::index_sequence<Idxs...>)
     {
+        const std::array<const std::string*, sizeof...(Idxs)> available_arguments = {
+            &std::get<Idxs>(args_specs).name()...};
+        for (auto it = args.begin(); it != args.end(); ++it) {
+            auto arg_it = std::find_if(
+                available_arguments.begin(),
+                available_arguments.end(),
+                [&](const std::string* arg) { return *arg == it.key(); });
+            if (arg_it == available_arguments.end()) {
+                throw std::runtime_error{"unexpected argument " + it.key()};
+            }
+        }
+
         return T{[&]() {
             auto it = args.find(std::get<Idxs>(args_specs).name());
             if (it != args.end()) {
                 return it->template get<std::tuple_element_t<Idxs, T>>();
             }
-            return std::get<Idxs>(args_specs).default_value();
+            if (const auto& value = std::get<Idxs>(args_specs).default_value()) {
+                return *value;
+            }
+            throw std::runtime_error{
+                "no value for argument " + std::get<Idxs>(args_specs).name()};
         }()...};
     }
 };

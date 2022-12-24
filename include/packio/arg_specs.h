@@ -31,11 +31,9 @@ public:
     }
 
     const std::string& name() const { return name_; }
-    const DefaultType& default_value() const
+    const std::optional<DefaultType>& default_value() const
     {
-        if (!default_value_)
-            throw std::runtime_error("no default value for argument " + name());
-        return *default_value_;
+        return default_value_;
     }
 
 private:

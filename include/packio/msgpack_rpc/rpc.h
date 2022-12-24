@@ -298,22 +298,13 @@ public:
         const ::msgpack::object& args,
         const std::tuple<ArgSpecs...>& args_specs)
     {
-        if (args.type != ::msgpack::type::ARRAY) {
-            return internal::unexpected{
-                "cannot convert arguments: arguments is not an array"};
-        }
-
-        if (args.via.array.size > std::tuple_size_v<T>) {
-            // keep this check otherwise msgpack unpacker
-            // may silently drop arguments
-            return internal::unexpected{
-                "cannot convert arguments: too many arguments"};
-        }
-
         try {
+            if (args.type != ::msgpack::type::ARRAY) {
+                throw std::runtime_error{"arguments is not an array"};
+            }
             return convert_positional_args<T>(args.via.array, args_specs);
         }
-        catch (::msgpack::type_error& exc) {
+        catch (const std::exception& exc) {
             return internal::unexpected{
                 std::string{"cannot convert arguments: "} + exc.what()};
         }
@@ -335,11 +326,20 @@ private:
         const std::tuple<ArgSpecs...>& args_specs,
         std::index_sequence<Idxs...>)
     {
+        if (array.size > std::tuple_size_v<T>) {
+            // keep this check otherwise msgpack unpacker
+            // may silently drop arguments
+            throw std::runtime_error{"too many arguments"};
+        }
         return {[&]() {
             if (Idxs < array.size) {
                 return array.ptr[Idxs].as<std::tuple_element_t<Idxs, T>>();
             }
-            return std::get<Idxs>(args_specs).default_value();
+            if (const auto& value = std::get<Idxs>(args_specs).default_value()) {
+                return *value;
+            }
+            throw std::runtime_error{
+                "no value for argument " + std::get<Idxs>(args_specs).name()};
         }()...};
     }
 };

@@ -68,7 +68,7 @@ public:
     template <typename SyncProcedure>
     bool add(std::string_view name, SyncProcedure&& fct)
     {
-        return add<SyncProcedure, 0>(name, {}, std::forward<SyncProcedure>(fct));
+        return add<SyncProcedure>(name, {}, std::forward<SyncProcedure>(fct));
     }
 
     //! Add an asynchronous procedure to the dispatcher
@@ -96,7 +96,7 @@ public:
     template <typename AsyncProcedure>
     bool add_async(std::string_view name, AsyncProcedure&& fct)
     {
-        return add_async<AsyncProcedure, 0>(
+        return add_async<AsyncProcedure>(
             name, {}, std::forward<AsyncProcedure>(fct));
     }
 
@@ -132,7 +132,7 @@ public:
     template <typename Executor, typename CoroProcedure>
     bool add_coro(std::string_view name, const Executor& executor, CoroProcedure&& coro)
     {
-        return add_coro<Executor, CoroProcedure, 0>(
+        return add_coro<Executor, CoroProcedure>(
             name, executor, {}, std::forward<CoroProcedure>(coro));
     }
 
@@ -158,7 +158,7 @@ public:
     template <typename ExecutionContext, typename CoroProcedure>
     bool add_coro(std::string_view name, ExecutionContext& ctx, CoroProcedure&& coro)
     {
-        return add_coro<ExecutionContext, CoroProcedure, 0>(
+        return add_coro<ExecutionContext, CoroProcedure>(
             name, ctx, {}, std::forward<CoroProcedure>(coro));
     }
 #endif // defined(PACKIO_HAS_CO_AWAIT)
