@@ -12,7 +12,7 @@ TYPED_TEST(BasicTest, test_named_arguments)
         typename std::decay_t<decltype(*this)>::completion_handler;
     using rpc_type = typename std::decay_t<decltype(*this)>::client_type::rpc_type;
     constexpr bool has_named_args =
-        std::is_same_v<rpc_type, packio::nl_json_rpc::rpc>;
+        !std::is_same_v<rpc_type, packio::msgpack_rpc::rpc>;
 
     this->server_->async_serve_forever();
     this->async_run();
