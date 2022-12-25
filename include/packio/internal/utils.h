@@ -43,14 +43,15 @@ struct func_traits<R (*)(Args...)> : std::true_type {
 template <typename T>
 constexpr bool func_traits_v = func_traits<T>::value;
 
-#if defined(PACKIO_HAS_CO_AWAIT)
 template <typename>
 struct is_awaitable : std::false_type {
 };
 
+#if defined(PACKIO_HAS_CO_AWAIT)
 template <typename... Args>
 struct is_awaitable<net::awaitable<Args...>> : std::true_type {
 };
+#endif // defined(PACKIO_HAS_CO_AWAIT)
 
 template <typename, typename = void>
 struct is_coroutine : std::false_type {
@@ -63,7 +64,6 @@ struct is_coroutine<T, std::enable_if_t<func_traits_v<T>>>
 
 template <typename T>
 constexpr bool is_coroutine_v = is_coroutine<T>::value;
-#endif // defined(PACKIO_HAS_CO_AWAIT)
 
 template <typename T, typename = void>
 struct is_tuple : std::false_type {

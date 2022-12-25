@@ -15,7 +15,7 @@
 #include <string_view>
 #include <tuple>
 
-#include "arg_specs.h"
+#include "arg_spec.h"
 #include "handler.h"
 #include "internal/config.h"
 #include "internal/movable_function.h"

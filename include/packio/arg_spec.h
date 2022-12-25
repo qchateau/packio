@@ -42,6 +42,29 @@ private:
 };
 
 template <typename F>
+using arg_specs_for_t =
+    std::conditional_t<internal::is_coroutine_v<F>, typename Iftrue, typename Iffalse>
+
+    template <typename... ArgSpecs>
+    class arg_specs : public std::tuple<ArgSpecs...> {
+public:
+    // default arg specs are arguments called "0", "1", ... and no default value
+    arg_specs() : std::tuple<ArgSpecs...>(iota()) {}
+
+private:
+    template <std::size_t... Idxs>
+    static std::tuple<ArgSpecs...> iota(std::index_sequence<Idxs...>)
+    {
+        return {std::to_string(Idxs)...};
+    }
+
+    static std::tuple<ArgSpecs...> iota()
+    {
+        return iota(std::make_index_sequence<sizeof...(ArgSpecs)>());
+    }
+};
+
+template <typename F>
 using arg_specs_for_t = internal::map_tuple_t<
     arg_spec,
     internal::decay_tuple_t<typename internal::func_traits<F>::args_type>>;

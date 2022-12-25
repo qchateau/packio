@@ -1,5 +1,5 @@
 #include "basic_test.h"
-#include <packio/arg_specs.h>
+#include <packio/arg_spec.h>
 
 using namespace std::chrono_literals;
 using namespace std::string_literals;
