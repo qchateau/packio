@@ -129,7 +129,7 @@ private:
         if (result_it != res.end()) {
             parsed.result = std::move(result_it->value());
         }
-        return parsed;
+        return {std::move(parsed)};
     }
 
     static expected<request, std::string> parse_request(boost::json::object&& req)
@@ -167,7 +167,7 @@ private:
             parsed.type = call_type::request;
             parsed.id = std::move(id_it->value());
         }
-        return parsed;
+        return {std::move(parsed)};
     }
 
     std::vector<char> buffer_;

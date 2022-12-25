@@ -125,7 +125,7 @@ private:
         if (result_it != end(res)) {
             parsed.result = std::move(*result_it);
         }
-        return parsed;
+        return {std::move(parsed)};
     }
 
     static expected<request, std::string> parse_request(nlohmann::json&& req)
@@ -160,7 +160,7 @@ private:
             parsed.type = call_type::request;
             parsed.id = std::move(*id_it);
         }
-        return parsed;
+        return {std::move(parsed)};
     }
 
     std::optional<nlohmann::json> parsed_;

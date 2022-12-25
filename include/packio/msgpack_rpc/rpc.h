@@ -127,7 +127,7 @@ private:
         else {
             parsed.result = array[3];
         }
-        return parsed;
+        return {std::move(parsed)};
     }
 
     static expected<request, std::string> parse_request(::msgpack::object_handle&& req)
@@ -172,7 +172,7 @@ private:
             parsed.method = array[idx++].as<std::string>();
             parsed.args = array[idx++];
 
-            return parsed;
+            return {std::move(parsed)};
         }
         catch (::msgpack::type_error& exc) {
             return unexpected{
