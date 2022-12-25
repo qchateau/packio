@@ -112,6 +112,34 @@ private:
     id_type id_;
     function_type handler_;
 };
+
+template <typename>
+struct is_completion_handler : std::false_type {
+};
+
+template <typename T>
+struct is_completion_handler<completion_handler<T>> : std::true_type {
+};
+
+template <typename T>
+constexpr auto is_completion_handler_v = is_completion_handler<T>::value;
+
+template <typename F, typename...>
+struct is_async_procedure
+    : is_async_procedure<typename internal::func_traits<F>::args_type> {
+};
+
+template <>
+struct is_async_procedure<std::tuple<>> : std::false_type {
+};
+
+template <typename T0, typename... Ts>
+struct is_async_procedure<std::tuple<T0, Ts...>> : is_completion_handler<T0> {
+};
+
+template <typename T>
+constexpr auto is_async_procedure_v = is_async_procedure<T>::value;
+
 } // packio
 
 #endif // PACKIO_HANDLER_H

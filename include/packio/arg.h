@@ -17,11 +17,12 @@ class arg {
 public:
     template <typename T>
     struct with_value {
-        const std::string name;
+        std::string name;
         T value;
     };
 
     explicit constexpr arg(std::string_view name) : name_{name} {}
+    std::string_view name() const { return name_; }
 
     template <typename T>
     constexpr with_value<T> operator=(T&& value)

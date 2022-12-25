@@ -8,6 +8,7 @@
 #include <msgpack.hpp>
 
 #include "../arg.h"
+#include "../args_specs.h"
 #include "../internal/config.h"
 #include "../internal/expected.h"
 #include "../internal/log.h"
@@ -293,16 +294,16 @@ public:
         return net::const_buffer(buf.data(), buf.size());
     }
 
-    template <typename T, typename... ArgSpecs>
+    template <typename T, typename F>
     static internal::expected<T, std::string> extract_args(
         const ::msgpack::object& args,
-        const std::tuple<ArgSpecs...>& args_specs)
+        const args_specs<F>& specs)
     {
         try {
             if (args.type != ::msgpack::type::ARRAY) {
                 throw std::runtime_error{"arguments is not an array"};
             }
-            return convert_positional_args<T>(args.via.array, args_specs);
+            return convert_positional_args<T>(args.via.array, specs);
         }
         catch (const std::exception& exc) {
             return internal::unexpected{
@@ -311,19 +312,19 @@ public:
     }
 
 private:
-    template <typename T, typename... ArgSpecs>
+    template <typename T, typename F>
     static constexpr T convert_positional_args(
         const ::msgpack::object_array& array,
-        const std::tuple<ArgSpecs...>& args_specs)
+        const args_specs<F>& specs)
     {
         return convert_positional_args<T>(
-            array, args_specs, std::make_index_sequence<std::tuple_size_v<T>>());
+            array, specs, std::make_index_sequence<args_specs<F>::size()>());
     }
 
-    template <typename T, typename... ArgSpecs, std::size_t... Idxs>
+    template <typename T, typename F, std::size_t... Idxs>
     static constexpr T convert_positional_args(
         const ::msgpack::object_array& array,
-        const std::tuple<ArgSpecs...>& args_specs,
+        const args_specs<F>& specs,
         std::index_sequence<Idxs...>)
     {
         if (array.size > std::tuple_size_v<T>) {
@@ -335,11 +336,11 @@ private:
             if (Idxs < array.size) {
                 return array.ptr[Idxs].as<std::tuple_element_t<Idxs, T>>();
             }
-            if (const auto& value = std::get<Idxs>(args_specs).default_value()) {
+            if (const auto& value = specs.template get<Idxs>().default_value()) {
                 return *value;
             }
             throw std::runtime_error{
-                "no value for argument " + std::get<Idxs>(args_specs).name()};
+                "no value for argument " + specs.template get<Idxs>().name()};
         }()...};
     }
 };
