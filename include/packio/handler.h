@@ -124,17 +124,21 @@ struct is_completion_handler<completion_handler<T>> : std::true_type {
 template <typename T>
 constexpr auto is_completion_handler_v = is_completion_handler<T>::value;
 
-template <typename F, typename...>
-struct is_async_procedure
-    : is_async_procedure<typename internal::func_traits<F>::args_type> {
-};
+template <typename...>
+struct is_async_procedure_args;
 
 template <>
-struct is_async_procedure<std::tuple<>> : std::false_type {
+struct is_async_procedure_args<std::tuple<>> : std::false_type {
 };
 
 template <typename T0, typename... Ts>
-struct is_async_procedure<std::tuple<T0, Ts...>> : is_completion_handler<T0> {
+struct is_async_procedure_args<std::tuple<T0, Ts...>>
+    : is_completion_handler<T0> {
+};
+
+template <typename F>
+struct is_async_procedure
+    : is_async_procedure_args<typename internal::func_traits<F>::args_type> {
 };
 
 template <typename T>

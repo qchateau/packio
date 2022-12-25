@@ -6,7 +6,7 @@
 #define PACKIO_ARGS_SPECS_H
 
 //! @file
-//! Class @ref packio::arg_spec "arg_spec"
+//! Class @ref packio::args_specs "args_specs"
 
 #include <optional>
 #include <stdexcept>
@@ -118,10 +118,21 @@ private:
 };
 } // internal
 
-// Using the real implementation as the base class reduces
-// the number of templates instanciation
+//! Procedure arguments specifications
+//! @tparam The procedure
+//!
+//! CLass that describes the arguments of the procedure
+//! They each have a name and optionally a default value
+//! This is a tuple-like class where each element can be
+//! constructured from:
+//! - a string, defining the name of the argument
+//! - a @ref arg, defining the name of the argument
+//! - a @ref arg::with_value, defining the name of the argyment
+//!   and its default value
 template <typename Procedure>
 class args_specs
+    // Using the real implementation as the base class reduces
+    // the number of templates instanciation
     : public internal::args_specs<internal::arg_specs_tuple_for_t<Procedure>> {
 public:
     using base = internal::args_specs<internal::arg_specs_tuple_for_t<Procedure>>;
