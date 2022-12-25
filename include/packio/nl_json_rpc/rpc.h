@@ -363,7 +363,14 @@ private:
         }
         return {[&]() {
             if (Idxs < array.size()) {
-                return array.at(Idxs).get<std::tuple_element_t<Idxs, T>>();
+                try {
+                    return array.at(Idxs).get<std::tuple_element_t<Idxs, T>>();
+                }
+                catch (const ::nlohmann::json::type_error&) {
+                    throw std::runtime_error{
+                        "invalid type for argument "
+                        + specs.template get<Idxs>().name()};
+                }
             }
             if (const auto& value = specs.template get<Idxs>().default_value()) {
                 return *value;
@@ -401,7 +408,14 @@ private:
         return T{[&]() {
             auto it = args.find(specs.template get<Idxs>().name());
             if (it != args.end()) {
-                return it->template get<std::tuple_element_t<Idxs, T>>();
+                try {
+                    return it->template get<std::tuple_element_t<Idxs, T>>();
+                }
+                catch (const ::nlohmann::json::type_error&) {
+                    throw std::runtime_error{
+                        "invalid type for argument "
+                        + specs.template get<Idxs>().name()};
+                }
             }
             if (const auto& value = specs.template get<Idxs>().default_value()) {
                 return *value;

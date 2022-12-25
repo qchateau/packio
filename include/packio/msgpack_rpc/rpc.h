@@ -334,7 +334,14 @@ private:
         }
         return {[&]() {
             if (Idxs < array.size) {
-                return array.ptr[Idxs].as<std::tuple_element_t<Idxs, T>>();
+                try {
+                    return array.ptr[Idxs].as<std::tuple_element_t<Idxs, T>>();
+                }
+                catch (const ::msgpack::type_error&) {
+                    throw std::runtime_error{
+                        "invalid type for argument "
+                        + specs.template get<Idxs>().name()};
+                }
             }
             if (const auto& value = specs.template get<Idxs>().default_value()) {
                 return *value;

@@ -373,8 +373,15 @@ private:
         }
         return {[&]() {
             if (Idxs < array.size()) {
-                return boost::json::value_to<std::tuple_element_t<Idxs, T>>(
-                    array.at(Idxs));
+                try {
+                    return boost::json::value_to<std::tuple_element_t<Idxs, T>>(
+                        array.at(Idxs));
+                }
+                catch (const boost::json::system_error&) {
+                    throw std::runtime_error{
+                        "invalid type for argument "
+                        + specs.template get<Idxs>().name()};
+                }
             }
             if (const auto& value = specs.template get<Idxs>().default_value()) {
                 return *value;
@@ -415,8 +422,15 @@ private:
         return T{[&]() {
             auto it = args.find(specs.template get<Idxs>().name());
             if (it != args.end()) {
-                return boost::json::value_to<std::tuple_element_t<Idxs, T>>(
-                    it->value());
+                try {
+                    return boost::json::value_to<std::tuple_element_t<Idxs, T>>(
+                        it->value());
+                }
+                catch (const boost::json::system_error&) {
+                    throw std::runtime_error{
+                        "invalid type for argument "
+                        + specs.template get<Idxs>().name()};
+                }
             }
             if (const auto& value = specs.template get<Idxs>().default_value()) {
                 return *value;
