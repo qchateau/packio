@@ -119,41 +119,34 @@ TYPED_TEST(BasicTest, test_default_arguments)
             this->client_->async_call(
                 prefix + "add_all_default", std::make_tuple(12, 13), use_future),
             25);
-        EXPECT_ERROR_MESSAGE(
-            this->client_,
-            "cannot convert arguments: too many arguments",
-            prefix + "add_all_default",
-            1,
-            2,
-            3);
+        EXPECT_ERROR_EQ(
+            this->client_->async_call(
+                prefix + "add_all_default", std::make_tuple(1, 2, 3), use_future),
+            "cannot convert arguments: too many arguments");
 
         // -- add_first_default --
-        EXPECT_ERROR_MESSAGE(
-            this->client_,
-            "cannot convert arguments: no value for argument b",
-            prefix + "add_first_default");
-        EXPECT_ERROR_MESSAGE(
-            this->client_,
-            "cannot convert arguments: no value for argument b",
-            prefix + "add_first_default",
-            1);
+        EXPECT_ERROR_EQ(
+            this->client_->async_call(
+                prefix + "add_first_default", std::make_tuple(), use_future),
+            "cannot convert arguments: no value for argument b");
+        EXPECT_ERROR_EQ(
+            this->client_->async_call(
+                prefix + "add_first_default", std::make_tuple(1), use_future),
+            "cannot convert arguments: no value for argument b");
         EXPECT_RESULT_EQ(
             this->client_->async_call(
                 prefix + "add_first_default", std::make_tuple(12, 13), use_future),
             25);
-        EXPECT_ERROR_MESSAGE(
-            this->client_,
-            "cannot convert arguments: too many arguments",
-            prefix + "add_first_default",
-            1,
-            2,
-            3);
+        EXPECT_ERROR_EQ(
+            this->client_->async_call(
+                prefix + "add_first_default", std::make_tuple(1, 2, 3), use_future),
+            "cannot convert arguments: too many arguments");
 
         // -- add_second_default --
-        EXPECT_ERROR_MESSAGE(
-            this->client_,
-            "cannot convert arguments: no value for argument a",
-            prefix + "add_second_default");
+        EXPECT_ERROR_EQ(
+            this->client_->async_call(
+                prefix + "add_second_default", std::make_tuple(), use_future),
+            "cannot convert arguments: no value for argument a");
         EXPECT_RESULT_EQ(
             this->client_->async_call(
                 prefix + "add_second_default", std::make_tuple(12), use_future),
@@ -162,13 +155,10 @@ TYPED_TEST(BasicTest, test_default_arguments)
             this->client_->async_call(
                 prefix + "add_second_default", std::make_tuple(12, 13), use_future),
             25);
-        EXPECT_ERROR_MESSAGE(
-            this->client_,
-            "cannot convert arguments: too many arguments",
-            prefix + "add_second_default",
-            1,
-            2,
-            3);
+        EXPECT_ERROR_EQ(
+            this->client_->async_call(
+                prefix + "add_second_default", std::make_tuple(1, 2, 3), use_future),
+            "cannot convert arguments: too many arguments");
 
         if constexpr (has_named_args) {
             // -- add_all_default --
@@ -190,25 +180,26 @@ TYPED_TEST(BasicTest, test_default_arguments)
                     std::make_tuple("a"_arg = 12, "b"_arg = 13),
                     use_future),
                 25);
-            EXPECT_ERROR_MESSAGE(
-                this->client_,
-                "cannot convert arguments: unexpected argument c",
-                prefix + "add_all_default",
-                "c"_arg = 3);
-            EXPECT_ERROR_MESSAGE(
-                this->client_,
-                "cannot convert arguments: unexpected argument c",
-                prefix + "add_all_default",
-                "a"_arg = 1,
-                "b"_arg = 2,
-                "c"_arg = 3);
+            EXPECT_ERROR_EQ(
+                this->client_->async_call(
+                    prefix + "add_all_default",
+                    std::make_tuple("c"_arg = 3),
+                    use_future),
+                "cannot convert arguments: unexpected argument c");
+            EXPECT_ERROR_EQ(
+                this->client_->async_call(
+                    prefix + "add_all_default",
+                    std::make_tuple("a"_arg = 1, "b"_arg = 2, "c"_arg = 3),
+                    use_future),
+                "cannot convert arguments: unexpected argument c");
 
             // -- add_first_default --
-            EXPECT_ERROR_MESSAGE(
-                this->client_,
-                "cannot convert arguments: no value for argument b",
-                prefix + "add_first_default",
-                "a"_arg = 12);
+            EXPECT_ERROR_EQ(
+                this->client_->async_call(
+                    prefix + "add_first_default",
+                    std::make_tuple("a"_arg = 12),
+                    use_future),
+                "cannot convert arguments: no value for argument b");
             EXPECT_RESULT_EQ(
                 this->client_->async_call(
                     prefix + "add_first_default",
@@ -221,13 +212,12 @@ TYPED_TEST(BasicTest, test_default_arguments)
                     std::make_tuple("a"_arg = 12, "b"_arg = 13),
                     use_future),
                 25);
-            EXPECT_ERROR_MESSAGE(
-                this->client_,
-                "cannot convert arguments: unexpected argument c",
-                prefix + "add_first_default",
-                "a"_arg = 1,
-                "b"_arg = 2,
-                "c"_arg = 3);
+            EXPECT_ERROR_EQ(
+                this->client_->async_call(
+                    prefix + "add_first_default",
+                    std::make_tuple("a"_arg = 1, "b"_arg = 2, "c"_arg = 3),
+                    use_future),
+                "cannot convert arguments: unexpected argument c");
 
             // -- add_second_default --
             EXPECT_RESULT_EQ(

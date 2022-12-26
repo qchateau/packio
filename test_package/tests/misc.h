@@ -242,22 +242,6 @@ inline bool is_error_response(const packio::json_rpc::rpc::response_type& resp)
         }                                                             \
     } while (false)
 
-#define EXPECT_ERROR_MESSAGE(client, message, procedure, ...)                 \
-    do {                                                                      \
-        std::promise<std::string> p;                                          \
-        auto f = p.get_future();                                              \
-                                                                              \
-        client->async_call(                                                   \
-            procedure, std::make_tuple(__VA_ARGS__), [&](auto ec, auto res) { \
-                ASSERT_FALSE(ec);                                             \
-                ASSERT_TRUE(is_error_response(res));                          \
-                p.set_value(get_error_message(res.error));                    \
-            });                                                               \
-                                                                              \
-        ASSERT_FUTURE_NO_BLOCK(f, std::chrono::seconds{1});                   \
-        EXPECT_NO_THROW(EXPECT_EQ(message, f.get()));                         \
-    } while (false)
-
 using test_ssl_stream = packio::extra::ssl_stream_adapter<
     packio::net::ssl::stream<packio::net::ip::tcp::socket>>;
 
