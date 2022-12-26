@@ -55,10 +55,6 @@ TYPED_TEST(BasicTest, test_named_arguments)
             this->client_->async_call(
                 "echo", std::tuple{arg("a") = "toto"}, use_future),
             "toto"s);
-        EXPECT_RESULT_EQ(
-            this->client_->async_call(
-                "echo", std::tuple{arg("a") = "toto", "b"_arg = "titi"}, use_future),
-            "toto"s);
     }
 
     EXPECT_RESULT_EQ(
@@ -72,12 +68,6 @@ TYPED_TEST(BasicTest, test_named_arguments)
                 std::tuple{arg("b") = "titi", "a"_arg = "toto"},
                 use_future),
             "tototiti"s);
-        EXPECT_RESULT_EQ(
-            this->client_->async_call(
-                "concat",
-                std::tuple{"c"_arg = "tata", arg("b") = "titi", "a"_arg = "toto"},
-                use_future),
-            "tototiti"s);
     }
 
     EXPECT_RESULT_EQ(
@@ -87,12 +77,6 @@ TYPED_TEST(BasicTest, test_named_arguments)
         EXPECT_RESULT_EQ(
             this->client_->async_call(
                 "aecho", std::tuple{arg("a") = "toto"}, use_future),
-            "toto"s);
-        EXPECT_RESULT_EQ(
-            this->client_->async_call(
-                "aecho",
-                std::tuple{arg("a") = "toto", "b"_arg = "titi"},
-                use_future),
             "toto"s);
     }
     EXPECT_RESULT_EQ(
@@ -106,12 +90,6 @@ TYPED_TEST(BasicTest, test_named_arguments)
                 std::tuple{"b"_arg = "titi", arg("a") = "toto"},
                 use_future),
             "tototiti"s);
-        EXPECT_RESULT_EQ(
-            this->client_->async_call(
-                "aconcat",
-                std::tuple{"c"_arg = "tata", arg("b") = "titi", "a"_arg = "toto"},
-                use_future),
-            "tototiti"s);
     }
 
 #if defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_FORCE_COROUTINES)
@@ -123,12 +101,6 @@ TYPED_TEST(BasicTest, test_named_arguments)
             this->client_->async_call(
                 "cecho", std::tuple{"a"_arg = "toto"}, use_future),
             "toto"s);
-        EXPECT_RESULT_EQ(
-            this->client_->async_call(
-                "cecho",
-                std::tuple{arg("a") = "toto", "b"_arg = "titi"},
-                use_future),
-            "toto"s);
     }
     EXPECT_RESULT_EQ(
         this->client_->async_call(
@@ -139,12 +111,6 @@ TYPED_TEST(BasicTest, test_named_arguments)
             this->client_->async_call(
                 "cconcat",
                 std::tuple{"b"_arg = "titi", "a"_arg = "toto"},
-                use_future),
-            "tototiti"s);
-        EXPECT_RESULT_EQ(
-            this->client_->async_call(
-                "cconcat",
-                std::tuple{"c"_arg = "tata", arg("b") = "titi", "a"_arg = "toto"},
                 use_future),
             "tototiti"s);
     }

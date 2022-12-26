@@ -226,24 +226,79 @@ TYPED_TEST(BasicTest, test_default_arguments)
                     std::make_tuple("a"_arg = 12),
                     use_future),
                 112);
-            EXPECT_ERROR_MESSAGE(
-                this->client_,
-                "cannot convert arguments: no value for argument a",
-                prefix + "add_second_default",
-                "b"_arg = 13);
+            EXPECT_ERROR_EQ(
+                this->client_->async_call(
+                    prefix + "add_second_default",
+                    std::make_tuple("b"_arg = 13),
+                    use_future),
+                "cannot convert arguments: no value for argument a");
             EXPECT_RESULT_EQ(
                 this->client_->async_call(
                     prefix + "add_second_default",
                     std::make_tuple("a"_arg = 12, "b"_arg = 13),
                     use_future),
                 25);
-            EXPECT_ERROR_MESSAGE(
-                this->client_,
-                "cannot convert arguments: unexpected argument c",
-                prefix + "add_second_default",
-                "a"_arg = 1,
-                "b"_arg = 2,
-                "c"_arg = 3);
+            EXPECT_ERROR_EQ(
+                this->client_->async_call(
+                    prefix + "add_second_default",
+                    std::make_tuple("a"_arg = 1, "b"_arg = 2, "c"_arg = 3),
+                    use_future),
+                "cannot convert arguments: unexpected argument c");
         }
+    }
+}
+
+TYPED_TEST(BasicTest, test_extra_arguments)
+{
+    using rpc_type = typename std::decay_t<decltype(*this)>::client_type::rpc_type;
+    constexpr bool has_named_args =
+        !std::is_same_v<rpc_type, packio::msgpack_rpc::rpc>;
+
+    this->server_->async_serve_forever();
+    this->async_run();
+    this->connect();
+
+    this->server_->dispatcher()->add(
+        "add",
+        {
+            allow_extra_arguments,
+            "a"_arg = 10,
+            "b",
+        },
+        [](int a, int b) { return a + b; });
+
+    EXPECT_ERROR_EQ(
+        this->client_->async_call("add", std::make_tuple(10), use_future),
+        "cannot convert arguments: no value for argument b");
+
+    EXPECT_RESULT_EQ(
+        this->client_->async_call("add", std::make_tuple(1, 2), use_future), 3);
+
+    EXPECT_RESULT_EQ(
+        this->client_->async_call("add", std::make_tuple(1, 2, 100), use_future),
+        3);
+
+    if constexpr (has_named_args) {
+        EXPECT_ERROR_EQ(
+            this->client_->async_call(
+                "add", std::make_tuple("a"_arg = 10), use_future),
+            "cannot convert arguments: no value for argument b");
+
+        EXPECT_RESULT_EQ(
+            this->client_->async_call(
+                "add", std::make_tuple("b"_arg = 2), use_future),
+            12);
+
+        EXPECT_RESULT_EQ(
+            this->client_->async_call(
+                "add", std::make_tuple("b"_arg = 2, "c"_arg = 100), use_future),
+            12);
+
+        EXPECT_RESULT_EQ(
+            this->client_->async_call(
+                "add",
+                std::make_tuple("a"_arg = 1, "b"_arg = 2, "c"_arg = 100),
+                use_future),
+            3);
     }
 }

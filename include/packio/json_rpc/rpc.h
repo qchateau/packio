@@ -366,9 +366,8 @@ private:
         const args_specs<F>& specs,
         std::index_sequence<Idxs...>)
     {
-        if (array.size() > std::tuple_size_v<T>) {
-            // keep this check otherwise the converter
-            // may silently drop arguments
+        if (!specs.options().allow_extra_arguments
+            && array.size() > std::tuple_size_v<T>) {
             throw std::runtime_error{"too many arguments"};
         }
         return {[&]() {
@@ -406,16 +405,18 @@ private:
         const args_specs<F>& specs,
         std::index_sequence<Idxs...>)
     {
-        const std::array<const std::string*, sizeof...(Idxs)> available_arguments = {
-            &specs.template get<Idxs>().name()...};
-        for (const auto& item : args) {
-            auto it = std::find_if(
-                available_arguments.begin(),
-                available_arguments.end(),
-                [&](const std::string* arg) { return *arg == item.key(); });
-            if (it == available_arguments.end()) {
-                throw std::runtime_error{
-                    "unexpected argument " + std::string(item.key())};
+        if (!specs.options().allow_extra_arguments) {
+            const std::array<const std::string*, sizeof...(Idxs)>
+                available_arguments = {&specs.template get<Idxs>().name()...};
+            for (const auto& item : args) {
+                auto it = std::find_if(
+                    available_arguments.begin(),
+                    available_arguments.end(),
+                    [&](const std::string* arg) { return *arg == item.key(); });
+                if (it == available_arguments.end()) {
+                    throw std::runtime_error{
+                        "unexpected argument " + std::string(item.key())};
+                }
             }
         }
 

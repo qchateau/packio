@@ -327,9 +327,8 @@ private:
         const args_specs<F>& specs,
         std::index_sequence<Idxs...>)
     {
-        if (array.size > std::tuple_size_v<T>) {
-            // keep this check otherwise msgpack unpacker
-            // may silently drop arguments
+        if (!specs.options().allow_extra_arguments
+            && array.size > std::tuple_size_v<T>) {
             throw std::runtime_error{"too many arguments"};
         }
         return {[&]() {

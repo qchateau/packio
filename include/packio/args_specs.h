@@ -93,17 +93,51 @@ struct args_specs_maker<std::tuple<Specs...>> {
     }
 };
 
+//! Options available for the argument specifications
+//!
+//! You are never expected to construct this structure yourself
+//! but rather construct them by combining options such as
+//! @ref packio::allow_extra_arguments "allow_extra_arguments"
+//! with operator|
+struct args_specs_options {
+    bool allow_extra_arguments = false;
+
+    constexpr args_specs_options operator|(const args_specs_options& other)
+    {
+        auto ret = *this;
+        ret.allow_extra_arguments |= other.allow_extra_arguments;
+        return ret;
+    }
+};
+
 template <typename SpecsTuple>
 class args_specs {
 public:
-    template <typename... Args>
-    args_specs(Args&&... args)
-        : specs_{args_specs_maker<SpecsTuple>::make(std::forward<Args>(args)...)}
+    args_specs() : args_specs(args_specs_options{}){};
+
+    template <
+        typename T,
+        typename... Args,
+        typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, args_specs_options>>>
+    args_specs(T&& arg0, Args&&... args)
+        : args_specs(
+            args_specs_options{},
+            std::forward<T>(arg0),
+            std::forward<Args>(args)...)
     {
     }
 
+    template <typename... Args>
+    args_specs(args_specs_options opts, Args&&... args)
+        : specs_{args_specs_maker<SpecsTuple>::make(std::forward<Args>(args)...)},
+          opts_{std::move(opts)}
+    {
+    }
+
+    constexpr const args_specs_options& options() const { return opts_; }
+
     template <std::size_t I>
-    decltype(auto) get() const
+    constexpr decltype(auto) get() const
     {
         return std::get<I>(specs_);
     }
@@ -115,6 +149,7 @@ public:
 
 private:
     SpecsTuple specs_;
+    args_specs_options opts_{};
 };
 } // internal
 
@@ -129,6 +164,9 @@ private:
 //! - a @ref arg, defining the name of the argument
 //! - a @ref arg::with_value, defining the name of the argyment
 //!   and its default value
+//! Optionally, accepts
+//! @ref packio::internal::args_specs_options "args_specs_options"
+//! as first argument to customize the behavior of argument handling
 template <typename Procedure>
 class args_specs
     // Using the real implementation as the base class reduces
@@ -138,6 +176,9 @@ public:
     using base = internal::args_specs<internal::arg_specs_tuple_for_t<Procedure>>;
     using base::base;
 };
+
+//! Option to allo extra arguments, ignoring them
+constexpr auto allow_extra_arguments = internal::args_specs_options{true};
 
 } // packio
 

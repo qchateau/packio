@@ -199,11 +199,21 @@ inline bool is_error_response(const packio::json_rpc::rpc::response_type& resp)
     ASSERT_EQ(std::future_status::ready, fut.wait_for(duration)) \
         << "future was not ready"
 
-#define EXPECT_RESULT_EQ(fut, value)                                       \
+#define EXPECT_RESULT_EQ(fut, value)                                           \
+    do {                                                                       \
+        ASSERT_FUTURE_NO_BLOCK(fut, std::chrono::seconds{1});                  \
+        auto res = fut.get();                                                  \
+        EXPECT_FALSE(is_error_response(res));                                  \
+        EXPECT_NO_THROW(                                                       \
+            EXPECT_EQ(get<std::decay_t<decltype(value)>>(res.result), value)); \
+    } while (false)
+
+#define EXPECT_ERROR_EQ(fut, message)                                      \
     do {                                                                   \
         ASSERT_FUTURE_NO_BLOCK(fut, std::chrono::seconds{1});              \
-        EXPECT_NO_THROW(EXPECT_EQ(                                         \
-            get<std::decay_t<decltype(value)>>(fut.get().result), value)); \
+        auto res = fut.get();                                              \
+        EXPECT_TRUE(is_error_response(res));                               \
+        EXPECT_NO_THROW(EXPECT_EQ(get_error_message(res.error), message)); \
     } while (false)
 
 #define EXPECT_RESULT_IS_OK(fut)                                     \

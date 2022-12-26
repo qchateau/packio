@@ -33,9 +33,10 @@ TYPED_TEST(BasicTest, test_errors)
     ASSERT_TRUE(this->server_->dispatcher()->add(
         "add_named", {"a", "b"}, [](int a, int b) { return a + b; }));
 
-#define EXPECT_ERROR_MESSAGE(message, procedure, ...)                          \
-    EXPECT_ERROR_EQ(                                                           \
-        this->client_->async_call(procedure, std::make_tuple(10), use_future), \
+#define EXPECT_ERROR_MESSAGE(message, procedure, ...)             \
+    EXPECT_ERROR_EQ(                                              \
+        this->client_->async_call(                                \
+            procedure, std::make_tuple(__VA_ARGS__), use_future), \
         message);
 
     // clang-format off
@@ -58,6 +59,6 @@ TYPED_TEST(BasicTest, test_errors)
         EXPECT_ERROR_MESSAGE("cannot convert arguments: no value for argument b", "add_named", arg("a") = 1);
         EXPECT_ERROR_MESSAGE("cannot convert arguments: unexpected argument c", "add_named", arg("c") = 1);
     }
-// clang-format on
+    // clang-format on
 #undef EXPECT_ERROR_MESSAGE
 }
