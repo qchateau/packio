@@ -244,7 +244,7 @@ inline bool is_error_response(const packio::json_rpc::rpc::response_type& resp)
     do {                                                              \
         try {                                                         \
             ASSERT_FUTURE_NO_BLOCK(fut, std::chrono::seconds{1});     \
-            EXPECT_NO_THROW(fut.get());                               \
+            fut.get();                                                \
             EXPECT_FALSE(true) << "future not cancelled as expected"; \
         }                                                             \
         catch (system_error & err) {                                  \
