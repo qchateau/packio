@@ -292,7 +292,7 @@ public:
         auto res = boost::json::serialize(boost::json::object({
             {"jsonrpc", "2.0"},
             {"id", id},
-            {"result", std::forward<T>(value)},
+            {"result", boost::json::value_from(std::forward<T>(value))},
         }));
         PACKIO_TRACE("response: " + res);
         return res;
