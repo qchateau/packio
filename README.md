@@ -131,6 +131,7 @@ If you're not using the conan package, `packio` will try to auto-detect whether 
 ### Boost before 1.75
 
 If you're using the conan package with a boost version older than 1.75, you need to manually disable `Boost.Json` with the options `boost_json=False`.
+`Boost.Json` version 1.75 contains some bugs when using C-strings as arguments so I'd recommend at using at least version 1.76.
 
 ## Tested compilers
 
