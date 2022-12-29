@@ -41,7 +41,15 @@ protected:
 
     void async_run()
     {
-        runner_ = std::thread{[this] { EXPECT_NO_THROW(io_.run()); }};
+        runner_ = std::thread{[this] {
+            try {
+                io_.run();
+            }
+            catch (const std::exception& exc) {
+                ASSERT_TRUE(false)
+                    << "io_context threw an exception: " << exc.what();
+            }
+        }};
     }
 
     void connect()

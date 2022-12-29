@@ -43,14 +43,15 @@ struct func_traits<R (*)(Args...)> : std::true_type {
 template <typename T>
 constexpr bool func_traits_v = func_traits<T>::value;
 
-#if defined(PACKIO_HAS_CO_AWAIT)
 template <typename>
 struct is_awaitable : std::false_type {
 };
 
+#if defined(PACKIO_HAS_CO_AWAIT)
 template <typename... Args>
 struct is_awaitable<net::awaitable<Args...>> : std::true_type {
 };
+#endif // defined(PACKIO_HAS_CO_AWAIT)
 
 template <typename, typename = void>
 struct is_coroutine : std::false_type {
@@ -63,7 +64,6 @@ struct is_coroutine<T, std::enable_if_t<func_traits_v<T>>>
 
 template <typename T>
 constexpr bool is_coroutine_v = is_coroutine<T>::value;
-#endif // defined(PACKIO_HAS_CO_AWAIT)
 
 template <typename T, typename = void>
 struct is_tuple : std::false_type {
@@ -78,26 +78,29 @@ template <typename T>
 constexpr auto is_tuple_v = is_tuple<T>::value;
 
 template <typename T>
-struct shift_tuple;
+struct left_shift_tuple;
 
 template <typename A, typename... Bs>
-struct shift_tuple<std::tuple<A, Bs...>> {
+struct left_shift_tuple<std::tuple<A, Bs...>> {
     using type = std::tuple<Bs...>;
 };
 
 template <typename T>
-using shift_tuple_t = typename shift_tuple<T>::type;
+using left_shift_tuple_t = typename left_shift_tuple<T>::type;
 
-template <typename T>
-struct decay_tuple;
+template <template <typename...> class Map, typename T>
+struct map_tuple;
 
-template <typename... Args>
-struct decay_tuple<std::tuple<Args...>> {
-    using type = std::tuple<std::decay_t<Args>...>;
+template <template <typename...> class Map, typename... Args>
+struct map_tuple<Map, std::tuple<Args...>> {
+    using type = std::tuple<Map<Args>...>;
 };
 
+template <template <typename...> class Map, typename T>
+using map_tuple_t = typename map_tuple<Map, T>::type;
+
 template <typename T>
-using decay_tuple_t = typename decay_tuple<T>::type;
+using decay_tuple_t = map_tuple_t<std::decay_t, T>;
 
 template <typename... Args>
 struct always_false : std::false_type {

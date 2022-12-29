@@ -12,7 +12,7 @@ TYPED_TEST(BasicTest, test_named_arguments)
         typename std::decay_t<decltype(*this)>::completion_handler;
     using rpc_type = typename std::decay_t<decltype(*this)>::client_type::rpc_type;
     constexpr bool has_named_args =
-        std::is_same_v<rpc_type, packio::nl_json_rpc::rpc>;
+        !std::is_same_v<rpc_type, packio::msgpack_rpc::rpc>;
 
     this->server_->async_serve_forever();
     this->async_run();
@@ -47,104 +47,70 @@ TYPED_TEST(BasicTest, test_named_arguments)
         });
 #endif // defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_FORCE_COROUTINES)
 
-    ASSERT_RESULT_EQ(
+    EXPECT_RESULT_EQ(
         this->client_->async_call("echo", std::make_tuple("toto"), use_future),
         "toto"s);
     if constexpr (has_named_args) {
-        ASSERT_RESULT_EQ(
+        EXPECT_RESULT_EQ(
             this->client_->async_call(
                 "echo", std::tuple{arg("a") = "toto"}, use_future),
             "toto"s);
-        ASSERT_RESULT_EQ(
-            this->client_->async_call(
-                "echo", std::tuple{arg("a") = "toto", "b"_arg = "titi"}, use_future),
-            "toto"s);
     }
 
-    ASSERT_RESULT_EQ(
+    EXPECT_RESULT_EQ(
         this->client_->async_call(
             "concat", std::make_tuple("toto", "titi"), use_future),
         "tototiti"s);
     if constexpr (has_named_args) {
-        ASSERT_RESULT_EQ(
+        EXPECT_RESULT_EQ(
             this->client_->async_call(
                 "concat",
                 std::tuple{arg("b") = "titi", "a"_arg = "toto"},
                 use_future),
             "tototiti"s);
-        ASSERT_RESULT_EQ(
-            this->client_->async_call(
-                "concat",
-                std::tuple{"c"_arg = "tata", arg("b") = "titi", "a"_arg = "toto"},
-                use_future),
-            "tototiti"s);
     }
 
-    ASSERT_RESULT_EQ(
+    EXPECT_RESULT_EQ(
         this->client_->async_call("aecho", std::make_tuple("toto"), use_future),
         "toto"s);
     if constexpr (has_named_args) {
-        ASSERT_RESULT_EQ(
+        EXPECT_RESULT_EQ(
             this->client_->async_call(
                 "aecho", std::tuple{arg("a") = "toto"}, use_future),
             "toto"s);
-        ASSERT_RESULT_EQ(
-            this->client_->async_call(
-                "aecho",
-                std::tuple{arg("a") = "toto", "b"_arg = "titi"},
-                use_future),
-            "toto"s);
     }
-    ASSERT_RESULT_EQ(
+    EXPECT_RESULT_EQ(
         this->client_->async_call(
             "aconcat", std::make_tuple("toto", "titi"), use_future),
         "tototiti"s);
     if constexpr (has_named_args) {
-        ASSERT_RESULT_EQ(
+        EXPECT_RESULT_EQ(
             this->client_->async_call(
                 "aconcat",
                 std::tuple{"b"_arg = "titi", arg("a") = "toto"},
                 use_future),
             "tototiti"s);
-        ASSERT_RESULT_EQ(
-            this->client_->async_call(
-                "aconcat",
-                std::tuple{"c"_arg = "tata", arg("b") = "titi", "a"_arg = "toto"},
-                use_future),
-            "tototiti"s);
     }
 
 #if defined(PACKIO_HAS_CO_AWAIT) || defined(PACKIO_FORCE_COROUTINES)
-    ASSERT_RESULT_EQ(
+    EXPECT_RESULT_EQ(
         this->client_->async_call("cecho", std::make_tuple("toto"), use_future),
         "toto"s);
     if constexpr (has_named_args) {
-        ASSERT_RESULT_EQ(
+        EXPECT_RESULT_EQ(
             this->client_->async_call(
                 "cecho", std::tuple{"a"_arg = "toto"}, use_future),
             "toto"s);
-        ASSERT_RESULT_EQ(
-            this->client_->async_call(
-                "cecho",
-                std::tuple{arg("a") = "toto", "b"_arg = "titi"},
-                use_future),
-            "toto"s);
     }
-    ASSERT_RESULT_EQ(
+    EXPECT_RESULT_EQ(
         this->client_->async_call(
             "cconcat", std::make_tuple("toto", "titi"), use_future),
         "tototiti"s);
     if constexpr (has_named_args) {
-        ASSERT_RESULT_EQ(
+        EXPECT_RESULT_EQ(
             this->client_->async_call(
                 "cconcat",
                 std::tuple{"b"_arg = "titi", "a"_arg = "toto"},
-                use_future),
-            "tototiti"s);
-        ASSERT_RESULT_EQ(
-            this->client_->async_call(
-                "cconcat",
-                std::tuple{"c"_arg = "tata", arg("b") = "titi", "a"_arg = "toto"},
                 use_future),
             "tototiti"s);
     }

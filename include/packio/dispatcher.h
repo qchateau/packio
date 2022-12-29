@@ -15,6 +15,7 @@
 #include <string_view>
 #include <tuple>
 
+#include "args_specs.h"
 #include "handler.h"
 #include "internal/config.h"
 #include "internal/movable_function.h"
@@ -45,14 +46,12 @@ public:
 
     //! Add a synchronous procedure to the dispatcher
     //! @param name The name of the procedure
-    //! @param arguments_names The name of the arguments (optional)
+    //! @param arg_specs The argument specifications (optional)
     //! @param fct The procedure itself
-    template <
-        typename SyncProcedure,
-        std::size_t N = internal::func_traits<SyncProcedure>::args_count>
+    template <typename SyncProcedure>
     bool add(
         std::string_view name,
-        const std::array<std::string, N>& arguments_names,
+        args_specs<SyncProcedure> arg_specs,
         SyncProcedure&& fct)
     {
         PACKIO_STATIC_ASSERT_TRAIT(SyncProcedure);
@@ -61,7 +60,7 @@ public:
             .emplace(
                 name,
                 std::make_shared<function_type>(wrap_sync(
-                    std::forward<SyncProcedure>(fct), arguments_names)))
+                    std::forward<SyncProcedure>(fct), std::move(arg_specs))))
             .second;
     }
 
@@ -69,19 +68,17 @@ public:
     template <typename SyncProcedure>
     bool add(std::string_view name, SyncProcedure&& fct)
     {
-        return add<SyncProcedure, 0>(name, {}, std::forward<SyncProcedure>(fct));
+        return add<SyncProcedure>(name, {}, std::forward<SyncProcedure>(fct));
     }
 
     //! Add an asynchronous procedure to the dispatcher
     //! @param name The name of the procedure
-    //! @param arguments_names The name of the arguments (optional)
+    //! @param arg_specs The argument specifications (optional)
     //! @param fct The procedure itself
-    template <
-        typename AsyncProcedure,
-        std::size_t N = internal::func_traits<AsyncProcedure>::args_count - 1>
+    template <typename AsyncProcedure>
     bool add_async(
         std::string_view name,
-        const std::array<std::string, N>& arguments_names,
+        args_specs<AsyncProcedure> arg_specs,
         AsyncProcedure&& fct)
     {
         PACKIO_STATIC_ASSERT_TTRAIT(AsyncProcedure, rpc_type);
@@ -90,7 +87,7 @@ public:
             .emplace(
                 name,
                 std::make_shared<function_type>(wrap_async(
-                    std::forward<AsyncProcedure>(fct), arguments_names)))
+                    std::forward<AsyncProcedure>(fct), std::move(arg_specs))))
             .second;
     }
 
@@ -98,7 +95,7 @@ public:
     template <typename AsyncProcedure>
     bool add_async(std::string_view name, AsyncProcedure&& fct)
     {
-        return add_async<AsyncProcedure, 0>(
+        return add_async<AsyncProcedure>(
             name, {}, std::forward<AsyncProcedure>(fct));
     }
 
@@ -106,7 +103,7 @@ public:
     //! Add a coroutine to the dispatcher
     //! @param name The name of the procedure
     //! @param executor The executor used to execute the coroutine
-    //! @param arguments_names The name of the arguments (optional)
+    //! @param arg_specs The argument specifications (optional)
     //! @param coro The coroutine to use as procedure
     template <
         typename Executor,
@@ -115,7 +112,7 @@ public:
     bool add_coro(
         std::string_view name,
         const Executor& executor,
-        const std::array<std::string, N>& arguments_names,
+        args_specs<CoroProcedure> arg_specs,
         CoroProcedure&& coro)
     {
         PACKIO_STATIC_ASSERT_TRAIT(CoroProcedure);
@@ -124,7 +121,9 @@ public:
             .emplace(
                 name,
                 std::make_shared<function_type>(wrap_coro(
-                    executor, std::forward<CoroProcedure>(coro), arguments_names)))
+                    executor,
+                    std::forward<CoroProcedure>(coro),
+                    std::move(arg_specs))))
             .second;
     }
 
@@ -132,7 +131,7 @@ public:
     template <typename Executor, typename CoroProcedure>
     bool add_coro(std::string_view name, const Executor& executor, CoroProcedure&& coro)
     {
-        return add_coro<Executor, CoroProcedure, 0>(
+        return add_coro<Executor, CoroProcedure>(
             name, executor, {}, std::forward<CoroProcedure>(coro));
     }
 
@@ -144,13 +143,13 @@ public:
     bool add_coro(
         std::string_view name,
         ExecutionContext& ctx,
-        const std::array<std::string, N>& arguments_names,
+        args_specs<CoroProcedure> arg_specs,
         CoroProcedure&& coro)
     {
         return add_coro<decltype(ctx.get_executor()), CoroProcedure, N>(
             name,
             ctx.get_executor(),
-            arguments_names,
+            std::move(arg_specs),
             std::forward<CoroProcedure>(coro));
     }
 
@@ -158,7 +157,7 @@ public:
     template <typename ExecutionContext, typename CoroProcedure>
     bool add_coro(std::string_view name, ExecutionContext& ctx, CoroProcedure&& coro)
     {
-        return add_coro<ExecutionContext, CoroProcedure, 0>(
+        return add_coro<ExecutionContext, CoroProcedure>(
             name, ctx, {}, std::forward<CoroProcedure>(coro));
     }
 #endif // defined(PACKIO_HAS_CO_AWAIT)
@@ -223,30 +222,21 @@ public:
 private:
     using function_map_type = Map<std::string, function_ptr_type>;
 
-    template <typename TArgs, std::size_t NNamedArgs>
-    static void static_assert_arguments_name_and_count()
-    {
-        static_assert(
-            NNamedArgs == 0 || std::tuple_size_v<TArgs> == NNamedArgs,
-            "incompatible arguments count and names");
-    }
-
-    template <typename F, std::size_t N>
-    auto wrap_sync(F&& fct, const std::array<std::string, N>& args_names)
+    template <typename F>
+    auto wrap_sync(F&& fct, args_specs<F> args_specs)
     {
         using value_args =
             internal::decay_tuple_t<typename internal::func_traits<F>::args_type>;
         using result_type = typename internal::func_traits<F>::result_type;
-        static_assert_arguments_name_and_count<value_args, N>();
 
         return
-            [fct = std::forward<F>(fct), args_names](
+            [fct = std::forward<F>(fct), args_specs = std::move(args_specs)](
                 completion_handler<rpc_type> handler, args_type&& args) mutable {
                 auto typed_args = rpc_type::template extract_args<value_args>(
-                    std::move(args), args_names);
+                    std::move(args), args_specs);
                 if (!typed_args) {
-                    PACKIO_DEBUG("incompatible arguments");
-                    handler.set_error("Incompatible arguments");
+                    PACKIO_DEBUG(typed_args.error());
+                    handler.set_error(typed_args.error());
                     return;
                 }
 
@@ -260,21 +250,21 @@ private:
             };
     }
 
-    template <typename F, std::size_t N>
-    auto wrap_async(F&& fct, const std::array<std::string, N>& args_names)
+    template <typename F>
+    auto wrap_async(F&& fct, args_specs<F> args_specs)
     {
         using args = typename internal::func_traits<F>::args_type;
-        using value_args = internal::decay_tuple_t<internal::shift_tuple_t<args>>;
-        static_assert_arguments_name_and_count<value_args, N>();
+        using value_args =
+            internal::decay_tuple_t<internal::left_shift_tuple_t<args>>;
 
         return
-            [fct = std::forward<F>(fct), args_names](
+            [fct = std::forward<F>(fct), args_specs = std::move(args_specs)](
                 completion_handler<rpc_type> handler, args_type&& args) mutable {
                 auto typed_args = rpc_type::template extract_args<value_args>(
-                    std::move(args), args_names);
+                    std::move(args), args_specs);
                 if (!typed_args) {
-                    PACKIO_DEBUG("incompatible arguments");
-                    handler.set_error("Incompatible arguments");
+                    PACKIO_DEBUG(typed_args.error());
+                    handler.set_error(typed_args.error());
                     return;
                 }
 
@@ -288,26 +278,24 @@ private:
     }
 
 #if defined(PACKIO_HAS_CO_AWAIT)
-    template <typename E, typename C, std::size_t N>
-    auto wrap_coro(
-        const E& executor,
-        C&& coro,
-        const std::array<std::string, N>& args_names)
+    template <typename E, typename C>
+    auto wrap_coro(const E& executor, C&& coro, args_specs<C> args_specs)
     {
         using value_args =
             internal::decay_tuple_t<typename internal::func_traits<C>::args_type>;
         using result_type =
             typename internal::func_traits<C>::result_type::value_type;
-        static_assert_arguments_name_and_count<value_args, N>();
 
-        return [executor, coro = std::forward<C>(coro), args_names](
+        return [executor,
+                coro = std::forward<C>(coro),
+                args_specs = std::move(args_specs)](
                    completion_handler<rpc_type> handler,
                    args_type&& args) mutable {
             auto typed_args = rpc_type::template extract_args<value_args>(
-                std::move(args), args_names);
+                std::move(args), args_specs);
             if (!typed_args) {
-                PACKIO_DEBUG("incompatible arguments");
-                handler.set_error("Incompatible arguments");
+                PACKIO_DEBUG(typed_args.error());
+                handler.set_error(typed_args.error());
                 return;
             }
 

@@ -3,7 +3,7 @@ from conans import ConanFile
 
 class PackioConan(ConanFile):
     name = "packio"
-    version = "2.3.0"
+    version = "2.4.0"
     license = "MPL-2.0"
     author = "Quentin Chateau <quentin.chateau@gmail.com>"
     url = "https://github.com/qchateau/packio"
@@ -41,7 +41,7 @@ class PackioConan(ConanFile):
             self.options.boost_json = not self.options.standalone_asio
 
         if self.options.msgpack:
-            self.requires("msgpack/3.2.1")
+            self.requires("msgpack-cxx/4.1.3")
         if self.options.nlohmann_json:
             self.requires("nlohmann_json/3.9.1")
         if self.options.boost_json:

@@ -137,7 +137,7 @@ def test_linux():
     builder.add(compiler=GCC, compiler_version="12", cppstd="17", options={"boost": "1.72.0", "packio:boost_json": False})
     builder.add(compiler=GCC, compiler_version="12", cppstd="17", options={"boost": "1.73.0", "packio:boost_json": False})
     builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"boost": "1.74.0", "packio:boost_json": False})
-    builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"boost": "1.75.0"})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"boost": "1.75.0", "packio:boost_json": False})
     builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"boost": "1.76.0"})
     builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"boost": "1.77.0"})
     builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"boost": "1.78.0"})

@@ -41,8 +41,8 @@ TYPED_TEST(BasicTest, test_timeout)
             ASSERT_FUTURE_BLOCKS(f1, 100ms);
             ASSERT_FUTURE_BLOCKS(f2, 100ms);
             this->client_->cancel();
-            ASSERT_FUTURE_CANCELLED(f1);
-            ASSERT_FUTURE_CANCELLED(f2);
+            EXPECT_FUTURE_CANCELLED(f1);
+            EXPECT_FUTURE_CANCELLED(f2);
         }
 
         {
@@ -60,9 +60,9 @@ TYPED_TEST(BasicTest, test_timeout)
             ASSERT_FUTURE_BLOCKS(f2, 10ms);
             this->client_->cancel(id2);
             ASSERT_FUTURE_BLOCKS(f1, 100ms);
-            ASSERT_FUTURE_CANCELLED(f2);
+            EXPECT_FUTURE_CANCELLED(f2);
             this->client_->cancel(id1);
-            ASSERT_FUTURE_CANCELLED(f1);
+            EXPECT_FUTURE_CANCELLED(f1);
             this->client_->cancel(id2);
             this->client_->cancel(id1);
             this->client_->cancel(424242);
@@ -76,8 +76,8 @@ TYPED_TEST(BasicTest, test_timeout)
         {
             auto f = this->client_->async_call("block", use_future);
             ASSERT_FUTURE_BLOCKS(f, 100ms);
-            ASSERT_RESULT_IS_OK(this->client_->async_call("unblock", use_future));
-            ASSERT_RESULT_IS_OK(f);
+            EXPECT_RESULT_IS_OK(this->client_->async_call("unblock", use_future));
+            EXPECT_RESULT_IS_OK(f);
         }
 
         this->io_.stop();

@@ -191,43 +191,65 @@ inline bool is_error_response(const packio::json_rpc::rpc::response_type& resp)
 }
 #endif // PACKIO_HAS_BOOST_JSON
 
-template <typename Future>
-decltype(auto) safe_future_get(Future&& fut)
-{
-    if (fut.wait_for(std::chrono::seconds{1}) != std::future_status::ready) {
-        throw std::runtime_error{"future was not ready"};
-    }
-    return fut.get();
-}
+#define ASSERT_FUTURE_BLOCKS(fut, duration)                        \
+    ASSERT_EQ(std::future_status::timeout, fut.wait_for(duration)) \
+        << "future did not block"
 
-#define ASSERT_RESULT_EQ(fut, value) \
-    ASSERT_EQ(                       \
-        get<std::decay_t<decltype(value)>>(safe_future_get(fut).result), value)
+#define ASSERT_FUTURE_NO_BLOCK(fut, duration)                    \
+    ASSERT_EQ(std::future_status::ready, fut.wait_for(duration)) \
+        << "future was not ready"
 
-#define ASSERT_RESULT_IS_OK(fut) \
-    ASSERT_FALSE(is_error_response(safe_future_get(fut)))
+#define EXPECT_RESULT_EQ(fut, value)                                           \
+    do {                                                                       \
+        ASSERT_FUTURE_NO_BLOCK(fut, std::chrono::seconds{1});                  \
+        auto res = fut.get();                                                  \
+        EXPECT_FALSE(is_error_response(res));                                  \
+        EXPECT_NO_THROW(                                                       \
+            EXPECT_EQ(get<std::decay_t<decltype(value)>>(res.result), value)); \
+    } while (false)
 
-#define ASSERT_RESULT_IS_ERROR(fut) \
-    ASSERT_TRUE(is_error_response(safe_future_get(fut)))
+#define EXPECT_ERROR_EQ(fut, message)                                      \
+    do {                                                                   \
+        ASSERT_FUTURE_NO_BLOCK(fut, std::chrono::seconds{1});              \
+        auto res = fut.get();                                              \
+        EXPECT_TRUE(is_error_response(res));                               \
+        EXPECT_NO_THROW(EXPECT_EQ(get_error_message(res.error), message)); \
+    } while (false)
 
-#define ASSERT_FUTURE_THROW(fut, exc) \
-    ASSERT_THROW([&] { return safe_future_get(fut); }(), exc)
+#define EXPECT_RESULT_IS_OK(fut)                                     \
+    do {                                                             \
+        ASSERT_FUTURE_NO_BLOCK(fut, std::chrono::seconds{1});        \
+        EXPECT_NO_THROW(EXPECT_FALSE(is_error_response(fut.get()))); \
+    } while (false)
 
-#define ASSERT_FUTURE_NO_THROW(fut) \
-    ASSERT_NO_THROW([&] { return safe_future_get(fut); }())
+#define EXPECT_RESULT_IS_ERROR(fut)                                 \
+    do {                                                            \
+        ASSERT_FUTURE_NO_BLOCK(fut, std::chrono::seconds{1});       \
+        EXPECT_NO_THROW(EXPECT_TRUE(is_error_response(fut.get()))); \
+    } while (false)
 
-#define ASSERT_FUTURE_BLOCKS(fut, duration) \
-    ASSERT_EQ(std::future_status::timeout, fut.wait_for(duration))
+#define EXPECT_FUTURE_THROW(fut, exc)                         \
+    do {                                                      \
+        ASSERT_FUTURE_NO_BLOCK(fut, std::chrono::seconds{1}); \
+        EXPECT_THROW(fut.get(), exc);                         \
+    } while (false)
 
-#define ASSERT_FUTURE_CANCELLED(fut)                              \
-    do {                                                          \
-        try {                                                     \
-            safe_future_get(fut);                                 \
-            ASSERT_FALSE(true);                                   \
-        }                                                         \
-        catch (system_error & err) {                              \
-            ASSERT_EQ(net::error::operation_aborted, err.code()); \
-        }                                                         \
+#define EXPECT_FUTURE_NO_THROW(fut)                           \
+    do {                                                      \
+        ASSERT_FUTURE_NO_BLOCK(fut, std::chrono::seconds{1}); \
+        EXPECT_NO_THROW(fut.get());                           \
+    } while (false)
+
+#define EXPECT_FUTURE_CANCELLED(fut)                                  \
+    do {                                                              \
+        try {                                                         \
+            ASSERT_FUTURE_NO_BLOCK(fut, std::chrono::seconds{1});     \
+            fut.get();                                                \
+            EXPECT_FALSE(true) << "future not cancelled as expected"; \
+        }                                                             \
+        catch (system_error & err) {                                  \
+            EXPECT_EQ(net::error::operation_aborted, err.code());     \
+        }                                                             \
     } while (false)
 
 using test_ssl_stream = packio::extra::ssl_stream_adapter<
@@ -344,6 +366,7 @@ using tuple_cat_if_t =
     std::conditional_t<Condition, tuple_cat_t<Tuple, Tuples...>, Tuple>;
 
 using implementations0 = std::tuple<
+
 #if !PACKIO_STANDALONE_ASIO
     std::pair<
         default_rpc::client<test_websocket<true>>,

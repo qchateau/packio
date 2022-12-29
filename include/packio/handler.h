@@ -27,8 +27,8 @@ template <typename Rpc>
 class completion_handler {
 public:
     using id_type = typename Rpc::id_type;
-    using response_buffer_type = decltype(
-        Rpc::serialize_response(std::declval<id_type>()));
+    using response_buffer_type =
+        decltype(Rpc::serialize_response(std::declval<id_type>()));
     using function_type = std::function<void(response_buffer_type&&)>;
 
     template <typename F>
@@ -41,7 +41,7 @@ public:
     ~completion_handler()
     {
         if (handler_) {
-            set_error("Call finished with no result");
+            set_error("call finished with no result");
         }
     }
 
@@ -59,7 +59,7 @@ public:
     completion_handler& operator=(completion_handler&& other)
     {
         if (handler_) {
-            set_error("Call finished with no result");
+            set_error("call finished with no result");
         }
         id_ = other.id_;
         handler_ = std::move(other.handler_);
@@ -89,7 +89,7 @@ public:
     //! @overload
     void set_error()
     {
-        complete(Rpc::serialize_error_response(id_, "Unknown error"));
+        complete(Rpc::serialize_error_response(id_, "unknown error"));
     }
 
     //! Same as @ref set_value
@@ -112,6 +112,38 @@ private:
     id_type id_;
     function_type handler_;
 };
+
+template <typename>
+struct is_completion_handler : std::false_type {
+};
+
+template <typename T>
+struct is_completion_handler<completion_handler<T>> : std::true_type {
+};
+
+template <typename T>
+constexpr auto is_completion_handler_v = is_completion_handler<T>::value;
+
+template <typename...>
+struct is_async_procedure_args;
+
+template <>
+struct is_async_procedure_args<std::tuple<>> : std::false_type {
+};
+
+template <typename T0, typename... Ts>
+struct is_async_procedure_args<std::tuple<T0, Ts...>>
+    : is_completion_handler<T0> {
+};
+
+template <typename F>
+struct is_async_procedure
+    : is_async_procedure_args<typename internal::func_traits<F>::args_type> {
+};
+
+template <typename T>
+constexpr auto is_async_procedure_v = is_async_procedure<T>::value;
+
 } // packio
 
 #endif // PACKIO_HANDLER_H

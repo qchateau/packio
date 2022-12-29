@@ -26,8 +26,8 @@ TYPED_TEST(BasicTest, test_dispatcher)
     ASSERT_FALSE(this->server_->dispatcher()->add("f001", []() {}));
     ASSERT_FALSE(this->server_->dispatcher()->add("f002", []() {}));
 
-    ASSERT_RESULT_IS_OK(this->client_->async_call("f001", use_future));
-    ASSERT_RESULT_IS_OK(this->client_->async_call("f002", use_future));
+    EXPECT_RESULT_IS_OK(this->client_->async_call("f001", use_future));
+    EXPECT_RESULT_IS_OK(this->client_->async_call("f002", use_future));
 
     ASSERT_TRUE(this->server_->dispatcher()->has("f001"));
     ASSERT_TRUE(this->server_->dispatcher()->has("f002"));
@@ -38,7 +38,7 @@ TYPED_TEST(BasicTest, test_dispatcher)
         std::set<std::string>(begin(known), end(known)));
 
     this->server_->dispatcher()->remove("f001");
-    ASSERT_RESULT_IS_ERROR(this->client_->async_call("f001", use_future));
+    EXPECT_RESULT_IS_ERROR(this->client_->async_call("f001", use_future));
 
     ASSERT_FALSE(this->server_->dispatcher()->has("f001"));
     ASSERT_TRUE(this->server_->dispatcher()->has("f002"));

@@ -5,12 +5,14 @@
 #ifndef PACKIO_NL_JSON_RPC_RPC_H
 #define PACKIO_NL_JSON_RPC_RPC_H
 
-#include <deque>
+#include <array>
 
 #include <nlohmann/json.hpp>
 
 #include "../arg.h"
+#include "../args_specs.h"
 #include "../internal/config.h"
+#include "../internal/expected.h"
 #include "../internal/log.h"
 #include "../internal/rpc.h"
 #include "incremental_buffers.h"
@@ -27,6 +29,8 @@ constexpr bool named_args_v = sizeof...(Args) > 0 && (is_arg_v<Args> && ...);
 
 using id_type = nlohmann::json;
 using native_type = nlohmann::json;
+using packio::internal::expected;
+using packio::internal::unexpected;
 
 //! The object representing a client request
 struct request {
@@ -46,22 +50,22 @@ struct response {
 //! The incremental parser for JSON-RPC objects
 class incremental_parser {
 public:
-    std::optional<request> get_request()
+    expected<request, std::string> get_request()
     {
         try_parse_object();
         if (!parsed_) {
-            return std::nullopt;
+            return unexpected{"no request parsed"};
         }
         auto object = std::move(*parsed_);
         parsed_.reset();
         return parse_request(std::move(object));
     }
 
-    std::optional<response> get_response()
+    expected<response, std::string> get_response()
     {
         try_parse_object();
         if (!parsed_) {
-            return std::nullopt;
+            return unexpected{"no response parsed"};
         }
         auto object = std::move(*parsed_);
         parsed_.reset();
@@ -100,68 +104,63 @@ private:
         }
     }
 
-    static std::optional<response> parse_response(nlohmann::json&& res)
+    static expected<response, std::string> parse_response(nlohmann::json&& res)
     {
         auto id_it = res.find("id");
         auto result_it = res.find("result");
         auto error_it = res.find("error");
 
         if (id_it == end(res)) {
-            PACKIO_ERROR("missing id field");
-            return std::nullopt;
+            return unexpected{"missing id field"};
         }
         if (result_it == end(res) && error_it == end(res)) {
-            PACKIO_ERROR("missing error and result field");
-            return std::nullopt;
+            return unexpected{"missing error and result field"};
         }
 
-        std::optional<response> parsed{std::in_place};
-        parsed->id = std::move(*id_it);
+        response parsed;
+        parsed.id = std::move(*id_it);
         if (error_it != end(res)) {
-            parsed->error = std::move(*error_it);
+            parsed.error = std::move(*error_it);
         }
         if (result_it != end(res)) {
-            parsed->result = std::move(*result_it);
+            parsed.result = std::move(*result_it);
         }
-        return parsed;
+        return {std::move(parsed)};
     }
 
-    static std::optional<request> parse_request(nlohmann::json&& req)
+    static expected<request, std::string> parse_request(nlohmann::json&& req)
     {
         auto id_it = req.find("id");
         auto method_it = req.find("method");
         auto params_it = req.find("params");
 
         if (method_it == end(req)) {
-            PACKIO_ERROR("missing method field");
-            return std::nullopt;
+            return unexpected{"missing method field"};
         }
         if (!method_it->is_string()) {
-            PACKIO_ERROR("method field is not a string");
-            return std::nullopt;
+            return unexpected{"method field is not a string"};
         }
 
-        std::optional<request> parsed{std::in_place};
-        parsed->method = method_it->get<std::string>();
+        request parsed;
+        parsed.method = method_it->get<std::string>();
         if (params_it == end(req) || params_it->is_null()) {
-            parsed->args = nlohmann::json::array();
+            parsed.args = nlohmann::json::array();
         }
         else if (!params_it->is_array() && !params_it->is_object()) {
-            PACKIO_ERROR("non-structured arguments are not supported");
-            return std::nullopt;
+            return unexpected{"non-structured arguments are not supported"};
         }
         else {
-            parsed->args = std::move(*params_it);
+            parsed.args = std::move(*params_it);
         }
 
         if (id_it == end(req) || id_it->is_null()) {
-            parsed->type = call_type::notification;
+            parsed.type = call_type::notification;
         }
         else {
-            parsed->type = call_type::request;
-            parsed->id = std::move(*id_it);
+            parsed.type = call_type::request;
+            parsed.id = std::move(*id_it);
         }
-        return parsed;
+        return {std::move(parsed)};
     }
 
     std::optional<nlohmann::json> parsed_;
@@ -306,7 +305,7 @@ public:
                      error["message"] = error["data"];
                  }
                  else {
-                     error["message"] = "Unknown error";
+                     error["message"] = "unknown error";
                  }
                  return error;
              }()},
@@ -319,54 +318,112 @@ public:
         return net::const_buffer(buf.data(), buf.size());
     }
 
-    template <typename T, typename NamesContainer>
-    static std::optional<T> extract_args(
+    template <typename T, typename F>
+    static internal::expected<T, std::string> extract_args(
         const nlohmann::json& args,
-        const NamesContainer& names)
+        const args_specs<F>& specs)
     {
         try {
             if (args.is_array()) {
-                if (args.size() != std::tuple_size_v<T>) {
-                    // keep this check otherwise the converter
-                    // may silently drop arguments
-                    PACKIO_WARN(
-                        "cannot convert args: wrong number of arguments");
-                    return std::nullopt;
-                }
-
-                return args.get<T>();
+                return convert_positional_args<T>(args, specs);
             }
             else if (args.is_object()) {
-                return convert_named_args<T>(args, names);
+                return convert_named_args<T>(args, specs);
             }
             else {
-                PACKIO_ERROR("arguments are not a structured type");
-                return std::nullopt;
+                throw std::runtime_error{"arguments are not a structured type"};
             }
         }
         catch (const std::exception& exc) {
-            PACKIO_WARN("cannot convert args: {}", exc.what());
-            (void)exc;
-            return std::nullopt;
+            return internal::unexpected{
+                std::string{"cannot convert arguments: "} + exc.what()};
         }
     }
 
 private:
-    template <typename T, typename NamesContainer>
-    static T convert_named_args(const nlohmann::json& args, const NamesContainer& names)
+    template <typename T, typename F>
+    static constexpr T convert_positional_args(
+        const nlohmann::json& array,
+        const args_specs<F>& specs)
     {
-        return convert_named_args<T>(
-            args, names, std::make_index_sequence<std::tuple_size_v<T>>{});
+        return convert_positional_args<T>(
+            array, specs, std::make_index_sequence<args_specs<F>::size()>());
     }
 
-    template <typename T, typename NamesContainer, std::size_t... Idxs>
-    static T convert_named_args(
-        const nlohmann::json& args,
-        const NamesContainer& names,
+    template <typename T, typename F, std::size_t... Idxs>
+    static constexpr T convert_positional_args(
+        const nlohmann::json& array,
+        const args_specs<F>& specs,
         std::index_sequence<Idxs...>)
     {
-        return T{(args.at(names.at(Idxs))
-                      .template get<std::tuple_element_t<Idxs, T>>())...};
+        if (!specs.options().allow_extra_arguments
+            && array.size() > std::tuple_size_v<T>) {
+            throw std::runtime_error{"too many arguments"};
+        }
+        return {[&]() {
+            if (Idxs < array.size()) {
+                try {
+                    return array.at(Idxs).get<std::tuple_element_t<Idxs, T>>();
+                }
+                catch (const ::nlohmann::json::type_error&) {
+                    throw std::runtime_error{
+                        "invalid type for argument "
+                        + specs.template get<Idxs>().name()};
+                }
+            }
+            if (const auto& value = specs.template get<Idxs>().default_value()) {
+                return *value;
+            }
+            throw std::runtime_error{
+                "no value for argument " + specs.template get<Idxs>().name()};
+        }()...};
+    }
+
+    template <typename T, typename F>
+    static T convert_named_args(const nlohmann::json& args, const args_specs<F>& specs)
+    {
+        return convert_named_args<T>(
+            args, specs, std::make_index_sequence<args_specs<F>::size()>{});
+    }
+
+    template <typename T, typename F, std::size_t... Idxs>
+    static T convert_named_args(
+        const nlohmann::json& args,
+        const args_specs<F>& specs,
+        std::index_sequence<Idxs...>)
+    {
+        if (!specs.options().allow_extra_arguments) {
+            const std::array<const std::string*, sizeof...(Idxs)>
+                available_arguments = {&specs.template get<Idxs>().name()...};
+            for (auto it = args.begin(); it != args.end(); ++it) {
+                auto arg_it = std::find_if(
+                    available_arguments.begin(),
+                    available_arguments.end(),
+                    [&](const std::string* arg) { return *arg == it.key(); });
+                if (arg_it == available_arguments.end()) {
+                    throw std::runtime_error{"unexpected argument " + it.key()};
+                }
+            }
+        }
+
+        return T{[&]() {
+            auto it = args.find(specs.template get<Idxs>().name());
+            if (it != args.end()) {
+                try {
+                    return it->template get<std::tuple_element_t<Idxs, T>>();
+                }
+                catch (const ::nlohmann::json::type_error&) {
+                    throw std::runtime_error{
+                        "invalid type for argument "
+                        + specs.template get<Idxs>().name()};
+                }
+            }
+            if (const auto& value = specs.template get<Idxs>().default_value()) {
+                return *value;
+            }
+            throw std::runtime_error{
+                "no value for argument " + specs.template get<Idxs>().name()};
+        }()...};
     }
 };
 

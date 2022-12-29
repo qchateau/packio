@@ -6,22 +6,25 @@
 #define PACKIO_ARG_H
 
 //! @file
-//! Class arg
+//! Class @ref packio::arg "arg"
 
 #include <string>
 #include <string_view>
 
 namespace packio {
 
+//! A named argument
 class arg {
 public:
+    //! A named argument with a value
     template <typename T>
     struct with_value {
-        const std::string name;
+        std::string name;
         T value;
     };
 
     explicit constexpr arg(std::string_view name) : name_{name} {}
+    std::string_view name() const { return name_; }
 
     template <typename T>
     constexpr with_value<T> operator=(T&& value)
@@ -48,6 +51,8 @@ struct is_arg : is_arg_impl<std::decay_t<T>> {
 template <typename T>
 constexpr bool is_arg_v = is_arg<T>::value;
 
+//! @namespace arg_literals
+//! Namespace containing string literals to define arguments
 namespace arg_literals {
 
 constexpr arg operator"" _arg(const char* str, std::size_t)

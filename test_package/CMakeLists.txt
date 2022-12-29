@@ -20,6 +20,7 @@ set(SOURCES
     tests/basic_test_timeout.cpp
     tests/basic_test_functions.cpp
     tests/basic_test_named_arguments.cpp
+    tests/basic_test_default_arguments.cpp
     tests/basic_test_dispatcher.cpp
     tests/basic_test_end_of_work.cpp
     tests/basic_test_special_callables.cpp

@@ -11,11 +11,13 @@ The project is hosted on [GitHub](https://github.com/qchateau/packio/) and avail
 
 #include <packio/packio.h>
 
+using packio::allow_extra_arguments;
 using packio::arg;
 using packio::nl_json_rpc::completion_handler;
 using packio::nl_json_rpc::make_client;
 using packio::nl_json_rpc::make_server;
 using packio::nl_json_rpc::rpc;
+using namespace packio::arg_literals;
 
 int main(int, char**)
 {
@@ -31,9 +33,13 @@ int main(int, char**)
     // Declare a synchronous callback with named arguments
     server->dispatcher()->add(
         "add", {"a", "b"}, [](int a, int b) { return a + b; });
-    // Declare an asynchronous callback with named arguments
+    // Declare an asynchronous callback with named arguments,
+    // an argument with a default value and an option to
+    // accept and discard extra arguments
     server->dispatcher()->add_async(
-        "multiply", {"a", "b"}, [&io](completion_handler complete, int a, int b) {
+        "multiply",
+        {allow_extra_arguments, "a", "b"_arg = 2},
+        [&io](completion_handler complete, int a, int b) {
             // Call the completion handler later
             packio::net::post(
                 io, [a, b, complete = std::move(complete)]() mutable {
@@ -54,10 +60,11 @@ int main(int, char**)
     std::thread thread{[&] { io.run(); }};
 
     // Make an asynchronous call with named arguments
+    // using either `packio::arg` or `packio::arg_literals`
     std::promise<int> add1_result, multiply_result;
     client->async_call(
         "add",
-        std::tuple{arg("a") = 42, arg("b") = 24},
+        std::tuple{arg("a") = 42, "b"_arg = 24},
         [&](packio::error_code, const rpc::response_type& r) {
             add1_result.set_value(r.result.get<int>());
         });
@@ -124,6 +131,7 @@ If you're not using the conan package, `packio` will try to auto-detect whether 
 ### Boost before 1.75
 
 If you're using the conan package with a boost version older than 1.75, you need to manually disable `Boost.Json` with the options `boost_json=False`.
+`Boost.Json` version 1.75 contains some bugs when using C-strings as arguments so I'd recommend at using at least version 1.76.
 
 ## Tested compilers
 

@@ -104,7 +104,12 @@ private:
                     PACKIO_TRACE("read: {}", length);
                     parser.buffer_consumed(length);
 
-                    while (auto request = parser.get_request()) {
+                    while (true) {
+                        auto request = parser.get_request();
+                        if (!request) {
+                            PACKIO_INFO("stop reading: {}", request.error());
+                            break;
+                        }
                         // handle the call asynchronously (post)
                         // to schedule the next read immediately
                         // this will allow parallel call handling
@@ -141,7 +146,7 @@ private:
         }
         else {
             PACKIO_DEBUG("unknown function {}", request.method);
-            handler.set_error("Unknown function");
+            handler.set_error("unknown function");
         }
     }
 

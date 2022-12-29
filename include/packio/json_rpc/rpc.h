@@ -5,12 +5,15 @@
 #ifndef PACKIO_JSON_RPC_RPC_H
 #define PACKIO_JSON_RPC_RPC_H
 
+#include <array>
 #include <queue>
 
 #include <boost/json.hpp>
 
 #include "../arg.h"
+#include "../args_specs.h"
 #include "../internal/config.h"
+#include "../internal/expected.h"
 #include "../internal/log.h"
 #include "../internal/rpc.h"
 #include "converters.h"
@@ -29,6 +32,8 @@ constexpr bool named_args_v = sizeof...(Args) > 0 && (is_arg_v<Args> && ...);
 using id_type = boost::json::value;
 using native_type = boost::json::value;
 using string_type = boost::json::string;
+using packio::internal::expected;
+using packio::internal::unexpected;
 
 //! The object representing a client request
 struct request {
@@ -54,20 +59,20 @@ public:
         parser_->reset();
     }
 
-    std::optional<request> get_request()
+    expected<request, std::string> get_request()
     {
         if (parsed_.empty()) {
-            return std::nullopt;
+            return unexpected{"no request parsed"};
         }
         auto object = std::move(parsed_.front());
         parsed_.pop();
         return parse_request(std::move(object.as_object()));
     }
 
-    std::optional<response> get_response()
+    expected<response, std::string> get_response()
     {
         if (parsed_.empty()) {
-            return std::nullopt;
+            return unexpected{"no response parsed"};
         }
         auto object = std::move(parsed_.front());
         parsed_.pop();
@@ -103,71 +108,66 @@ public:
     }
 
 private:
-    static std::optional<response> parse_response(boost::json::object&& res)
+    static expected<response, std::string> parse_response(boost::json::object&& res)
     {
         auto id_it = res.find("id");
         auto result_it = res.find("result");
         auto error_it = res.find("error");
 
         if (id_it == res.end()) {
-            PACKIO_ERROR("missing id field");
-            return std::nullopt;
+            return unexpected{"missing id field"};
         }
         if (result_it == res.end() && error_it == res.end()) {
-            PACKIO_ERROR("missing error and result field");
-            return std::nullopt;
+            return unexpected{"missing error and result field"};
         }
 
-        std::optional<response> parsed{std::in_place};
-        parsed->id = std::move(id_it->value());
+        response parsed;
+        parsed.id = std::move(id_it->value());
         if (error_it != res.end()) {
-            parsed->error = std::move(error_it->value());
+            parsed.error = std::move(error_it->value());
         }
         if (result_it != res.end()) {
-            parsed->result = std::move(result_it->value());
+            parsed.result = std::move(result_it->value());
         }
-        return parsed;
+        return {std::move(parsed)};
     }
 
-    static std::optional<request> parse_request(boost::json::object&& req)
+    static expected<request, std::string> parse_request(boost::json::object&& req)
     {
         auto id_it = req.find("id");
         auto method_it = req.find("method");
         auto params_it = req.find("params");
 
         if (method_it == req.end()) {
-            PACKIO_ERROR("missing method field");
-            return std::nullopt;
+            return unexpected{"missing method field"};
         }
         if (!method_it->value().is_string()) {
-            PACKIO_ERROR("method field is not a string");
-            return std::nullopt;
+            return unexpected{"method field is not a string"};
         }
 
-        std::optional<request> parsed{std::in_place};
-        parsed->method = std::string{
+        request parsed;
+        parsed.method = std::string{
             method_it->value().get_string().data(),
             method_it->value().get_string().size(),
         };
         if (params_it == req.end() || params_it->value().is_null()) {
-            parsed->args = boost::json::array{};
+            parsed.args = boost::json::array{};
         }
         else if (!params_it->value().is_array() && !params_it->value().is_object()) {
-            PACKIO_ERROR("non-structured arguments are not supported");
-            return std::nullopt;
+            return unexpected{"non-structured arguments are not supported"};
         }
         else {
-            parsed->args = std::move(params_it->value());
+            parsed.args = std::move(params_it->value());
         }
 
         if (id_it == req.end() || id_it->value().is_null()) {
-            parsed->type = call_type::notification;
+            parsed.type = call_type::notification;
         }
         else {
-            parsed->type = call_type::request;
-            parsed->id = std::move(id_it->value());
+            parsed.type = call_type::request;
+            parsed.id = std::move(id_it->value());
         }
-        return parsed;
+        return {std::move(parsed)};
     }
 
     std::vector<char> buffer_;
@@ -292,7 +292,7 @@ public:
         auto res = boost::json::serialize(boost::json::object({
             {"jsonrpc", "2.0"},
             {"id", id},
-            {"result", std::forward<T>(value)},
+            {"result", boost::json::value_from(std::forward<T>(value))},
         }));
         PACKIO_TRACE("response: " + res);
         return res;
@@ -314,7 +314,7 @@ public:
                      error["message"] = error["data"];
                  }
                  else {
-                     error["message"] = "Unknown error";
+                     error["message"] = "unknown error";
                  }
                  return error;
              }()},
@@ -328,72 +328,117 @@ public:
         return net::const_buffer(buf.data(), buf.size());
     }
 
-    template <typename T, typename NamesContainer>
-    static std::optional<T> extract_args(
+    template <typename T, typename F>
+    static internal::expected<T, std::string> extract_args(
         boost::json::value&& args,
-        const NamesContainer& names)
+        const args_specs<F>& specs)
     {
         try {
             if (args.is_array()) {
-                if (args.get_array().size() != std::tuple_size_v<T>) {
-                    // keep this check otherwise the converter
-                    // may silently drop arguments
-                    PACKIO_WARN(
-                        "cannot convert args: wrong number of arguments");
-                    return std::nullopt;
-                }
-
-                return convert_positional_args<T>(args.get_array());
+                return convert_positional_args<T>(args.get_array(), specs);
             }
             else if (args.is_object()) {
-                return convert_named_args<T>(args.get_object(), names);
+                return convert_named_args<T>(args.get_object(), specs);
             }
             else {
-                PACKIO_ERROR("arguments are not a structured type");
-                return std::nullopt;
+                throw std::runtime_error{"arguments are not a structured type"};
             }
         }
         catch (const std::exception& exc) {
-            PACKIO_WARN("cannot convert args: {}", exc.what());
-            (void)exc;
-            return std::nullopt;
+            return internal::unexpected{
+                std::string{"cannot convert arguments: "} + exc.what()};
         }
     }
 
 private:
-    template <typename T>
-    static constexpr T convert_positional_args(const boost::json::array& array)
-    {
-        return convert_positional_args<T>(
-            array, std::make_index_sequence<std::tuple_size_v<T>>());
-    }
-
-    template <typename T, std::size_t... Idxs>
+    template <typename T, typename F>
     static constexpr T convert_positional_args(
         const boost::json::array& array,
-        std::index_sequence<Idxs...>)
+        const args_specs<F>& specs)
     {
-        return {boost::json::value_to<std::tuple_element_t<Idxs, T>>(
-            array.at(Idxs))...};
+        return convert_positional_args<T>(
+            array, specs, std::make_index_sequence<args_specs<F>::size()>());
     }
 
-    template <typename T, typename NamesContainer>
+    template <typename T, typename F, std::size_t... Idxs>
+    static constexpr T convert_positional_args(
+        const boost::json::array& array,
+        const args_specs<F>& specs,
+        std::index_sequence<Idxs...>)
+    {
+        if (!specs.options().allow_extra_arguments
+            && array.size() > std::tuple_size_v<T>) {
+            throw std::runtime_error{"too many arguments"};
+        }
+        return {[&]() {
+            if (Idxs < array.size()) {
+                try {
+                    return boost::json::value_to<std::tuple_element_t<Idxs, T>>(
+                        array.at(Idxs));
+                }
+                catch (const boost::json::system_error&) {
+                    throw std::runtime_error{
+                        "invalid type for argument "
+                        + specs.template get<Idxs>().name()};
+                }
+            }
+            if (const auto& value = specs.template get<Idxs>().default_value()) {
+                return *value;
+            }
+            throw std::runtime_error{
+                "no value for argument " + specs.template get<Idxs>().name()};
+        }()...};
+    }
+
+    template <typename T, typename F>
     static constexpr T convert_named_args(
         const boost::json::object& args,
-        const NamesContainer& names)
+        const args_specs<F>& specs)
     {
         return convert_named_args<T>(
-            args, names, std::make_index_sequence<std::tuple_size_v<T>>());
+            args, specs, std::make_index_sequence<args_specs<F>::size()>());
     }
 
-    template <typename T, typename NamesContainer, std::size_t... Idxs>
+    template <typename T, typename F, std::size_t... Idxs>
     static constexpr T convert_named_args(
         const boost::json::object& args,
-        const NamesContainer& names,
+        const args_specs<F>& specs,
         std::index_sequence<Idxs...>)
     {
-        return T{boost::json::value_to<std::tuple_element_t<Idxs, T>>(
-            args.at(names.at(Idxs)))...};
+        if (!specs.options().allow_extra_arguments) {
+            const std::array<const std::string*, sizeof...(Idxs)>
+                available_arguments = {&specs.template get<Idxs>().name()...};
+            for (const auto& item : args) {
+                auto it = std::find_if(
+                    available_arguments.begin(),
+                    available_arguments.end(),
+                    [&](const std::string* arg) { return *arg == item.key(); });
+                if (it == available_arguments.end()) {
+                    throw std::runtime_error{
+                        "unexpected argument " + std::string(item.key())};
+                }
+            }
+        }
+
+        return T{[&]() {
+            auto it = args.find(specs.template get<Idxs>().name());
+            if (it != args.end()) {
+                try {
+                    return boost::json::value_to<std::tuple_element_t<Idxs, T>>(
+                        it->value());
+                }
+                catch (const boost::json::system_error&) {
+                    throw std::runtime_error{
+                        "invalid type for argument "
+                        + specs.template get<Idxs>().name()};
+                }
+            }
+            if (const auto& value = specs.template get<Idxs>().default_value()) {
+                return *value;
+            }
+            throw std::runtime_error{
+                "no value for argument " + specs.template get<Idxs>().name()};
+        }()...};
     }
 };
 
