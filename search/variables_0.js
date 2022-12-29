@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['kdefaultbufferreservesize_156',['kDefaultBufferReserveSize',['../classpackio_1_1client.html#ad4e5a705e61a06ffa999e7c2cbf42cb2',1,'packio::client::kDefaultBufferReserveSize()'],['../classpackio_1_1server__session.html#abda9254cbf38a8b0644b3603e55b2c15',1,'packio::server_session::kDefaultBufferReserveSize()']]]
+  ['allow_5fextra_5farguments_169',['allow_extra_arguments',['../namespacepackio.html#acfad98abff4119d55e7ba72bba9a6e3f',1,'packio']]]
 ];

@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['zone_157',['zone',['../structpackio_1_1msgpack__rpc_1_1internal_1_1request.html#ad05950fc46bacf68d602e20f83f4d64d',1,'packio::msgpack_rpc::internal::request::zone()'],['../structpackio_1_1msgpack__rpc_1_1internal_1_1response.html#ab86f414bf7f829e328923e78c77936be',1,'packio::msgpack_rpc::internal::response::zone()']]]
+  ['kdefaultbufferreservesize_170',['kDefaultBufferReserveSize',['../classpackio_1_1client.html#ad4e5a705e61a06ffa999e7c2cbf42cb2',1,'packio::client::kDefaultBufferReserveSize()'],['../classpackio_1_1server__session.html#abda9254cbf38a8b0644b3603e55b2c15',1,'packio::server_session::kDefaultBufferReserveSize()']]]
 ];

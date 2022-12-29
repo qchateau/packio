@@ -74,11 +74,13 @@ $(function() {
 <div class="line"> </div>
 <div class="line"><span class="preprocessor">#include &lt;<a class="code" href="packio_8h.html">packio/packio.h</a>&gt;</span></div>
 <div class="line"> </div>
-<div class="line"><span class="keyword">using</span> packio::arg;</div>
+<div class="line"><span class="keyword">using</span> <a class="code" href="namespacepackio.html#acfad98abff4119d55e7ba72bba9a6e3f">packio::allow_extra_arguments</a>;</div>
+<div class="line"><span class="keyword">using</span> <a class="code" href="classpackio_1_1arg.html">packio::arg</a>;</div>
 <div class="line"><span class="keyword">using</span> <a class="code" href="namespacepackio_1_1nl__json__rpc.html#a00239c9c3a310e25dc8641e5056815e9">packio::nl_json_rpc::completion_handler</a>;</div>
 <div class="line"><span class="keyword">using</span> <a class="code" href="namespacepackio_1_1nl__json__rpc.html#a5e5b0abe3f0dbfc17fbd5d217df6b5e2">packio::nl_json_rpc::make_client</a>;</div>
 <div class="line"><span class="keyword">using</span> <a class="code" href="namespacepackio_1_1nl__json__rpc.html#a55f9e2c9a4b823f4b1147413636c1e10">packio::nl_json_rpc::make_server</a>;</div>
 <div class="line"><span class="keyword">using</span> <a class="code" href="classpackio_1_1nl__json__rpc_1_1rpc.html">packio::nl_json_rpc::rpc</a>;</div>
+<div class="line"><span class="keyword">using namespace </span>packio::arg_literals;</div>
 <div class="line"> </div>
 <div class="line"><span class="keywordtype">int</span> main(<span class="keywordtype">int</span>, <span class="keywordtype">char</span>**)</div>
 <div class="line">{</div>
@@ -94,9 +96,13 @@ $(function() {
 <div class="line">    <span class="comment">// Declare a synchronous callback with named arguments</span></div>
 <div class="line">    <a class="code" href="namespacepackio_1_1json__rpc.html#a74aa78a5caec6991cc69186fd2d09e3d">server</a>-&gt;dispatcher()-&gt;add(</div>
 <div class="line">        <span class="stringliteral">&quot;add&quot;</span>, {<span class="stringliteral">&quot;a&quot;</span>, <span class="stringliteral">&quot;b&quot;</span>}, [](<span class="keywordtype">int</span> a, <span class="keywordtype">int</span> b) { <span class="keywordflow">return</span> a + b; });</div>
-<div class="line">    <span class="comment">// Declare an asynchronous callback with named arguments</span></div>
+<div class="line">    <span class="comment">// Declare an asynchronous callback with named arguments,</span></div>
+<div class="line">    <span class="comment">// an argument with a default value and an option to</span></div>
+<div class="line">    <span class="comment">// accept and discard extra arguments</span></div>
 <div class="line">    <a class="code" href="namespacepackio_1_1json__rpc.html#a74aa78a5caec6991cc69186fd2d09e3d">server</a>-&gt;dispatcher()-&gt;add_async(</div>
-<div class="line">        <span class="stringliteral">&quot;multiply&quot;</span>, {<span class="stringliteral">&quot;a&quot;</span>, <span class="stringliteral">&quot;b&quot;</span>}, [&amp;io](<a class="code" href="namespacepackio_1_1json__rpc.html#acba160986fa0686f29de273c8501a49f">completion_handler</a> complete, <span class="keywordtype">int</span> a, <span class="keywordtype">int</span> b) {</div>
+<div class="line">        <span class="stringliteral">&quot;multiply&quot;</span>,</div>
+<div class="line">        {<a class="code" href="namespacepackio.html#acfad98abff4119d55e7ba72bba9a6e3f">allow_extra_arguments</a>, <span class="stringliteral">&quot;a&quot;</span>, <span class="stringliteral">&quot;b&quot;</span>_arg = 2},</div>
+<div class="line">        [&amp;io](<a class="code" href="namespacepackio_1_1json__rpc.html#acba160986fa0686f29de273c8501a49f">completion_handler</a> complete, <span class="keywordtype">int</span> a, <span class="keywordtype">int</span> b) {</div>
 <div class="line">            <span class="comment">// Call the completion handler later</span></div>
 <div class="line">            packio::net::post(</div>
 <div class="line">                io, [a, b, complete = std::move(complete)]() <span class="keyword">mutable</span> {</div>
@@ -117,10 +123,11 @@ $(function() {
 <div class="line">    std::thread thread{[&amp;] { io.run(); }};</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Make an asynchronous call with named arguments</span></div>
+<div class="line">    <span class="comment">// using either `packio::arg` or `packio::arg_literals`</span></div>
 <div class="line">    std::promise&lt;int&gt; add1_result, multiply_result;</div>
 <div class="line">    <a class="code" href="namespacepackio_1_1json__rpc.html#a6df79e8d6fbdd3ddc305f04fcc945d4a">client</a>-&gt;async_call(</div>
 <div class="line">        <span class="stringliteral">&quot;add&quot;</span>,</div>
-<div class="line">        std::tuple{arg(<span class="stringliteral">&quot;a&quot;</span>) = 42, arg(<span class="stringliteral">&quot;b&quot;</span>) = 24},</div>
+<div class="line">        std::tuple{arg(<span class="stringliteral">&quot;a&quot;</span>) = 42, <span class="stringliteral">&quot;b&quot;</span>_arg = 24},</div>
 <div class="line">        [&amp;](packio::error_code, <span class="keyword">const</span> rpc::response_type&amp; r) {</div>
 <div class="line">            add1_result.set_value(r.result.get&lt;<span class="keywordtype">int</span>&gt;());</div>
 <div class="line">        });</div>
@@ -151,7 +158,8 @@ $(function() {
 <div class="line"> </div>
 <div class="line">    <span class="keywordflow">return</span> 0;</div>
 <div class="line">}</div>
-<div class="ttc" id="aclasspackio_1_1nl__json__rpc_1_1rpc_html"><div class="ttname"><a href="classpackio_1_1nl__json__rpc_1_1rpc.html">packio::nl_json_rpc::rpc</a></div><div class="ttdoc">The JSON-RPC protocol implementation.</div><div class="ttdef"><b>Definition:</b> rpc.h:174</div></div>
+<div class="ttc" id="aclasspackio_1_1arg_html"><div class="ttname"><a href="classpackio_1_1arg.html">packio::arg</a></div><div class="ttdoc">A named argument.</div><div class="ttdef"><b>Definition:</b> arg.h:17</div></div>
+<div class="ttc" id="aclasspackio_1_1nl__json__rpc_1_1rpc_html"><div class="ttname"><a href="classpackio_1_1nl__json__rpc_1_1rpc.html">packio::nl_json_rpc::rpc</a></div><div class="ttdoc">The JSON-RPC protocol implementation.</div><div class="ttdef"><b>Definition:</b> rpc.h:173</div></div>
 <div class="ttc" id="anamespacepackio_1_1json__rpc_html_a6df79e8d6fbdd3ddc305f04fcc945d4a"><div class="ttname"><a href="namespacepackio_1_1json__rpc.html#a6df79e8d6fbdd3ddc305f04fcc945d4a">packio::json_rpc::client</a></div><div class="ttdeci">::packio::client&lt; rpc, Socket, Map &gt; client</div><div class="ttdoc">The client for JSON-RPC.</div><div class="ttdef"><b>Definition:</b> json_rpc.h:31</div></div>
 <div class="ttc" id="anamespacepackio_1_1json__rpc_html_a74aa78a5caec6991cc69186fd2d09e3d"><div class="ttname"><a href="namespacepackio_1_1json__rpc.html#a74aa78a5caec6991cc69186fd2d09e3d">packio::json_rpc::server</a></div><div class="ttdeci">::packio::server&lt; rpc, Acceptor, Dispatcher &gt; server</div><div class="ttdoc">The server for JSON-RPC.</div><div class="ttdef"><b>Definition:</b> json_rpc.h:42</div></div>
 <div class="ttc" id="anamespacepackio_1_1json__rpc_html_acba160986fa0686f29de273c8501a49f"><div class="ttname"><a href="namespacepackio_1_1json__rpc.html#acba160986fa0686f29de273c8501a49f">packio::json_rpc::completion_handler</a></div><div class="ttdeci">completion_handler&lt; rpc &gt; completion_handler</div><div class="ttdoc">The completion_handler for JSON-RPC.</div><div class="ttdef"><b>Definition:</b> json_rpc.h:23</div></div>
@@ -159,7 +167,8 @@ $(function() {
 <div class="ttc" id="anamespacepackio_1_1nl__json__rpc_html_a55f9e2c9a4b823f4b1147413636c1e10"><div class="ttname"><a href="namespacepackio_1_1nl__json__rpc.html#a55f9e2c9a4b823f4b1147413636c1e10">packio::nl_json_rpc::make_server</a></div><div class="ttdeci">auto make_server(Acceptor &amp;&amp;acceptor)</div><div class="ttdoc">The make_server function for JSON-RPC.</div><div class="ttdef"><b>Definition:</b> nl_json_rpc.h:46</div></div>
 <div class="ttc" id="anamespacepackio_1_1nl__json__rpc_html_a5e5b0abe3f0dbfc17fbd5d217df6b5e2"><div class="ttname"><a href="namespacepackio_1_1nl__json__rpc.html#a5e5b0abe3f0dbfc17fbd5d217df6b5e2">packio::nl_json_rpc::make_client</a></div><div class="ttdeci">auto make_client(Socket &amp;&amp;socket)</div><div class="ttdoc">The make_client function for JSON-RPC.</div><div class="ttdef"><b>Definition:</b> nl_json_rpc.h:35</div></div>
 <div class="ttc" id="anamespacepackio_html_a4944e82d7f3dd2ee989a49d928cef3d3"><div class="ttname"><a href="namespacepackio.html#a4944e82d7f3dd2ee989a49d928cef3d3">packio::make_server</a></div><div class="ttdeci">auto make_server(Acceptor &amp;&amp;acceptor)</div><div class="ttdoc">Create a server from an acceptor.</div><div class="ttdef"><b>Definition:</b> server.h:150</div></div>
-<div class="ttc" id="anamespacepackio_html_a5a73a8453d35e9f6f0c29e9b87e93490"><div class="ttname"><a href="namespacepackio.html#a5a73a8453d35e9f6f0c29e9b87e93490">packio::make_client</a></div><div class="ttdeci">auto make_client(Socket &amp;&amp;socket)</div><div class="ttdoc">Create a client from a socket.</div><div class="ttdef"><b>Definition:</b> client.h:467</div></div>
+<div class="ttc" id="anamespacepackio_html_a5a73a8453d35e9f6f0c29e9b87e93490"><div class="ttname"><a href="namespacepackio.html#a5a73a8453d35e9f6f0c29e9b87e93490">packio::make_client</a></div><div class="ttdeci">auto make_client(Socket &amp;&amp;socket)</div><div class="ttdoc">Create a client from a socket.</div><div class="ttdef"><b>Definition:</b> client.h:472</div></div>
+<div class="ttc" id="anamespacepackio_html_acfad98abff4119d55e7ba72bba9a6e3f"><div class="ttname"><a href="namespacepackio.html#acfad98abff4119d55e7ba72bba9a6e3f">packio::allow_extra_arguments</a></div><div class="ttdeci">constexpr auto allow_extra_arguments</div><div class="ttdoc">Option to allo extra arguments, ignoring them.</div><div class="ttdef"><b>Definition:</b> args_specs.h:181</div></div>
 <div class="ttc" id="apackio_8h_html"><div class="ttname"><a href="packio_8h.html">packio.h</a></div><div class="ttdoc">Main include file.</div></div>
 </div><!-- fragment --><h1>Requirements</h1>
 <ul>
@@ -184,7 +193,7 @@ $(function() {
 <p>If you're using the conan package, use the associated options instead, conan will define these macros accordingly.</p>
 <p>If you're not using the conan package, <code>packio</code> will try to auto-detect whether these components are available on your system. Define the macros to the appropriate value if you encounter any issue.</p>
 <h2>Boost before 1.75</h2>
-<p>If you're using the conan package with a boost version older than 1.75, you need to manually disable <code>Boost.Json</code> with the options <code>boost_json=False</code>.</p>
+<p>If you're using the conan package with a boost version older than 1.75, you need to manually disable <code>Boost.Json</code> with the options <code>boost_json=False</code>. <code>Boost.Json</code> version 1.75 contains some bugs when using C-strings as arguments so I'd recommend at using at least version 1.76.</p>
 <h1>Tested compilers</h1>
 <ul>
 <li>gcc-9</li>
