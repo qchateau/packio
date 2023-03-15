@@ -6,6 +6,7 @@
 #define PACKIO_NL_JSON_RPC_RPC_H
 
 #include <array>
+#include <optional>
 
 #include <nlohmann/json.hpp>
 

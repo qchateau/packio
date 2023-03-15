@@ -15,6 +15,7 @@
 #include <queue>
 #include <string_view>
 #include <type_traits>
+#include <optional>
 
 #include "internal/config.h"
 #include "internal/manual_strand.h"
