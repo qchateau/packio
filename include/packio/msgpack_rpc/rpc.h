@@ -5,6 +5,8 @@
 #ifndef PACKIO_MSGPACK_RPC_RPC_H
 #define PACKIO_MSGPACK_RPC_RPC_H
 
+#include <optional>
+
 #include <msgpack.hpp>
 
 #include "../arg.h"
