@@ -23,7 +23,8 @@ std::tuple<Args...> json_to_tuple(
 } // json_rpc
 } // packio
 
-BOOST_JSON_NS_BEGIN
+namespace boost {
+namespace json {
 
 template <typename... Args>
 std::tuple<Args...> tag_invoke(value_to_tag<std::tuple<Args...>>, const value& jv)
@@ -40,6 +41,7 @@ void tag_invoke(value_from_tag, value& jv, CStr&& from)
     jv.emplace_string().assign(std::forward<CStr>(from));
 }
 
-BOOST_JSON_NS_END
+} // json
+} // boost
 
 #endif // PACKIO_JSON_RPC_CONVERTERS_H
