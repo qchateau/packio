@@ -24,5 +24,20 @@ TYPED_TEST(BasicTest, test_server_crash)
     this->connect();
 
     auto f = this->client_->async_call("close", use_future);
-    EXPECT_FUTURE_THROW(f, std::exception);
+    try {
+        f.get();
+        EXPECT_FALSE(true) << "future did not throw as expected";
+    }
+    catch (std::exception const& exc) {
+        auto const* system_exc = dynamic_cast<system_error const*>(&exc);
+        ASSERT_NE(system_exc, nullptr) << "exception was not a system_error";
+        if constexpr (std::is_same_v<
+                          typename BasicTest<TypeParam>::socket_type,
+                          test_client_ssl_stream>) {
+            EXPECT_EQ(system_exc->code(), net::ssl::error::stream_truncated);
+        }
+        else {
+            EXPECT_EQ(system_exc->code(), net::error::eof);
+        }
+    }
 }

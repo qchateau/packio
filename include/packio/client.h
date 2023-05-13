@@ -190,16 +190,17 @@ private:
     using async_call_handler_type =
         internal::movable_function<void(error_code, response_type)>;
 
-    void close()
+    void close(error_code ec)
     {
-        net::dispatch(strand_, [self = shared_from_this()] {
-            auto ec = make_error_code(net::error::operation_aborted);
+        net::dispatch(strand_, [self = shared_from_this(), ec] {
             while (!self->pending_.empty()) {
                 self->async_call_handler(self->pending_.begin()->first, ec, {});
             }
-            self->socket_.close(ec);
-            if (ec) {
-                PACKIO_WARN("close failed: {}", ec.message());
+
+            error_code close_ec;
+            self->socket_.close(close_ec);
+            if (close_ec) {
+                PACKIO_WARN("close failed: {}", close_ec.message());
             }
         });
     }
@@ -264,7 +265,7 @@ private:
                         PACKIO_WARN("read error: {}", ec.message());
                         self->reading_ = false;
                         if (ec != net::error::operation_aborted)
-                            self->close();
+                            self->close(ec);
                         return;
                     }
 
@@ -368,7 +369,7 @@ private:
                         PACKIO_WARN("write error: {}", ec.message());
                         handler(ec);
                         if (ec != net::error::operation_aborted)
-                            self->close();
+                            self->close(ec);
                         return;
                     }
 
@@ -440,7 +441,7 @@ private:
                             if (ec) {
                                 PACKIO_WARN("write error: {}", ec.message());
                                 if (ec != net::error::operation_aborted)
-                                    self->close();
+                                    self->close(ec);
                                 return;
                             }
 
