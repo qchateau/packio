@@ -143,6 +143,7 @@ def test_linux():
     builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"boost": "1.78.0"})
     builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"boost": "1.79.0"})
     builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"boost": "1.80.0"})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"boost": "1.81.0"})
 
     # Test supported asio versions, with C++20 and coroutines from 1.17.0
     builder.add(compiler=GCC, compiler_version="12", cppstd="17", options={"asio": "1.13.0", "packio:standalone_asio": True})
@@ -156,6 +157,8 @@ def test_linux():
     builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"asio": "1.22.1", "packio:standalone_asio": True})
     builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"asio": "1.23.0", "packio:standalone_asio": True})
     builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"asio": "1.24.0", "packio:standalone_asio": True})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"asio": "1.26.0", "packio:standalone_asio": True})
+    builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"asio": "1.27.0", "packio:standalone_asio": True})
 
     # Test logs and debug build
     builder.add(compiler=GCC, compiler_version="12", cppstd="20", options={"loglevel": "trace"}, build_type="Debug")
