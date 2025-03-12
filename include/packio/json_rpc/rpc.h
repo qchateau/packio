@@ -376,7 +376,7 @@ private:
                     return boost::json::value_to<std::tuple_element_t<Idxs, T>>(
                         array.at(Idxs));
                 }
-                catch (const boost::json::system_error&) {
+                catch (const boost::system::system_error&) {
                     throw std::runtime_error{
                         "invalid type for argument "
                         + specs.template get<Idxs>().name()};
@@ -427,7 +427,7 @@ private:
                     return boost::json::value_to<std::tuple_element_t<Idxs, T>>(
                         it->value());
                 }
-                catch (const boost::json::system_error&) {
+                catch (const boost::system::system_error&) {
                     throw std::runtime_error{
                         "invalid type for argument "
                         + specs.template get<Idxs>().name()};
